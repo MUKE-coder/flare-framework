@@ -1,9 +1,8 @@
-import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parse as parseJsonc } from "jsonc-parser";
 import pc from "picocolors";
+import { readD1Databases, runWrangler, type D1Database } from "../utils/wrangler.js";
 
 /**
  * `flare deploy` = migrations + `vinext-cloudflare deploy` + secrets.
@@ -50,19 +49,6 @@ export function parseDeployArgs(args: string[]): DeployArgs {
   return { forwarded, skipMigrations, skipSecrets, env, passthroughOnly };
 }
 
-export interface D1Database {
-  binding: string;
-  database_name: string;
-  migrations_dir?: string;
-}
-
-export function readD1Databases(appRoot: string): D1Database[] {
-  const path = join(appRoot, "wrangler.jsonc");
-  if (!existsSync(path)) return [];
-  const config = parseJsonc(readFileSync(path, "utf8")) as { d1_databases?: D1Database[] } | undefined;
-  return (config?.d1_databases ?? []).filter((db) => db.binding && db.database_name);
-}
-
 /** Secret names from `wrangler secret list` output (a JSON array, possibly after a banner). */
 export function parseSecretNames(output: string): string[] {
   const start = output.indexOf("[");
@@ -77,27 +63,6 @@ export function declaredSecretNames(devVarsExample: string): string[] {
     .split(/\r?\n/)
     .map((line) => /^([A-Z][A-Z0-9_]*)=/.exec(line.trim())?.[1])
     .filter((name): name is string => Boolean(name));
-}
-
-interface Captured {
-  code: number;
-  output: string;
-}
-
-function runWrangler(wranglerBin: string, args: string[], cwd: string, options: { capture?: boolean; stdin?: string } = {}) {
-  return new Promise<Captured>((resolve, reject) => {
-    const child = spawn(process.execPath, [wranglerBin, ...args], {
-      cwd,
-      // No TTY on stdin: wrangler uses its non-interactive defaults instead of prompting.
-      stdio: [options.stdin !== undefined ? "pipe" : "ignore", options.capture ? "pipe" : "inherit", options.capture ? "pipe" : "inherit"],
-    });
-    let output = "";
-    child.stdout?.on("data", (chunk) => (output += chunk));
-    child.stderr?.on("data", (chunk) => (output += chunk));
-    if (options.stdin !== undefined) child.stdin!.end(options.stdin);
-    child.on("error", reject);
-    child.on("exit", (code) => resolve({ code: code ?? 1, output }));
-  });
 }
 
 export interface DeployContext {

@@ -42,7 +42,7 @@ forged cookie), and again after a redeploy.
 - [x] `flare gen resource <Name> --fields "..."` parses the field grammar (including `file:[image,pdf,...]`)
 - [x] Generator emits: Drizzle schema, D1 migration, Zod validators, REST/RPC route handlers, typed client
 - [x] `belongsTo` / `hasMany` relations generate correct FK columns and inverse relation metadata
-- [ ] `flare migrate` / `flare migrate:rollback` work against the generated migrations
+- [x] `flare migrate` / `flare migrate:rollback` work against the generated migrations
 - [ ] `flare seed` / `flare seed:make <name>` scaffold and run seed files
 - [ ] `flare sync-types` regenerates validators/client from schema and flags drift on hand-edited generated files
 - [ ] Implement the `// generated:start` / `// generated:end` marker convention so re-running `gen resource` preserves hand-written code outside those blocks

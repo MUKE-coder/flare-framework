@@ -121,8 +121,29 @@ stable compiler API yet, which tsup's declaration build needs.
 - Local state must live in one place: the app's `start` script passes
   `--persist-to .wrangler/state`, otherwise `wrangler dev` against the built
   output uses `dist/server/.wrangler` and never sees locally applied migrations.
-- D1 has no native down-migrations. `flare migrate:rollback` (Phase M1) must
-  track and run its own down SQL.
+- D1 has no native down-migrations, so Flare runs its own (below).
+
+### Migrations (as built)
+
+- `flare migrate [--remote] [--env X] [--database BINDING]` runs
+  `wrangler d1 migrations apply` (local by default; the local state is shared with
+  `flare dev`/`flare start`).
+- `flare migrate:rollback [--steps N] [--remote --yes]`:
+  1. Reads the last N rows of `d1_migrations`.
+  2. Resolves every down script **before** changing anything. A hand-written
+     `migrations/down/<name>.sql` wins (wrangler ignores subfolders, so down files
+     are never applied as up migrations). Otherwise the down is derived from the
+     up SQL: `CREATE TABLE/INDEX/VIEW/TRIGGER` → `DROP … IF EXISTS`, renames
+     reversed, `ADD COLUMN` → `DROP COLUMN` (unless it has REFERENCES/UNIQUE/PK,
+     which SQLite can't drop), all in reverse order.
+  3. Any other statement (table rebuilds, UPDATE/INSERT, DROP) makes the
+     migration irreversible. Rollback refuses with the blocking statement and the
+     down file to write.
+  4. Runs the downs plus `DELETE FROM d1_migrations WHERE name = …` in one
+     `wrangler d1 execute --file`.
+  5. Prints the plan first. Remote rollbacks require `--yes`.
+- Rolled-back migration files stay on disk (Rails-style). Edit or delete them,
+  then `flare migrate` again.
 
 ### Auth wiring (as built)
 

@@ -2,6 +2,7 @@ import { cac } from "cac";
 import { FLARE_VERSION } from "@flare/core";
 import { createApp, printNextSteps } from "./commands/create.js";
 import { genResource } from "./commands/gen.js";
+import { migrate, rollback } from "./commands/migrate.js";
 import { DELEGATED_COMMANDS } from "./commands/run.js";
 
 export function createCli() {
@@ -26,6 +27,26 @@ export function createCli() {
     .action((generator: string, name: string, options: { fields?: string }) => {
       if (generator !== "resource") throw new Error(`Unknown generator "${generator}". Available: resource.`);
       return genResource(name, { fields: options.fields });
+    });
+
+  cli
+    .command("migrate", "Apply pending D1 migrations (local database unless --remote)")
+    .option("--remote", "Target the deployed database")
+    .option("--env <name>", "Wrangler environment")
+    .option("--database <binding>", "D1 binding, when the app has several")
+    .action(async (options: { remote?: boolean; env?: string; database?: string }) => {
+      process.exitCode = await migrate(options);
+    });
+
+  cli
+    .command("migrate:rollback", "Undo the most recently applied migrations")
+    .option("--steps <n>", "How many migrations to roll back", { default: 1 })
+    .option("--remote", "Target the deployed database (requires --yes)")
+    .option("--yes", "Confirm a remote rollback")
+    .option("--env <name>", "Wrangler environment")
+    .option("--database <binding>", "D1 binding, when the app has several")
+    .action(async (options: { steps: number | string; remote?: boolean; yes?: boolean; env?: string; database?: string }) => {
+      process.exitCode = await rollback({ ...options, steps: Number(options.steps) });
     });
 
   // Handled before parsing in index.ts (arguments are forwarded verbatim); registered here for --help.
