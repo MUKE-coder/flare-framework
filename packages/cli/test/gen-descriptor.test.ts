@@ -78,6 +78,7 @@ describe("genResource", () => {
       "app/api/order-items/[id]/route.ts",
       "resources/order-item.client.ts",
       "resources/order-item.validators.ts",
+      "db/relations.ts",
       "resources/index.ts",
       "db/schema.ts",
     ]);

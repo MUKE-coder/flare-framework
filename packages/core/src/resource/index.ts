@@ -34,3 +34,11 @@ export {
 } from "./define.js";
 export { createValidators, fieldSchema, type ResourceValidators } from "./validators.js";
 export { camelCase, humanize, kebabCase, pascalCase, pluralize, snakeCase, words } from "./naming.js";
+export {
+  relationGraph,
+  RelationError,
+  type RelationGraph,
+  type ResourceRelations,
+  type BelongsToRelation,
+  type HasManyRelation,
+} from "./relations.js";

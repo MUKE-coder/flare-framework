@@ -6,6 +6,7 @@ import {
   renderCollectionRoute,
   renderItemRoute,
   renderRegistry,
+  renderRelations,
   renderSchemaIndex,
   renderTableModule,
 } from "../src/generator/render.js";
@@ -97,6 +98,52 @@ describe("route, client, and registry rendering", () => {
 
   it("renders the registry and schema index in a stable order", () => {
     expect(renderRegistry(all)).toContain("export const resources = [companyResource, contactResource] as const;");
-    expect(renderSchemaIndex([contact, company])).toBe('export * from "./schema/companies";\nexport * from "./schema/contacts";\n');
+    expect(renderSchemaIndex([contact, company])).toBe(
+      'export * from "./schema/companies";\nexport * from "./schema/contacts";\nexport * from "./relations";\n',
+    );
+    expect(renderSchemaIndex([])).toBe("");
+  });
+
+  it("renders relations for both sides with a shared relationName", () => {
+    const deal = loaded(
+      defineResource({
+        name: "Deal",
+        fields: {
+          title: field.string(),
+          companyId: field.belongsTo("Company"),
+          ownerId: field.belongsTo("Contact", { required: false, onDelete: "set null" }),
+          reviewerId: field.belongsTo("Contact", { required: false, onDelete: "set null" }),
+        },
+      }),
+      "deal",
+    );
+    const companyWithDeals = loaded(
+      defineResource({ name: "Company", fields: { name: field.string(), deals: field.hasMany("Deal") } }),
+      "company",
+    );
+    const owner = loaded(
+      defineResource({ name: "Contact", fields: { name: field.string(), owned: field.hasMany("Deal", { foreignKey: "ownerId" }) } }),
+      "contact",
+    );
+    expect(renderRelations([companyWithDeals, owner, deal])).toBe(`import { relations } from "drizzle-orm";
+import { companies } from "./schema/companies";
+import { contacts } from "./schema/contacts";
+import { deals } from "./schema/deals";
+
+export const companiesRelations = relations(companies, ({ many }) => ({
+  deals: many(deals, { relationName: "deals_company_id" }),
+}));
+
+export const contactsRelations = relations(contacts, ({ many }) => ({
+  owned: many(deals, { relationName: "deals_owner_id" }),
+}));
+
+export const dealsRelations = relations(deals, ({ one }) => ({
+  company: one(companies, { fields: [deals.companyId], references: [companies.id], relationName: "deals_company_id" }),
+  owner: one(contacts, { fields: [deals.ownerId], references: [contacts.id], relationName: "deals_owner_id" }),
+  reviewer: one(contacts, { fields: [deals.reviewerId], references: [contacts.id], relationName: "deals_reviewer_id" }),
+}));
+`);
+    expect(renderRelations([company])).toBe("export {};\n");
   });
 });

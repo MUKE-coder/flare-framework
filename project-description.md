@@ -343,6 +343,27 @@ with `defineResource` before it's written.
 | `resources/contact.validators.ts` | `contactValidators` (zod, derived from the descriptor at runtime) |
 | `resources/index.ts` | Registry of all descriptors (`resources` array) for the admin and seeders |
 | `lib/api.ts` | Created once if missing: the `authorize` hook every resource API calls |
+| `db/relations.ts` | Drizzle `relations()` for every resource, regenerated from all descriptors on each gen |
+
+Relations (as built):
+- **Relation map.** `relationGraph(resources)` in `@flare/core` resolves
+  `belongsTo` (accessor = key without `Id`) and each declared `hasMany` to the
+  target's matching `belongsTo` (`foreignKey` option, default
+  `<thisResource>Id`). It's the runtime relation metadata the admin reads.
+- **Errors.** A missing belongsTo target, a hasMany whose target lacks the
+  back-reference, or a relation name colliding with a field is an error before
+  anything is written. A hasMany whose target doesn't exist yet is *pending*
+  (noted, then linked when the target is generated).
+- **One relations file.** Relations live in `db/relations.ts`, not the table
+  modules, so mutually referencing tables never import each other. Both sides
+  carry the same `relationName` (`<table>_<fk_column>`), which keeps several FKs
+  to one target unambiguous.
+- **FK columns.** Each generated FK column is indexed, with `onDelete`
+  `restrict` by default (deleting a referenced parent → 409) or `set null` for
+  optional grammar relations. Verified on D1: FKs are enforced, `set null`
+  clears children, and `db.query.<table>.findMany({ with: … })` works.
+- **Regeneration.** Every gen re-renders all table modules (unchanged ones are
+  reported as identical), plus the relations file, registry and schema index.
 
 Generated files are thin: route files call `createResourceHandlers()` from
 `@flare/core/server`, which reads the descriptor at runtime. `@flare/core` ships

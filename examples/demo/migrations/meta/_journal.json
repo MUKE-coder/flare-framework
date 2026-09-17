@@ -15,6 +15,20 @@
       "when": 1789659707018,
       "tag": "0001_create_contacts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789660129145,
+      "tag": "0002_create_companies",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1789660135356,
+      "tag": "0003_create_deals",
+      "breakpoints": true
     }
   ]
 }

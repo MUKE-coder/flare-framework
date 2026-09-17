@@ -9,6 +9,7 @@ import {
   mimeTypesFor,
   pascalCase,
   pluralize,
+  relationGraph,
   snakeCase,
   storedFields,
 } from "../src/resource/index.js";
@@ -205,5 +206,39 @@ describe("mimeTypesFor", () => {
       "image/webp",
       "image/avif",
     ]);
+  });
+});
+
+describe("relationGraph", () => {
+  const company = defineResource({ name: "Company", fields: { name: field.string(), deals: field.hasMany("Deal") } });
+  const deal = defineResource({
+    name: "Deal",
+    fields: { title: field.string(), companyId: field.belongsTo("Company", { onDelete: "cascade" }), tags: field.hasMany("Tag") },
+  });
+
+  it("resolves belongsTo and inverse hasMany, and lists pending targets", () => {
+    const graph = relationGraph([company, deal]);
+    expect(graph.byResource.Deal!.belongsTo).toEqual([
+      { key: "companyId", name: "company", target: "Company", required: true, onDelete: "cascade", relationName: "deals_company_id" },
+    ]);
+    expect(graph.byResource.Company!.hasMany).toEqual([
+      { key: "deals", target: "Deal", foreignKey: "companyId", relationName: "deals_company_id" },
+    ]);
+    expect(graph.pending).toEqual([{ resource: "Deal", key: "tags", target: "Tag" }]);
+  });
+
+  it("rejects missing belongsTo targets and hasMany without a matching belongsTo", () => {
+    expect(() => relationGraph([deal])).toThrow(/no Company resource/);
+    const orphan = defineResource({ name: "Deal", fields: { title: field.string() } });
+    expect(() => relationGraph([company, orphan])).toThrow(/Deal has no companyId: belongsTo\(Company\) field/);
+  });
+
+  it("rejects relation names that collide with fields", () => {
+    const clash = defineResource({
+      name: "Deal",
+      fields: { company: field.string(), companyId: field.belongsTo("Company") },
+    });
+    const plainCompany = defineResource({ name: "Company", fields: { name: field.string() } });
+    expect(() => relationGraph([plainCompany, clash])).toThrow(/collides with the Deal.company field/);
   });
 });

@@ -1,12 +1,13 @@
 import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { camelCase, defineResource, relationGraph } from "@flare/core";
 import pc from "picocolors";
-import { descriptorPath, renderDescriptor, resourceName } from "../generator/descriptor.js";
+import { descriptorPath, renderDescriptor, resourceName, toField } from "../generator/descriptor.js";
 import { parseFields } from "../generator/grammar.js";
 import { loadResources, type LoadedResource } from "../generator/load.js";
 import { writeGenerated, type WriteOutcome } from "../generator/markers.js";
 import { generateSchemaMigration } from "../generator/migrations.js";
-import { renderRegistry, renderSchemaIndex, resourceFiles } from "../generator/render.js";
+import { renderRegistry, renderRelations, renderSchemaIndex, resourceFiles } from "../generator/render.js";
 import { templatesDir } from "../utils/fs.js";
 import { findAppRoot } from "./run.js";
 
@@ -53,9 +54,17 @@ export function writeResourceFiles(
     log(`${color(outcome.padEnd(9))} ${path}`);
   };
 
-  for (const entry of targets) {
-    for (const file of resourceFiles(entry, all)) write(file.path, file.content, HEADER(entry.resource.name));
+  const targetNames = new Set(targets.map(({ resource }) => resource.name));
+  for (const entry of all) {
+    if (targetNames.has(entry.resource.name)) {
+      for (const file of resourceFiles(entry, all)) write(file.path, file.content, HEADER(entry.resource.name));
+    } else {
+      // Other resources' tables are re-rendered too: a new resource can change their FK imports.
+      const [table] = resourceFiles(entry, all);
+      write(table!.path, table!.content, HEADER(entry.resource.name));
+    }
   }
+  write("db/relations.ts", renderRelations(all), "// Drizzle relations for every resource (maintained by flare gen).\n");
   write("resources/index.ts", renderRegistry(all), "// Registry of every resource descriptor (maintained by flare gen).\n");
   write("db/schema.ts", renderSchemaIndex(all));
   return written;
@@ -72,13 +81,18 @@ export async function genResource(rawName: string, options: GenResourceOptions):
   const path = join(appRoot, relativePath);
   if (existsSync(path)) throw new Error(`${relativePath} already exists.`);
 
-  // Validate relation targets before writing anything.
+  // Validate relations against the existing resources before writing anything.
   const existing = await loadResources(appRoot);
   const known = new Set([name, ...existing.map(({ resource }) => resource.name)]);
   for (const field of fields) {
     if (field.kind === "belongsTo" && !known.has(field.target!)) {
       throw new Error(`${name}.${field.key} belongs to "${field.target}", which doesn't exist yet. Generate ${field.target} first.`);
     }
+  }
+  const candidate = defineResource({ name, fields: Object.fromEntries(fields.map((f) => [f.key, toField(f)])) });
+  const graph = relationGraph([...existing.map(({ resource }) => resource), candidate]);
+  for (const pending of graph.pending.filter((p) => p.resource === name)) {
+    log(pc.dim(`note: ${name}.${pending.key} will link up once ${pending.target} exists (give it a ${camelCase(name)}Id: belongsTo(${name}) field).`));
   }
 
   mkdirSync(dirname(path), { recursive: true });

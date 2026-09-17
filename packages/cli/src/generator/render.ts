@@ -1,4 +1,4 @@
-import { camelCase, columnName, storedFields, type Resource, type StoredField } from "@flare/core";
+import { camelCase, columnName, relationGraph, storedFields, type Resource, type StoredField } from "@flare/core";
 import type { LoadedResource } from "./load.js";
 
 /** Import name of a descriptor: "order-item" → "orderItemResource" (suffixed so it can never collide with a table export). */
@@ -99,13 +99,57 @@ export function renderTableModule(entry: LoadedResource, all: LoadedResource[]):
   ].join("\n");
 }
 
-/** Generated block of `db/schema.ts`: one re-export per resource table. */
+/** Generated block of `db/schema.ts`: one re-export per resource table, plus relations. */
 export function renderSchemaIndex(all: LoadedResource[]): string {
-  return all
+  if (all.length === 0) return "";
+  const tables = all
     .map(({ resource }) => resource.table)
     .sort()
     .map((table) => `export * from "./schema/${table}";\n`)
     .join("");
+  return `${tables}export * from "./relations";\n`;
+}
+
+/**
+ * `db/relations.ts`: Drizzle relations for every resource, in one module so tables that
+ * reference each other never import each other. Both sides share a relationName, which
+ * keeps several belongsTo fields to the same target unambiguous.
+ */
+export function renderRelations(all: LoadedResource[]): string {
+  const resources = all.map(({ resource }) => resource);
+  const byName = new Map(resources.map((resource) => [resource.name, resource]));
+  const graph = relationGraph(resources);
+
+  const blocks: string[] = [];
+  const used = new Set<Resource>();
+  for (const resource of [...resources].sort((a, b) => a.table.localeCompare(b.table))) {
+    const { belongsTo, hasMany } = graph.byResource[resource.name]!;
+    if (belongsTo.length === 0 && hasMany.length === 0) continue;
+    const self = tableExport(resource);
+    used.add(resource);
+
+    const lines = [
+      ...belongsTo.map((relation) => {
+        const target = byName.get(relation.target)!;
+        used.add(target);
+        const other = tableExport(target);
+        return `  ${relation.name}: one(${other}, { fields: [${self}.${relation.key}], references: [${other}.id], relationName: ${q(relation.relationName)} }),`;
+      }),
+      ...hasMany.map((relation) => {
+        const target = byName.get(relation.target)!;
+        used.add(target);
+        return `  ${relation.key}: many(${tableExport(target)}, { relationName: ${q(relation.relationName)} }),`;
+      }),
+    ];
+    const helpers = [belongsTo.length ? "one" : "", hasMany.length ? "many" : ""].filter(Boolean).join(", ");
+    blocks.push(`export const ${self}Relations = relations(${self}, ({ ${helpers} }) => ({\n${lines.join("\n")}\n}));\n`);
+  }
+
+  if (blocks.length === 0) return "export {};\n";
+  const imports = [...used]
+    .sort((a, b) => a.table.localeCompare(b.table))
+    .map((resource) => `import { ${tableExport(resource)} } from "./schema/${resource.table}";`);
+  return [`import { relations } from "drizzle-orm";`, ...imports, "", blocks.join("\n")].join("\n");
 }
 
 const handlerImports = (entry: LoadedResource) => [
