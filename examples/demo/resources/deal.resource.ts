@@ -2,6 +2,7 @@ import { defineResource, field } from "@flare/core";
 
 export default defineResource({
   name: "Deal",
+  icon: "briefcase",
   fields: {
     // generated:start hash=9476bbd4e55d
     title: field.string(),

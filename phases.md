@@ -68,9 +68,9 @@ with auth still 13/13.
 - [x] Build `<ResourceTable>` — reads columns/filters/sort from a resource descriptor; paginated, sortable, filterable
 - [x] Build `<ResourceForm mode="create" | "edit">` — renders inputs from field metadata, wires Zod validation
 - [x] Build all v1 field widgets: text, textarea, number, toggle, date picker, select, file upload, relation picker
-- [ ] Build `<ResourceNav>` — auto-populates sidebar from all registered resources
+- [x] Build `<ResourceNav>` — auto-populates sidebar from all registered resources
 - [ ] Generated admin pages (`page.tsx`, `new.tsx`, `[id]/edit.tsx`) are thin wrappers around the above, not hand-authored per resource
-- [ ] Session-gate the `/admin` route group (redirect non-staff/non-admin roles)
+- [x] Session-gate the `/admin` route group (redirect non-staff/non-admin roles)
 - [ ] Apply the visual language from `style-guide.md`
 
 **Exit criteria:** generating a resource produces usable, styled list/create/edit
