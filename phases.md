@@ -16,7 +16,7 @@ don't just believe it).
 ## Phase M0 — Core scaffold
 
 - [x] Set up the monorepo (CLI package, core framework package, example app)
-- [ ] `flare create <app>` scaffolds a vinext app with TypeScript + Tailwind
+- [x] `flare create <app>` scaffolds a vinext app with TypeScript + Tailwind
 - [ ] Wire D1 + Drizzle: generated `drizzle.config.ts`, base `schema.ts`, `wrangler.jsonc` D1 binding
 - [ ] Wire Better Auth: email/password provider, D1/Drizzle adapter, session middleware
 - [ ] `--auth-providers google,github` flag generates OAuth provider config + env var scaffolding

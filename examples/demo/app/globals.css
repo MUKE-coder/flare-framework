@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --foreground-muted: #6b7280;
+  --border: #e5e5e7;
+  font-family: ui-sans-serif, -apple-system, "Inter", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+}
