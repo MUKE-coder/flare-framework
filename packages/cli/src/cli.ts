@@ -4,6 +4,7 @@ import { createApp, printNextSteps } from "./commands/create.js";
 import { genResource } from "./commands/gen.js";
 import { migrate, rollback } from "./commands/migrate.js";
 import { makeSeed, runSeeds } from "./commands/seed.js";
+import { syncTypes } from "./commands/sync.js";
 import { DELEGATED_COMMANDS } from "./commands/run.js";
 
 export function createCli() {
@@ -63,6 +64,14 @@ export function createCli() {
     .option("--resource <name>", "Resource to write example rows for")
     .action(async (name: string, options: { resource?: string }) => {
       await makeSeed(name, options);
+    });
+
+  cli
+    .command("sync-types", "Regenerate schema, routes, clients, and validators from resource descriptors; report drift")
+    .option("--check", "Change nothing; exit 1 if anything is out of sync (CI)")
+    .option("--force", "Overwrite generated blocks that were edited by hand")
+    .action(async (options: { check?: boolean; force?: boolean }) => {
+      process.exitCode = await syncTypes(options);
     });
 
   // Handled before parsing in index.ts (arguments are forwarded verbatim); registered here for --help.

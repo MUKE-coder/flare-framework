@@ -7,7 +7,7 @@
 
 export * from "./auth-schema";
 
-// generated:start
+// generated:start hash=aaa5143544e5
 export * from "./schema/companies";
 export * from "./schema/contacts";
 export * from "./schema/deals";

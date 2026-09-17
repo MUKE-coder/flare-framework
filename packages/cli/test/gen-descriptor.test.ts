@@ -82,6 +82,7 @@ describe("genResource", () => {
       "resources/index.ts",
       "db/schema.ts",
     ]);
+    expect(result.written.slice(1).every((w) => w.outcome === "create")).toBe(true);
     expect(readFileSync(join(root, "lib/api.ts"), "utf8")).toContain("export const authorize");
     expect(readFileSync(join(root, "resources/order-item.resource.ts"), "utf8")).toContain('name: "OrderItem"');
   });

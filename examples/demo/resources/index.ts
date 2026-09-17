@@ -1,5 +1,5 @@
 // Registry of every resource descriptor (maintained by flare gen).
-// generated:start
+// generated:start hash=1411fca7bed0
 import companyResource from "./company.resource";
 import contactResource from "./contact.resource";
 import dealResource from "./deal.resource";

@@ -1,5 +1,5 @@
 // Drizzle relations for every resource (maintained by flare gen).
-// generated:start
+// generated:start hash=492ea789cf44
 import { relations } from "drizzle-orm";
 import { companies } from "./schema/companies";
 import { contacts } from "./schema/contacts";
