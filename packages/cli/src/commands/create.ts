@@ -1,8 +1,9 @@
 import { randomBytes } from "node:crypto";
-import { existsSync, readdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import pc from "picocolors";
 import { FLARE_VERSION } from "@flare/core";
+import { devVarsEntries, devVarsExampleEntries, parseAuthProviders, socialProvidersCode } from "../auth-providers.js";
 import { APP_DEPENDENCIES, APP_DEV_DEPENDENCIES } from "../versions.js";
 import { copyTemplate, findUp, templatesDir, writeJson } from "../utils/fs.js";
 import { detectPackageManager, isPackageManager, run, type PackageManager } from "../utils/pm.js";
@@ -10,6 +11,8 @@ import { detectPackageManager, isPackageManager, run, type PackageManager } from
 export interface CreateOptions {
   install?: boolean;
   pm?: string;
+  /** Comma-separated OAuth providers, e.g. "google,github". */
+  authProviders?: string;
   /** Override "today" for the wrangler compatibility date (used by tests). */
   compatibilityDate?: string;
 }
@@ -59,6 +62,7 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
     throw new Error(`Unknown package manager "${options.pm}". Use pnpm, npm, yarn, or bun.`);
   }
   const packageManager = options.pm ?? detectPackageManager();
+  const authProviders = parseAuthProviders(options.authProviders);
 
   // When scaffolding inside an existing pnpm workspace (e.g. this repo's examples/),
   // the app joins that workspace instead of becoming its own root.
@@ -69,7 +73,9 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
     APP_NAME: name,
     COMPAT_DATE: compatibilityDate,
     PM: packageManager,
+    SOCIAL_PROVIDERS: socialProvidersCode(authProviders),
   });
+  appendFileSync(join(dir, ".dev.vars.example"), devVarsExampleEntries(authProviders));
 
   writeJson(join(dir, "package.json"), {
     name,
@@ -92,7 +98,10 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   });
 
   // Local secrets (git-ignored). Production secrets are set with `wrangler secret put`.
-  writeFileSync(join(dir, ".dev.vars"), `BETTER_AUTH_SECRET=${randomBytes(32).toString("base64")}\n`);
+  writeFileSync(
+    join(dir, ".dev.vars"),
+    `BETTER_AUTH_SECRET=${randomBytes(32).toString("base64")}\n${devVarsEntries(authProviders)}`,
+  );
 
   if (packageManager === "pnpm" && !inWorkspace) {
     // pnpm blocks dependency build scripts unless explicitly allowed.

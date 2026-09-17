@@ -8,10 +8,12 @@ export function createCli() {
   cli
     .command("create <dir>", "Scaffold a new Flare app")
     .option("--pm <manager>", "Package manager: pnpm, npm, yarn, or bun (default: detected)")
+    .option("--auth-providers <list>", "OAuth providers to scaffold, comma-separated (google, github)")
     .option("--skip-install", "Write files without installing dependencies")
-    .action((dir: string, options: { pm?: string; skipInstall?: boolean }) => {
+    .example("flare create shop --auth-providers google,github")
+    .action((dir: string, options: { pm?: string; skipInstall?: boolean; authProviders?: string }) => {
       const install = !options.skipInstall;
-      const result = createApp(dir, { pm: options.pm, install });
+      const result = createApp(dir, { pm: options.pm, install, authProviders: options.authProviders });
       printNextSteps(result, install);
     });
 

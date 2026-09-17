@@ -151,6 +151,14 @@ stable compiler API yet, which tsup's declaration build needs.
   redirect (no DB call), and pages/routes call `requireSession()` /
   `getSession()` from `lib/session.ts`, which validate against D1.
   `scripts/e2e-auth.sh <url>` exercises the whole flow.
+- OAuth: `flare create --auth-providers google,github` (currently the two
+  supported providers) adds a `socialProviders` entry per provider that only
+  activates when both `<PROVIDER>_CLIENT_ID` and `_CLIENT_SECRET` are set.
+  An app can therefore be scaffolded, run and deployed before credentials exist.
+  Empty placeholders go in `.dev.vars` (so `wrangler types` types them), and
+  `.dev.vars.example` documents the console link and callback URL
+  (`<app URL>/api/auth/callback/<provider>`). Sign-in/up pages render a button
+  per *configured* provider.
 
 All bindings are accessed the vinext-native way —
 `import { env } from "cloudflare:workers"` — inside server components, route

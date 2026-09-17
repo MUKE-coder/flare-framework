@@ -17,6 +17,7 @@ export const auth = betterAuth({
     allowedHosts: ["localhost:*", "127.0.0.1:*", "demo.*.workers.dev"],
   },
   database: drizzleAdapter(getDb(), { provider: "sqlite", schema }),
+  socialProviders: {},
   emailAndPassword: {
     enabled: true,
     // PBKDF2 via WebCrypto: the default scrypt exceeds Workers CPU limits.
@@ -31,3 +32,8 @@ export const auth = betterAuth({
 });
 
 export type Session = typeof auth.$Infer.Session;
+
+/** OAuth providers with credentials configured, e.g. ["github"]. */
+export function enabledSocialProviders(): string[] {
+  return Object.keys(auth.options.socialProviders ?? {});
+}
