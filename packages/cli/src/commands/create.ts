@@ -100,7 +100,7 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   // Local secrets (git-ignored). Production secrets are set with `wrangler secret put`.
   writeFileSync(
     join(dir, ".dev.vars"),
-    `BETTER_AUTH_SECRET=${randomBytes(32).toString("base64")}\n${devVarsEntries(authProviders)}`,
+    `BETTER_AUTH_SECRET=${randomBytes(32).toString("base64")}\nRESEND_API_KEY=\nMAIL_FROM=\n${devVarsEntries(authProviders)}`,
   );
 
   if (packageManager === "pnpm" && !inWorkspace) {

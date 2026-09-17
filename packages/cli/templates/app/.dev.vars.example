@@ -1,8 +1,13 @@
 # Local secrets for `vinext dev` / `wrangler dev`. Copy to .dev.vars (git-ignored).
 # In production set them with `wrangler secret put <NAME>`.
 
-# Signs sessions and tokens. Generate with: openssl rand -base64 32
+# Signs sessions, tokens, and storage URLs. Generate with: openssl rand -base64 32
 BETTER_AUTH_SECRET=
 
 # Only needed on a custom domain, e.g. https://example.com
 # BETTER_AUTH_URL=
+
+# Resend (https://resend.com/api-keys). Leave empty locally to print emails to the console.
+RESEND_API_KEY=
+# Sender on a domain verified in Resend, e.g. "Acme <hello@acme.com>"
+MAIL_FROM=

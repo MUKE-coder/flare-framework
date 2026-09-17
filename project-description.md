@@ -181,6 +181,21 @@ stable compiler API yet, which tsup's declaration build needs.
   memory) before the 4xx is returned. With the body left unread, every other
   request through wrangler's local proxy failed with a 500.
 
+### Mail wiring (as built)
+
+- `lib/mail.ts` exposes `mailer` and `sendTransactionalEmail()`, built on
+  `createMailer()` / `renderTransactionalEmail()` from `@flare/core`, which call
+  Resend's REST API with `fetch` (no SDK).
+- `send` resolves to `{ data, error }` and never throws for API errors (the
+  official SDK's contract). 429/5xx and concurrent-idempotency conflicts are
+  retried with backoff (honouring `Retry-After`) **only when an
+  `idempotencyKey` is supplied**, so retries can't duplicate a delivery.
+- With `RESEND_API_KEY` empty (the scaffold default), emails are printed to the
+  console instead of sent, so local flows work with no account. `MAIL_FROM` falls
+  back to Resend's sandbox sender, which only delivers to the account owner.
+- The template is a monochrome, table-based email with escaped content, an
+  optional action button (absolute http(s) URLs only) and a matching text part.
+
 All bindings are accessed the vinext-native way —
 `import { env } from "cloudflare:workers"` — inside server components, route
 handlers, and server actions. No custom worker entry, no `getPlatformProxy()`,

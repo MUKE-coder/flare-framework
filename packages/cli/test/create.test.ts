@@ -63,6 +63,7 @@ describe("createApp", () => {
       "lib/session.ts",
       "app/api/auth/[...all]/route.ts",
       "lib/storage.ts",
+      "lib/mail.ts",
       "app/api/storage/route.ts",
       "proxy.ts",
       "app/sign-in/page.tsx",
@@ -100,7 +101,7 @@ describe("createApp", () => {
     expect(pkg.dependencies["better-auth"]).toBeDefined();
     expect(pkg.dependencies["@better-auth/drizzle-adapter"]).toBeDefined();
     const devVars = readFileSync(join(dir, ".dev.vars"), "utf8");
-    expect(devVars).toMatch(/^BETTER_AUTH_SECRET=[A-Za-z0-9+/]{43}=\n$/);
+    expect(devVars).toMatch(/^BETTER_AUTH_SECRET=[A-Za-z0-9+/]{43}=\nRESEND_API_KEY=\nMAIL_FROM=\n$/);
     const auth = readFileSync(join(dir, "lib/auth.ts"), "utf8");
     expect(auth).toContain('"shop.*.workers.dev"');
     expect(auth).toContain("hash: hashPassword");

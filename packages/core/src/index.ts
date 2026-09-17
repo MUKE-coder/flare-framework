@@ -3,6 +3,15 @@ export const FLARE_VERSION = "0.0.0";
 export { hashPassword, verifyPassword, PBKDF2_ITERATIONS } from "./password.js";
 export { importSigningKey, signToken, verifyToken } from "./signing.js";
 export {
+  createMailer,
+  renderTransactionalEmail,
+  type Mailer,
+  type MailerOptions,
+  type MailMessage,
+  type MailResult,
+  type TransactionalEmail,
+} from "./mail.js";
+export {
   createStorage,
   createObjectKey,
   matchesContentType,
