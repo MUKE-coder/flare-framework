@@ -495,6 +495,20 @@ As built:
   written, so a failed run leaves the app untouched.
 - **Drift across the app.** Hand-edited blocks in other files are skipped with a
   warning rather than aborting the run (`flare sync-types` explains them).
+- **`flare rm resource <Name> [--force]`.**
+  - **Dependents.** Refused while another resource still references it
+    (`belongsTo`, `hasMany`, or a pending `hasMany`), even with `--force`.
+  - **What it owns.** The descriptor, its planned files, and any orphaned files
+    carrying its header.
+  - **Hand-written code.** A file blocks removal (unless `--force`) if it has
+    code outside its generated block (the generated header comment doesn't
+    count), hand edits inside a tracked block, or a descriptor wrapper changed
+    outside the fields block. Edits inside the descriptor's fields block are
+    normal and don't block. The refusal lists every file and reason, and
+    deletes nothing.
+  - **Afterwards.** It deletes the files and emptied `app/api/<slug>` folders,
+    re-renders relations, registry and schema index, warns about seeds still
+    using the table, and writes a `drop_<table>` migration.
 - **Verified in the demo.** A hand-written `HEAD` export in
   `app/api/contacts/route.ts` survived re-running
   `gen resource Contact --fields "…, phone:string?"`. The `ALTER TABLE … ADD phone`

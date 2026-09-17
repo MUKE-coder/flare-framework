@@ -3,6 +3,7 @@ import { FLARE_VERSION } from "@flare/core";
 import { createApp, printNextSteps } from "./commands/create.js";
 import { genResource } from "./commands/gen.js";
 import { migrate, rollback } from "./commands/migrate.js";
+import { rmResource } from "./commands/rm.js";
 import { makeSeed, runSeeds } from "./commands/seed.js";
 import { syncTypes } from "./commands/sync.js";
 import { DELEGATED_COMMANDS } from "./commands/run.js";
@@ -30,6 +31,15 @@ export function createCli() {
     .action((generator: string, name: string, options: { fields?: string; force?: boolean }) => {
       if (generator !== "resource") throw new Error(`Unknown generator "${generator}". Available: resource.`);
       return genResource(name, { fields: options.fields, force: options.force });
+    });
+
+  cli
+    .command("rm <kind> <name>", "Remove generated code. Kinds: resource")
+    .option("--force", "Delete even when files contain hand-written code")
+    .example("flare rm resource Tag")
+    .action(async (kind: string, name: string, options: { force?: boolean }) => {
+      if (kind !== "resource") throw new Error(`Unknown kind "${kind}". Available: resource.`);
+      await rmResource(name, options);
     });
 
   cli
