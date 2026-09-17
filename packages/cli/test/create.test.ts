@@ -72,6 +72,8 @@ describe("createApp", () => {
       "components.json",
       "components/ui/table.tsx",
       "components/admin/resource-table.tsx",
+      "components/admin/resource-form.tsx",
+      "components/admin/fields/field-widget.tsx",
       "app/admin/layout.tsx",
       "app/admin/actions.ts",
       "resources/index.ts",

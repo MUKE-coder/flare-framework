@@ -17,3 +17,19 @@ export async function deleteRecordAction(resourceName: string, id: string): Prom
   if (result.ok) revalidatePath(adminPath(store.resource));
   return result;
 }
+
+export async function createRecordAction(resourceName: string, input: unknown): Promise<ActionResult<Record<string, unknown>>> {
+  if (!(await adminSession()).allowed) return forbidden;
+  const store = adminStore(resourceName);
+  const result = await store.create(input);
+  if (result.ok) revalidatePath(adminPath(store.resource));
+  return result;
+}
+
+export async function updateRecordAction(resourceName: string, id: string, input: unknown): Promise<ActionResult<Record<string, unknown>>> {
+  if (!(await adminSession()).allowed) return forbidden;
+  const store = adminStore(resourceName);
+  const result = await store.update(id, input);
+  if (result.ok) revalidatePath(adminPath(store.resource));
+  return result;
+}
