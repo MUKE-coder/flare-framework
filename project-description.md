@@ -248,6 +248,60 @@ classes, and it's the single most important design decision in the project:
 get this wrong and every other feature (admin UI, policies, generator) has
 to be rebuilt around it later.
 
+#### Descriptor format (as built, `@flare/core`)
+
+```ts
+// resources/contact.resource.ts
+import { defineResource, field } from "@flare/core";
+
+export default defineResource({
+  name: "Contact",                 // PascalCase singular
+  icon: "users",                   // lucide-react name, for the admin nav
+  fields: {
+    name: field.string({ maxLength: 120 }),
+    email: field.string({ format: "email", unique: true }),
+    bio: field.text({ required: false }),
+    status: field.enum(["lead", "customer"], { default: "lead" }),
+    avatar: field.file(["image"], { required: false }),
+    companyId: field.belongsTo("Company", { required: false, onDelete: "set null" }),
+    notes: field.hasMany("Note"),
+  },
+});
+```
+
+- **Plain data.** Builders return serializable objects. The API layer,
+  validators and admin read them at runtime. Presentation and validation
+  options (`label`, `helpText`, `placeholder`, `list`, `sortable`,
+  `filterable`, `searchable`, `min`/`max`, `maxLength`, `pattern`, `format`,
+  `optionLabels`, `maxBytes`) take effect without regenerating. Storage options
+  (kind, `required`, `unique`, `default`, relation targets, `onDelete`) also
+  need a migration.
+- **Defaults.** Fields are `required: true` unless `required: false`.
+  `table` is snake_case plural (`order_items`), `slug` kebab-case plural
+  (`order-items`), labels humanized (`companyId` → "Company"). `titleField` is
+  the first string field, `defaultSort` is `createdAt desc`, `perPage` 25.
+- **Implicit columns.** Every resource gets `id` (text UUID), `createdAt` and
+  `updatedAt`. Declaring them is an error.
+- **Relations.** `belongsTo` keys must end in `Id` (column `company_id`, FK to
+  the target's table). `onDelete` defaults to `restrict`; `set null` requires
+  `required: false`. `hasMany` stores nothing: it names the inverse relation
+  for Drizzle relations and the admin.
+- **Validation.** `defineResource` rejects bad names, reserved or duplicate
+  keys, enum defaults outside their options, and unknown `titleField`/`defaultSort`.
+  `createValidators(resource)` derives zod `create` (required fields without
+  defaults enforced) and `update` (PATCH: all optional) schemas. Both are
+  **strict**, so `id`, timestamps and undeclared keys are rejected (no mass
+  assignment). Strings are trimmed; required strings must be non-empty; `date` is
+  a real calendar date, `datetime` ISO-8601 with offset; `file` values are
+  R2 object keys (no traversal).
+- **Types.** `typeof contact.$types.create | update | record` give the request
+  and JSON response types (enums become literal unions, optional fields
+  `| null`). They power the typed client without a separate codegen step.
+- **File categories** for `file:[...]`: `image` (png/jpeg/gif/webp/avif; SVG is
+  excluded because it can carry script), `pdf`, `video`, `audio`, `text`, `csv`,
+  `document`, `spreadsheet`, `archive`. `mimeTypesFor()` expands them for
+  `storage.createUploadUrl`.
+
 ### Field type grammar
 
 | Field syntax | Drizzle column | Admin widget |

@@ -21,3 +21,4 @@ export {
   type UploadUrlOptions,
   type ReadUrlOptions,
 } from "./storage.js";
+export * from "./resource/index.js";

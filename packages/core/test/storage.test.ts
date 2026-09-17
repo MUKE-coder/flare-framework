@@ -10,7 +10,7 @@ function memoryBucket() {
       const object = objects.get(key);
       if (!object) return null;
       return {
-        body: new Response(object.data).body!,
+        body: new Response(object.data as BodyInit).body!,
         size: object.data.byteLength,
         httpEtag: '"etag"',
         httpMetadata: { contentType: object.contentType },

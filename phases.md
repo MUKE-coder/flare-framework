@@ -38,7 +38,7 @@ forged cookie), and again after a redeploy.
 
 ## Phase M1 — Resource generator
 
-- [ ] Design and implement the `<resource>.resource.ts` descriptor format (see `project-description.md`)
+- [x] Design and implement the `<resource>.resource.ts` descriptor format (see `project-description.md`)
 - [ ] `flare gen resource <Name> --fields "..."` parses the field grammar (including `file:[image,pdf,...]`)
 - [ ] Generator emits: Drizzle schema, D1 migration, Zod validators, REST/RPC route handlers, typed client
 - [ ] `belongsTo` / `hasMany` relations generate correct FK columns and inverse relation metadata
