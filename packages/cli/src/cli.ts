@@ -25,7 +25,7 @@ export function createCli() {
     .example('flare gen resource Contact --fields "name:string, email:string!, company:belongsTo(Company)?"')
     .action((generator: string, name: string, options: { fields?: string }) => {
       if (generator !== "resource") throw new Error(`Unknown generator "${generator}". Available: resource.`);
-      genResource(name, { fields: options.fields });
+      return genResource(name, { fields: options.fields });
     });
 
   // Handled before parsing in index.ts (arguments are forwarded verbatim); registered here for --help.

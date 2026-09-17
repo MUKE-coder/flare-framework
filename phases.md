@@ -40,7 +40,7 @@ forged cookie), and again after a redeploy.
 
 - [x] Design and implement the `<resource>.resource.ts` descriptor format (see `project-description.md`)
 - [x] `flare gen resource <Name> --fields "..."` parses the field grammar (including `file:[image,pdf,...]`)
-- [ ] Generator emits: Drizzle schema, D1 migration, Zod validators, REST/RPC route handlers, typed client
+- [x] Generator emits: Drizzle schema, D1 migration, Zod validators, REST/RPC route handlers, typed client
 - [ ] `belongsTo` / `hasMany` relations generate correct FK columns and inverse relation metadata
 - [ ] `flare migrate` / `flare migrate:rollback` work against the generated migrations
 - [ ] `flare seed` / `flare seed:make <name>` scaffold and run seed files

@@ -66,6 +66,7 @@ describe("createApp", () => {
       "lib/storage.ts",
       "lib/mail.ts",
       "app/api/storage/route.ts",
+      "lib/api.ts",
       "proxy.ts",
       "app/sign-in/page.tsx",
       "app/sign-up/page.tsx",

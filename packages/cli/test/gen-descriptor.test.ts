@@ -66,18 +66,38 @@ describe("genResource", () => {
     return root;
   }
 
-  it("writes resources/<kebab>.resource.ts from a nested cwd", () => {
+  it("writes resources/<kebab>.resource.ts from a nested cwd", async () => {
     const root = app();
     mkdirSync(join(root, "app", "deep"), { recursive: true });
-    const result = genResource("order_item", { fields: "qty:int", cwd: join(root, "app", "deep"), log: () => {} });
-    expect(result).toEqual({ name: "OrderItem", written: ["resources/order-item.resource.ts"] });
+    const result = await genResource("order_item", { fields: "qty:int", cwd: join(root, "app", "deep"), log: () => {}, skipMigration: true });
+    expect(result.name).toBe("OrderItem");
+    expect(result.written.map((w) => w.path)).toEqual([
+      "resources/order-item.resource.ts",
+      "db/schema/order_items.ts",
+      "app/api/order-items/route.ts",
+      "app/api/order-items/[id]/route.ts",
+      "resources/order-item.client.ts",
+      "resources/order-item.validators.ts",
+      "resources/index.ts",
+      "db/schema.ts",
+    ]);
+    expect(readFileSync(join(root, "lib/api.ts"), "utf8")).toContain("export const authorize");
     expect(readFileSync(join(root, "resources/order-item.resource.ts"), "utf8")).toContain('name: "OrderItem"');
   });
 
-  it("requires --fields and refuses to overwrite", () => {
+  it("requires --fields and refuses to overwrite", async () => {
     const root = app();
-    expect(() => genResource("Contact", { cwd: root, log: () => {} })).toThrow(/--fields is required/);
-    genResource("Contact", { fields: "name:string", cwd: root, log: () => {} });
-    expect(() => genResource("Contact", { fields: "name:string", cwd: root, log: () => {} })).toThrow(/already exists/);
+    const opts = { cwd: root, log: () => {}, skipMigration: true };
+    await expect(genResource("Contact", opts)).rejects.toThrow(/--fields is required/);
+    await genResource("Contact", { ...opts, fields: "name:string" });
+    await expect(genResource("Contact", { ...opts, fields: "name:string" })).rejects.toThrow(/already exists/);
+  });
+
+  it("refuses a belongsTo whose target doesn't exist, before writing anything", async () => {
+    const root = app();
+    await expect(
+      genResource("Contact", { cwd: root, log: () => {}, skipMigration: true, fields: "company:belongsTo(Company)" }),
+    ).rejects.toThrow(/Generate Company first/);
+    expect(() => readFileSync(join(root, "resources/contact.resource.ts"))).toThrow();
   });
 });

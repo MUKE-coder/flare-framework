@@ -327,6 +327,47 @@ list (see the descriptor section). Unknown types or categories suggest the
 closest match ("did you mean string?"). The generated descriptor is validated
 with `defineResource` before it's written.
 
+### What `gen resource` emits (as built)
+
+`flare gen resource Contact --fields "name:string, email:string"`:
+
+| File | Content |
+| --- | --- |
+| `resources/contact.resource.ts` | The descriptor (fields inside a generated block). The source of truth. |
+| `db/schema/contacts.ts` | Drizzle table: `id` text PK, one column per stored field (snake_case), `created_at`/`updated_at` integer ms with SQL defaults, enum `CHECK` constraints, belongsTo FK `references()` + index |
+| `db/schema.ts` | Generated block re-exports every `db/schema/*` table (drizzle-kit and `getDb()` read it) |
+| `migrations/NNNN_create_contacts.sql` | From the app's `drizzle-kit generate --name create_<table>` |
+| `app/api/contacts/route.ts` | `GET` list, `POST` create |
+| `app/api/contacts/[id]/route.ts` | `GET` read, `PATCH` partial update, `PUT` full replace, `DELETE` |
+| `resources/contact.client.ts` | `contactClient` (typed REST client) and `Contact`/`ContactCreate`/`ContactUpdate` types |
+| `resources/contact.validators.ts` | `contactValidators` (zod, derived from the descriptor at runtime) |
+| `resources/index.ts` | Registry of all descriptors (`resources` array) for the admin and seeders |
+| `lib/api.ts` | Created once if missing: the `authorize` hook every resource API calls |
+
+Generated files are thin: route files call `createResourceHandlers()` from
+`@flare/core/server`, which reads the descriptor at runtime. `@flare/core` ships
+three entry points: `.` (descriptors, validators, helpers), `./server` (handlers,
+needs drizzle-orm) and `./client` (typed fetch client, no zod or drizzle).
+
+API behavior:
+- **List.** `?page`, `?perPage` (≤100), `?sort=field|-field`, `?q=` (LIKE over
+  searchable fields, `%`/`_` escaped) and `?filter[field]=value` (`null` for IS NULL).
+  Sorting and filtering are allowed only on fields the descriptor permits
+  (sortable: all but text/file; filterable: enum/boolean/belongsTo by default).
+  The response is `{ data, meta: { page, perPage, total, totalPages } }`.
+- **Errors.** 400 invalid query or JSON; 401/403 from `authorize`; 403
+  cross-origin write (Origin ≠ app); 404; 409 unique violation (with `field`)
+  or deleting a referenced record; 415 non-JSON body; 422 validation (with
+  `issues[]`), missing FK target, or CHECK failure.
+- **Security.** `authorize` is required and runs before anything else. The
+  default `lib/api.ts` requires a Better Auth session and is M3's policy hook.
+  Bodies are validated with strict schemas, and writes need
+  `Content-Type: application/json` plus a same-origin `Origin`.
+- `createResourceHandlers` checks at startup that the table has a column for
+  every descriptor field, so an edited descriptor without a migration fails loudly.
+
+`scripts/e2e-crud.sh <url>` verifies every verb and error path against a running app.
+
 ### The CLI (short-verb style, `wrangler`-consistent)
 
 `create`, `gen resource`, `gen policy`, `gen migration`, `gen billing`,

@@ -8,4 +8,5 @@
 export * from "./auth-schema";
 
 // generated:start
+export * from "./schema/contacts";
 // generated:end
