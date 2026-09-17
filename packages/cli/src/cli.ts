@@ -1,6 +1,7 @@
 import { cac } from "cac";
 import { FLARE_VERSION } from "@flare/core";
 import { createApp, printNextSteps } from "./commands/create.js";
+import { genResource } from "./commands/gen.js";
 import { DELEGATED_COMMANDS } from "./commands/run.js";
 
 export function createCli() {
@@ -16,6 +17,15 @@ export function createCli() {
       const install = !options.skipInstall;
       const result = createApp(dir, { pm: options.pm, install, authProviders: options.authProviders });
       printNextSteps(result, install);
+    });
+
+  cli
+    .command("gen <generator> <name>", "Generate code. Generators: resource")
+    .option("--fields <fields>", 'Resource fields, e.g. "name:string, email:string!, status:enum(lead,customer)"')
+    .example('flare gen resource Contact --fields "name:string, email:string!, company:belongsTo(Company)?"')
+    .action((generator: string, name: string, options: { fields?: string }) => {
+      if (generator !== "resource") throw new Error(`Unknown generator "${generator}". Available: resource.`);
+      genResource(name, { fields: options.fields });
     });
 
   // Handled before parsing in index.ts (arguments are forwarded verbatim); registered here for --help.

@@ -316,6 +316,17 @@ export default defineResource({
 | `belongsTo(Model)` | FK column | relation picker |
 | `hasMany(Model)` | — (inverse relation) | inline table |
 
+Grammar details (as built): fields are `name:type`, comma-separated (commas
+inside `(...)`/`[...]` don't split). Suffix `?` makes a field optional
+(nullable) and `!` unique, combinable (`sku:string!?`). Names are camelCased
+(`first_name` → `firstName`). `company:belongsTo(Company)` becomes key
+`companyId`; an optional belongsTo gets `onDelete: "set null"`. `hasMany` can't
+take suffixes. String fields named `email`/`*Email` get `format: "email"`, and
+`url`/`website`/`*Url`/`*Website` get `format: "url"`. `file:` requires a category
+list (see the descriptor section). Unknown types or categories suggest the
+closest match ("did you mean string?"). The generated descriptor is validated
+with `defineResource` before it's written.
+
 ### The CLI (short-verb style, `wrangler`-consistent)
 
 `create`, `gen resource`, `gen policy`, `gen migration`, `gen billing`,

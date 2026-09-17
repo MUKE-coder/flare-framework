@@ -9,3 +9,5 @@ next-env.d.ts
 .dev.vars*
 !.dev.vars.example
 *.tsbuildinfo
+
+.tmp-*
