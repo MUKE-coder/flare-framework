@@ -3,6 +3,7 @@ import { FLARE_VERSION } from "@flare/core";
 import { createApp, printNextSteps } from "./commands/create.js";
 import { genResource } from "./commands/gen.js";
 import { genMigration } from "./commands/gen-migration.js";
+import { genPolicy } from "./commands/gen-policy.js";
 import { migrate, rollback } from "./commands/migrate.js";
 import { rmResource } from "./commands/rm.js";
 import { addRole } from "./commands/role.js";
@@ -27,17 +28,21 @@ export function createCli() {
     });
 
   cli
-    .command("gen <generator> <name>", "Generate code. Generators: resource, migration")
+    .command("gen <generator> <name>", "Generate code. Generators: resource, migration, policy")
     .option("--fields <fields>", 'resource: fields, e.g. "name:string, email:string!, status:enum(lead,customer)"')
     .option("--force", "resource: overwrite hand-edited generated blocks")
     .option("--from-schema", "migration: diff the current tables instead of a blank migration")
+    .option("--roles <roles>", "policy: roles allowed to read, create and update, e.g. admin,staff")
+    .option("--delete-roles <roles>", "policy: roles allowed to delete (default: the first --roles entry)")
     .example('flare gen resource Contact --fields "name:string, email:string!, company:belongsTo(Company)?"')
     .example("flare gen migration backfill_contact_status")
     .example("flare gen migration add_phone_to_contacts --from-schema")
-    .action(async (generator: string, name: string, options: { fields?: string; force?: boolean; fromSchema?: boolean }) => {
+    .example("flare gen policy Invoice --roles admin,staff --delete-roles admin")
+    .action(async (generator: string, name: string, options: { fields?: string; force?: boolean; fromSchema?: boolean; roles?: string; deleteRoles?: string }) => {
       if (generator === "resource") return genResource(name, { fields: options.fields, force: options.force });
       if (generator === "migration") return genMigration(name, { fromSchema: options.fromSchema });
-      throw new Error(`Unknown generator "${generator}". Available: resource, migration.`);
+      if (generator === "policy") return genPolicy(name, { roles: options.roles, deleteRoles: options.deleteRoles, force: options.force });
+      throw new Error(`Unknown generator "${generator}". Available: resource, migration, policy.`);
     });
 
   cli

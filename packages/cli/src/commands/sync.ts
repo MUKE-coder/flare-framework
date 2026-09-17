@@ -1,5 +1,8 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import pc from "picocolors";
 import { loadResources } from "../generator/load.js";
+import { loadPolicies } from "../generator/policy.js";
 import { applyPlan, ensureSupportFiles, findOrphans, logResults, planFiles } from "../generator/plan.js";
 import { findAppRoot } from "./run.js";
 
@@ -21,7 +24,10 @@ export async function syncTypes(options: SyncOptions = {}): Promise<number> {
   const log = options.log ?? ((message: string) => console.log(message));
   const appRoot = findAppRoot(options.cwd ?? process.cwd());
   const all = await loadResources(appRoot);
-  const plan = planFiles(all);
+  // The policy registry is only ours to maintain once the app has policies (or a registry from an earlier one).
+  const policies = await loadPolicies(appRoot);
+  const tracksPolicies = policies.length > 0 || existsSync(join(appRoot, "policies/index.ts"));
+  const plan = planFiles(all, tracksPolicies ? policies : undefined);
 
   if (!options.check) ensureSupportFiles(appRoot, log);
   const results = applyPlan(appRoot, plan, { force: options.force, dryRun: options.check });

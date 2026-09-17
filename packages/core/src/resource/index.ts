@@ -44,3 +44,4 @@ export {
 } from "./relations.js";
 export { formatValue, optionLabel, statusTone, type FormatOptions, type Tone } from "./display.js";
 export { formValuesToInput, initialFormValues, issuesByField, type FormValues } from "./form.js";
+export { definePolicy, can, allowedActions, PolicyError, type Policy, type PolicyAction, type PolicyConfig } from "./policy.js";

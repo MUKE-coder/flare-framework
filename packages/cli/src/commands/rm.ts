@@ -7,6 +7,7 @@ import { loadResources } from "../generator/load.js";
 import { hashBlock, splitMarkers } from "../generator/markers.js";
 import { generateSchemaMigration } from "../generator/migrations.js";
 import { applyPlan, findOrphans, logResults, planFiles, resourceHeader } from "../generator/plan.js";
+import { loadPolicies, renderPolicy } from "../generator/policy.js";
 import { tableExport } from "../generator/render.js";
 import { findAppRoot } from "./run.js";
 
@@ -85,6 +86,9 @@ export async function rmResource(rawName: string, options: RmResourceOptions = {
     }
   }
   for (const orphan of findOrphans(appRoot, remaining)) if (orphan.resource === name) owned.add(orphan.path);
+  // The resource's policy goes with it, so the registry can't import a policy for a resource that's gone.
+  const policy = (await loadPolicies(appRoot)).find(({ policy }) => policy.resource === name);
+  if (policy) owned.add(policy.file);
   if (!entry && owned.size === 0) throw new Error(`No resource "${name}" (no ${descriptorPath(name)} and no generated files).`);
 
   const findings: HandWrittenFinding[] = [];
@@ -93,6 +97,10 @@ export async function rmResource(rawName: string, options: RmResourceOptions = {
     let wrapper: { before: string; after: string } | undefined;
     if (entry && path === entry.file) {
       const standard = splitMarkers(renderDescriptor(name, [{ key: "placeholder", kind: "string", required: true, unique: false }]))!;
+      wrapper = { before: standard.before, after: standard.after };
+    }
+    if (policy && path === policy.file) {
+      const standard = splitMarkers(renderPolicy(name, { read: [], create: [], update: [], delete: [] }))!;
       wrapper = { before: standard.before, after: standard.after };
     }
     const reason = handWrittenReason(source, resourceHeader(name), { descriptorWrapper: wrapper });
@@ -110,7 +118,7 @@ export async function rmResource(rawName: string, options: RmResourceOptions = {
     log(`${pc.red("remove".padEnd(9))} ${path}`);
   }
 
-  logResults(applyPlan(appRoot, planFiles(remaining)), log);
+  logResults(applyPlan(appRoot, planFiles(remaining, policy ? await loadPolicies(appRoot) : undefined)), log);
 
   const table = entry ? tableExport(entry.resource) : undefined;
   if (table && existsSync(join(appRoot, "seeds"))) {
