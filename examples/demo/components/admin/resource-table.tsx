@@ -15,7 +15,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { adminPath, adminResources, adminStore } from "@/lib/admin";
+import { adminPath, adminPermissions, adminResources, adminStore, requireAccess } from "@/lib/admin";
 import { cn } from "@/lib/utils";
 import { hrefWith, toSearchParams, type SearchParams } from "./query";
 import { ResourceTableToolbar } from "./resource-table-toolbar";
@@ -32,7 +32,9 @@ const NUMERIC = new Set(["int", "float"]);
  * without client-side data fetching.
  */
 export async function ResourceTable({ resource, searchParams }: { resource: Resource; searchParams: SearchParams }) {
+  await requireAccess(resource, "read");
   const basePath = adminPath(resource);
+  const permissions = await adminPermissions(resource.name);
   const params = toSearchParams(searchParams);
   const store = adminStore(resource.name);
 
@@ -71,7 +73,17 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
 
   return (
     <div className="flex flex-col gap-4">
-      <ResourceTableToolbar resource={resource} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ResourceTableToolbar resource={resource} />
+        {permissions.create && (
+          <Button asChild>
+            <Link href={adminPath(resource, "new")}>
+              <PlusIcon data-icon="inline-start" />
+              New {resource.label.toLowerCase()}
+            </Link>
+          </Button>
+        )}
+      </div>
 
       {ignoredQuery && (
         <Alert>
@@ -88,7 +100,7 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            {activeFilters ? (
+            {activeFilters || !permissions.create ? (
               <Button variant="outline" asChild>
                 <Link href={basePath}>Clear filters</Link>
               </Button>
@@ -176,7 +188,14 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
                       );
                     })}
                     <TableCell className="text-right">
-                      <RowActions resourceName={resource.name} label={resource.label} id={id} editHref={adminPath(resource, id, "edit")} />
+                      <RowActions
+                        resourceName={resource.name}
+                        label={resource.label}
+                        id={id}
+                        editHref={adminPath(resource, id, "edit")}
+                        canUpdate={permissions.update}
+                        canDelete={permissions.delete}
+                      />
                     </TableCell>
                   </TableRow>
                 );

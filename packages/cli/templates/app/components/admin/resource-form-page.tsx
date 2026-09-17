@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 import { formatValue, storedFields, type Resource } from "@flare/core";
-import { adminPath, adminResources, adminStore } from "@/lib/admin";
+import { adminPath, adminResources, adminStore, requireAccess } from "@/lib/admin";
 import type { RelationMeta } from "./fields/field-widget";
 import { ResourceForm } from "./resource-form";
 
 /** Server wrapper for create/edit pages: loads the record and relation titles, renders the heading and form. */
 export async function ResourceFormPage({ resource, id }: { resource: Resource; id?: string }) {
+  await requireAccess(resource, id ? "update" : "create");
   let record: Record<string, unknown> | null = null;
   if (id) {
     const result = await adminStore(resource.name).get(id);

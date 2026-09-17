@@ -26,7 +26,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
 
-export function RowActions({ resourceName, label, id, editHref }: { resourceName: string; label: string; id: string; editHref: string }) {
+export function RowActions({
+  resourceName,
+  label,
+  id,
+  editHref,
+  canUpdate = true,
+  canDelete = true,
+}: {
+  resourceName: string;
+  label: string;
+  id: string;
+  editHref: string;
+  canUpdate?: boolean;
+  canDelete?: boolean;
+}) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -44,6 +58,8 @@ export function RowActions({ resourceName, label, id, editHref }: { resourceName
     });
   }
 
+  if (!canUpdate && !canDelete) return null;
+
   return (
     <>
       <DropdownMenu>
@@ -53,21 +69,25 @@ export function RowActions({ resourceName, label, id, editHref }: { resourceName
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuGroup>
-            <DropdownMenuItem asChild>
-              <Link href={editHref}>
-                <PencilIcon />
-                Edit
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem variant="destructive" onSelect={() => setConfirming(true)}>
-              <Trash2Icon />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
+          {canUpdate && (
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link href={editHref}>
+                  <PencilIcon />
+                  Edit
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          )}
+          {canUpdate && canDelete && <DropdownMenuSeparator />}
+          {canDelete && (
+            <DropdownMenuGroup>
+              <DropdownMenuItem variant="destructive" onSelect={() => setConfirming(true)}>
+                <Trash2Icon />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

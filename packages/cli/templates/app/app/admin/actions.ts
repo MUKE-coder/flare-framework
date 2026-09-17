@@ -4,16 +4,26 @@ import { revalidatePath } from "next/cache";
 import { createObjectKey, matchesContentType, mimeTypesFor } from "@flare/core";
 import type { FieldIssue } from "@flare/core/server";
 import { storage } from "@/lib/storage";
-import { adminPath, adminSession, adminStore, DEFAULT_MAX_UPLOAD } from "@/lib/admin";
+import { can, type PolicyAction } from "@flare/core";
+import { adminPath, adminSession, adminStore, DEFAULT_MAX_UPLOAD, policyFor } from "@/lib/admin";
 
 export type ActionResult<T = unknown> =
   | { ok: true; data: T }
   | { ok: false; status: number; error: string; issues?: FieldIssue[]; field?: string };
 
-const forbidden: ActionResult<never> = { ok: false, status: 403, error: "You don't have access to the admin." };
+const forbidden = (message = "You don't have access to the admin."): ActionResult<never> => ({ ok: false, status: 403, error: message });
+
+/** Session + policy check for one action on one resource. */
+async function allowed(resourceName: string, action: PolicyAction): Promise<ActionResult<never> | undefined> {
+  const { allowed: inAdmin, role } = await adminSession();
+  if (!inAdmin) return forbidden();
+  if (!can(policyFor(resourceName), role, action)) return forbidden(`Your role can't ${action} this record.`);
+}
 
 export async function deleteRecordAction(resourceName: string, id: string): Promise<ActionResult<{ id: string }>> {
-  if (!(await adminSession()).allowed) return forbidden;
+  const denied = await allowed(resourceName, "delete");
+  if (denied) return denied;
+
   const store = adminStore(resourceName);
   const result = await store.delete(id);
   if (result.ok) revalidatePath(adminPath(store.resource));
@@ -21,7 +31,9 @@ export async function deleteRecordAction(resourceName: string, id: string): Prom
 }
 
 export async function createRecordAction(resourceName: string, input: unknown): Promise<ActionResult<Record<string, unknown>>> {
-  if (!(await adminSession()).allowed) return forbidden;
+  const denied = await allowed(resourceName, "create");
+  if (denied) return denied;
+
   const store = adminStore(resourceName);
   const result = await store.create(input);
   if (result.ok) revalidatePath(adminPath(store.resource));
@@ -29,7 +41,9 @@ export async function createRecordAction(resourceName: string, input: unknown): 
 }
 
 export async function updateRecordAction(resourceName: string, id: string, input: unknown): Promise<ActionResult<Record<string, unknown>>> {
-  if (!(await adminSession()).allowed) return forbidden;
+  const denied = await allowed(resourceName, "update");
+  if (denied) return denied;
+
   const store = adminStore(resourceName);
   const result = await store.update(id, input);
   if (result.ok) revalidatePath(adminPath(store.resource));
@@ -46,7 +60,11 @@ export async function createUploadUrlAction(
   fieldKey: string,
   file: { name: string; type: string; size: number },
 ): Promise<ActionResult<{ url: string; key: string }>> {
-  if (!(await adminSession()).allowed) return forbidden;
+  // Uploading is part of creating or editing a record, so either permission is enough.
+  const deniedCreate = await allowed(resourceName, "create");
+  const deniedUpdate = await allowed(resourceName, "update");
+  if (deniedCreate && deniedUpdate) return deniedUpdate;
+
   const { resource } = adminStore(resourceName);
   const field = resource.fields[fieldKey];
   if (!field || field.kind !== "file") return { ok: false, status: 400, error: `${resourceName} has no file field "${fieldKey}".` };
@@ -67,6 +85,7 @@ export async function createUploadUrlAction(
 
 /** A short-lived URL for viewing or downloading a stored file. */
 export async function createReadUrlAction(key: string): Promise<ActionResult<{ url: string }>> {
-  if (!(await adminSession()).allowed) return forbidden;
+  if (!(await adminSession()).allowed) return forbidden();
+
   return { ok: true, data: { url: await storage.createReadUrl({ key }) } };
 }
