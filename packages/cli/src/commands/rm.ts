@@ -41,10 +41,12 @@ export function handWrittenReason(source: string, header: string, options: { des
   return null;
 }
 
+/** Remove folders left empty under app/api or app/admin after deleting a resource's routes. */
 function removeEmptyDirs(appRoot: string, start: string) {
   let dir = dirname(join(appRoot, start));
-  const stop = join(appRoot, "app", "api");
-  while (dir.startsWith(stop) && dir !== stop && existsSync(dir) && readdirSync(dir).length === 0) {
+  const roots = [join(appRoot, "app", "api"), join(appRoot, "app", "admin")];
+  const inside = () => roots.some((root) => dir.startsWith(root) && dir !== root);
+  while (inside() && existsSync(dir) && readdirSync(dir).length === 0) {
     rmdirSync(dir);
     dir = dirname(dir);
   }

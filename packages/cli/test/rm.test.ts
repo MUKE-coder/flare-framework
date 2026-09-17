@@ -27,6 +27,9 @@ const TAG_FILES = [
   "app/api/tags/[id]/route.ts",
   "resources/tag.client.ts",
   "resources/tag.validators.ts",
+  "app/admin/tags/page.tsx",
+  "app/admin/tags/new/page.tsx",
+  "app/admin/tags/[id]/edit/page.tsx",
 ];
 
 const read = (root: string, path: string) => readFileSync(join(root, path), "utf8");
@@ -39,6 +42,7 @@ describe("flare rm resource", () => {
     expect(removed).toEqual([...TAG_FILES].sort());
     for (const path of TAG_FILES) expect(existsSync(join(root, path)), path).toBe(false);
     expect(existsSync(join(root, "app/api/tags"))).toBe(false);
+    expect(existsSync(join(root, "app/admin/tags"))).toBe(false);
     expect(existsSync(join(root, "app/api/contacts/route.ts"))).toBe(true);
     expect(read(root, "resources/index.ts")).not.toContain("tag");
     expect(read(root, "db/schema.ts")).not.toContain("tags");

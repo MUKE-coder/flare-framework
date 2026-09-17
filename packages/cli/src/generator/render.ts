@@ -187,6 +187,67 @@ export function renderItemRoute(entry: LoadedResource): string {
   ].join("\n");
 }
 
+const adminImports = (entry: LoadedResource) => [
+  `import ${resourceLocal(entry.stem)} from "@/resources/${entry.stem}.resource";`,
+];
+
+/** `app/admin/<slug>/page.tsx`: the list view. */
+export function renderAdminListPage(entry: LoadedResource): string {
+  const local = resourceLocal(entry.stem);
+  return [
+    `import Link from "next/link";`,
+    `import { PlusIcon } from "lucide-react";`,
+    `import { ResourceTable } from "@/components/admin/resource-table";`,
+    `import type { SearchParams } from "@/components/admin/query";`,
+    `import { Button } from "@/components/ui/button";`,
+    ...adminImports(entry),
+    "",
+    `export default async function ${entry.resource.name}ListPage({ searchParams }: { searchParams: Promise<SearchParams> }) {`,
+    "  return (",
+    `    <div className="flex flex-col gap-6">`,
+    `      <div className="flex items-center justify-between gap-4">`,
+    `        <h1 className="text-2xl font-semibold">{${local}.pluralLabel}</h1>`,
+    `        <Button asChild>`,
+    `          <Link href={\`/admin/\${${local}.slug}/new\`}>`,
+    `            <PlusIcon data-icon="inline-start" />`,
+    `            New {${local}.label.toLowerCase()}`,
+    "          </Link>",
+    "        </Button>",
+    "      </div>",
+    `      <ResourceTable resource={${local}} searchParams={await searchParams} />`,
+    "    </div>",
+    "  );",
+    "}",
+    "",
+  ].join("\n");
+}
+
+/** `app/admin/<slug>/new/page.tsx`: the create form. */
+export function renderAdminNewPage(entry: LoadedResource): string {
+  return [
+    `import { ResourceFormPage } from "@/components/admin/resource-form-page";`,
+    ...adminImports(entry),
+    "",
+    `export default function New${entry.resource.name}Page() {`,
+    `  return <ResourceFormPage resource={${resourceLocal(entry.stem)}} />;`,
+    "}",
+    "",
+  ].join("\n");
+}
+
+/** `app/admin/<slug>/[id]/edit/page.tsx`: the edit form. */
+export function renderAdminEditPage(entry: LoadedResource): string {
+  return [
+    `import { ResourceFormPage } from "@/components/admin/resource-form-page";`,
+    ...adminImports(entry),
+    "",
+    `export default async function Edit${entry.resource.name}Page({ params }: { params: Promise<{ id: string }> }) {`,
+    `  return <ResourceFormPage resource={${resourceLocal(entry.stem)}} id={(await params).id} />;`,
+    "}",
+    "",
+  ].join("\n");
+}
+
 /** `resources/<stem>.client.ts`: typed REST client and record types. */
 export function renderClient(entry: LoadedResource): string {
   const { resource, stem } = entry;
@@ -258,5 +319,8 @@ export function resourceFiles(entry: LoadedResource, all: LoadedResource[]): { p
     { path: `app/api/${resource.slug}/[id]/route.ts`, content: renderItemRoute(entry) },
     { path: `resources/${stem}.client.ts`, content: renderClient(entry) },
     { path: `resources/${stem}.validators.ts`, content: renderValidators(entry) },
+    { path: `app/admin/${resource.slug}/page.tsx`, content: renderAdminListPage(entry) },
+    { path: `app/admin/${resource.slug}/new/page.tsx`, content: renderAdminNewPage(entry) },
+    { path: `app/admin/${resource.slug}/[id]/edit/page.tsx`, content: renderAdminEditPage(entry) },
   ];
 }
