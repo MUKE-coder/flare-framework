@@ -17,5 +17,13 @@
       "database_name": "__APP_NAME__-db",
       "migrations_dir": "migrations"
     }
+  ],
+  "r2_buckets": [
+    {
+      // Simulated locally. No bucket needs creating first: wrangler provisions
+      // missing resources on deploy.
+      "binding": "STORAGE",
+      "bucket_name": "__APP_NAME__-storage"
+    }
   ]
 }

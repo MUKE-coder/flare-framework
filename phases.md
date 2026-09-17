@@ -20,7 +20,7 @@ don't just believe it).
 - [x] Wire D1 + Drizzle: generated `drizzle.config.ts`, base `schema.ts`, `wrangler.jsonc` D1 binding
 - [x] Wire Better Auth: email/password provider, D1/Drizzle adapter, session middleware
 - [x] `--auth-providers google,github` flag generates OAuth provider config + env var scaffolding
-- [ ] Wire R2: a storage helper (`lib/storage.ts`) with signed-upload and signed-read URL helpers
+- [x] Wire R2: a storage helper (`lib/storage.ts`) with signed-upload and signed-read URL helpers
 - [ ] Wire Resend: a mailer helper (`lib/mail.ts`) with a basic transactional template
 - [ ] `flare dev` / `flare start` / `flare deploy` delegate correctly to vinext's own CLI commands
 

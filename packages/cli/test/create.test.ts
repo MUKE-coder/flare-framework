@@ -62,6 +62,8 @@ describe("createApp", () => {
       "lib/auth-client.ts",
       "lib/session.ts",
       "app/api/auth/[...all]/route.ts",
+      "lib/storage.ts",
+      "app/api/storage/route.ts",
       "proxy.ts",
       "app/sign-in/page.tsx",
       "app/sign-up/page.tsx",
@@ -85,6 +87,8 @@ describe("createApp", () => {
     expect(wrangler).toContain('"compatibility_date": "2026-09-17"');
     expect(wrangler).toContain('"binding": "DB"');
     expect(wrangler).toContain('"database_name": "shop-db"');
+    expect(wrangler).toContain('"binding": "STORAGE"');
+    expect(wrangler).toContain('"bucket_name": "shop-storage"');
     expect(pkg.scripts.start).toContain("--persist-to .wrangler/state");
     expect(pkg.dependencies["drizzle-orm"]).toBeDefined();
     expect(pkg.devDependencies["drizzle-kit"]).toBeDefined();

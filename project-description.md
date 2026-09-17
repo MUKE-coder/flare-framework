@@ -160,6 +160,27 @@ stable compiler API yet, which tsup's declaration build needs.
   (`<app URL>/api/auth/callback/<provider>`). Sign-in/up pages render a button
   per *configured* provider.
 
+### Storage wiring (as built)
+
+- `STORAGE` R2 binding (`bucket_name: <app>-storage`). `lib/storage.ts` wraps
+  `createStorage()` from `@flare/core`, and `app/api/storage/route.ts` redeems URLs.
+- **Signed URLs are Flare-signed, not S3-presigned.** R2 bindings can't
+  presign. S3 presigning needs R2 API tokens and bucket CORS, and doesn't work
+  against the local simulator. Instead each URL carries an HMAC-SHA256 token
+  scoped to one operation (`put`/`get`), one key, an expiry, and for uploads
+  the allowed content types (wildcards allowed, like the `file:[image,pdf]`
+  grammar) and a max size. The signing key is derived from
+  `BETTER_AUTH_SECRET` with a `storage` label. Trade-off: bytes stream through
+  the Worker, so uploads are capped by the Workers request body limit. A
+  direct-to-R2 presigned backend can be added later behind the same
+  `createUploadUrl`/`createReadUrl` API.
+- Reads only serve known-safe types inline (raster images, PDF, text,
+  audio/video). Everything else, SVG included, is sent as an attachment with a
+  `sandbox` CSP, so uploads can't become stored XSS on the app origin.
+- Rejected uploads have their body read and discarded (streamed, constant
+  memory) before the 4xx is returned. With the body left unread, every other
+  request through wrangler's local proxy failed with a 500.
+
 All bindings are accessed the vinext-native way —
 `import { env } from "cloudflare:workers"` — inside server components, route
 handlers, and server actions. No custom worker entry, no `getPlatformProxy()`,
