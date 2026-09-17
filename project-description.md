@@ -469,6 +469,29 @@ API behavior:
   - **Other states.** An `Empty` state (with clear-filters or create
     call-to-action), and invalid URL parameters fall back to defaults with a
     notice.
+- **`<ResourceForm mode="create" | "edit">`** (client) renders an input per stored
+  field from the descriptor: labels above, one column on narrow screens and two on
+  wide, long text spanning both, errors inline under the field (never toast-only).
+  It validates with the descriptor's zod schemas in the browser, focuses the first
+  invalid field, then calls a server action that validates again through the same
+  store; server issues (including unique conflicts) map back onto their fields.
+  `ResourceFormPage` (server) loads the record and relation titles.
+  Form state helpers live in `@flare/core`: `initialFormValues()`,
+  `formValuesToInput()` (empty optional → null, empty with a default → omitted on
+  create, numbers parsed), `issuesByField()`. Validator messages are written for
+  people ("Required", "Enter a valid email address", "At most 120 characters") and
+  are shared with the REST API.
+- **Widgets** (`components/admin/fields`): text/email/url input, textarea, numeric
+  input, switch, select (enums, with a "None" option when optional), date and
+  datetime pickers (calendar popover; values stay `YYYY-MM-DD` / ISO with offset, in
+  UTC so days never shift), relation picker (searches the target's REST API and
+  stores the id while showing its title), and file upload (server action signs an
+  upload URL after checking type and size against `file:[…]`, the browser PUTs to the
+  storage route, and the object key is stored; download uses a signed read URL).
+- **A `"use server"` module may only export async functions.** Exporting a constant
+  from `app/admin/actions.ts` broke loading the whole module at runtime
+  ("Object.defineProperties called on non-object"), so shared constants live in
+  `lib/admin.ts`.
 - **Display helpers** in `@flare/core`: `formatValue()` (per kind; dates are
   formatted in UTC so date-only values never shift a day), `optionLabel()`,
   `statusTone()`.

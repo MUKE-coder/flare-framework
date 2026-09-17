@@ -7,6 +7,9 @@ import { getDb } from "@/db";
 import { resourceTables } from "@/resources/server";
 import { auth } from "./auth";
 
+/** Default upload limit for file fields without an explicit maxBytes (10 MB). */
+export const DEFAULT_MAX_UPLOAD = 10 * 1024 * 1024;
+
 /** Roles allowed into /admin. Grant one with `flare user:role you@example.com admin`. */
 export const ADMIN_ROLES = ["admin", "staff"];
 

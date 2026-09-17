@@ -107,6 +107,8 @@ export function ResourceForm({ resource, mode, id, record, relations = {}, listH
                     <FieldWidget
                       id={widgetId}
                       name={key}
+                      resourceName={resource.name}
+                      fieldKey={key}
                       field={def}
                       value={values[key] ?? ""}
                       onChange={(value) => setValue(key, value)}

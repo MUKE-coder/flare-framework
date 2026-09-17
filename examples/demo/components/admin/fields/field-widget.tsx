@@ -1,10 +1,13 @@
 "use client";
 
-import { optionLabel, type StoredField } from "@flare/core";
+import { optionLabel, type FileField as FileFieldDef, type StoredField } from "@flare/core";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { DateField, DateTimeField } from "./date-field";
+import { FileField } from "./file-field";
+import { RelationField } from "./relation-field";
 
 export interface RelationMeta {
   name: string;
@@ -17,6 +20,9 @@ export interface RelationMeta {
 export interface WidgetProps {
   id: string;
   name: string;
+  /** Resource name and field key, for upload actions. */
+  resourceName: string;
+  fieldKey: string;
   field: StoredField & { label: string };
   value: string | boolean;
   onChange: (value: string | boolean) => void;
@@ -30,7 +36,7 @@ const NONE = "__none__";
 
 /** The input for a field, chosen from its kind in the descriptor. */
 export function FieldWidget(props: WidgetProps) {
-  const { id, name, field, value, onChange, invalid, disabled } = props;
+  const { id, name, field, value, onChange, invalid, disabled, relation, resourceName, fieldKey } = props;
   const text = typeof value === "string" ? value : "";
   const common = { id, name, disabled, "aria-invalid": invalid || undefined, placeholder: field.placeholder };
 
@@ -84,10 +90,35 @@ export function FieldWidget(props: WidgetProps) {
       );
 
     case "date":
-      return <Input {...common} type="date" value={text} onChange={(event) => onChange(event.target.value)} />;
+      return (
+        <DateField id={id} value={text} onChange={onChange} invalid={invalid} disabled={disabled} required={field.required} placeholder={field.placeholder} />
+      );
 
     case "datetime":
-      return <Input {...common} type="text" value={text} onChange={(event) => onChange(event.target.value)} />;
+      return (
+        <DateTimeField id={id} value={text} onChange={onChange} invalid={invalid} disabled={disabled} required={field.required} placeholder={field.placeholder} />
+      );
+
+    case "belongsTo":
+      return relation ? (
+        <RelationField id={id} value={text} onChange={onChange} invalid={invalid} disabled={disabled} required={field.required} relation={relation} />
+      ) : (
+        <Input {...common} value={text} onChange={(event) => onChange(event.target.value)} />
+      );
+
+    case "file":
+      return (
+        <FileField
+          id={id}
+          value={text}
+          onChange={onChange}
+          invalid={invalid}
+          disabled={disabled}
+          field={field as FileFieldDef & { label: string }}
+          resourceName={resourceName}
+          fieldKey={fieldKey}
+        />
+      );
 
     default: {
       const type = field.kind === "string" && field.format === "email" ? "email" : field.kind === "string" && field.format === "url" ? "url" : "text";

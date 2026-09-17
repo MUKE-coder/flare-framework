@@ -64,6 +64,13 @@
       "when": 1789666670534,
       "tag": "0008_update_contacts",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1789668951340,
+      "tag": "0009_update_deals",
+      "breakpoints": true
     }
   ]
 }
