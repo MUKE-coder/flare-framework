@@ -120,8 +120,10 @@ export async function rmResource(rawName: string, options: RmResourceOptions = {
 
   let migrations: string[] = [];
   if (!options.skipMigration && entry) {
-    migrations = (await generateSchemaMigration(appRoot, `drop_${entry.resource.table}`)).files;
+    const result = await generateSchemaMigration(appRoot, `drop_${entry.resource.table}`);
+    migrations = result.files;
     for (const file of migrations) log(`${pc.green("create".padEnd(9))} ${file}`);
+    for (const repair of result.repairs) log(pc.dim(`repaired  ${repair}`));
     if (migrations.length) log(`\nNext: ${pc.bold("flare migrate")} to drop the table locally.`);
   }
   return { removed, migrations };

@@ -82,6 +82,7 @@ describe("genResource", () => {
       "resources/order-item.validators.ts",
       "db/relations.ts",
       "resources/index.ts",
+      "resources/server.ts",
       "db/schema.ts",
     ]);
     expect(result.written.slice(1).every((w) => w.outcome === "create")).toBe(true);

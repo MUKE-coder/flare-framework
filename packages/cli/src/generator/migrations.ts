@@ -1,12 +1,15 @@
 import { spawn } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { resolveBin } from "../commands/run.js";
+import { repairRebuildMigration, snapshotColumns } from "./repair.js";
 
 export interface GenerateMigrationResult {
   /** New migration files, relative to the app root (empty when the schema didn't change). */
   files: string[];
   output: string;
+  /** Fixes applied to drizzle-kit output (see repair.ts). */
+  repairs: string[];
 }
 
 const listSql = (dir: string) => (existsSync(dir) ? readdirSync(dir).filter((file) => file.endsWith(".sql")) : []);
@@ -45,9 +48,32 @@ export async function generateSchemaMigration(
       `drizzle-kit generate failed:\n${output.trim()}\n\nIf it asked whether a column was renamed, run \`pnpm exec drizzle-kit generate\` in a terminal to answer interactively.`,
     );
   }
-  const files = listSql(dir)
+  const created = listSql(dir)
     .filter((file) => !before.has(file))
+    .sort();
+
+  const repairs: string[] = [];
+  for (const file of created) {
+    const previous = previousSnapshot(dir, file);
+    if (!previous) continue;
+    const path = join(dir, file);
+    const { sql, changes } = repairRebuildMigration(readFileSync(path, "utf8"), snapshotColumns(previous));
+    if (changes.length) {
+      writeFileSync(path, sql);
+      repairs.push(...changes.map((change) => `${file}: ${change}`));
+    }
+  }
+  return { files: created.map((file) => `migrations/${file}`), output, repairs };
+}
+
+/** The drizzle-kit snapshot from before `migrationFile` (e.g. 0007 for 0008_x.sql). */
+function previousSnapshot(dir: string, migrationFile: string) {
+  const prefix = /^(\d+)_/.exec(migrationFile)?.[1];
+  const metaDir = join(dir, "meta");
+  if (!prefix || !existsSync(metaDir)) return undefined;
+  const earlier = readdirSync(metaDir)
+    .filter((file) => /^\d+_snapshot\.json$/.test(file) && file < `${prefix}_snapshot.json`)
     .sort()
-    .map((file) => `migrations/${file}`);
-  return { files, output };
+    .pop();
+  return earlier ? JSON.parse(readFileSync(join(metaDir, earlier), "utf8")) : undefined;
 }

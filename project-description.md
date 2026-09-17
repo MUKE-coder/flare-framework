@@ -96,7 +96,7 @@ A pnpm workspace:
 | --- | --- | --- |
 | `packages/cli` | `@flare/cli` (bin: `flare`) | Every CLI verb, plus `templates/` for scaffolded apps and generated files |
 | `packages/core` | `@flare/core` | Runtime: descriptor types, field grammar parser, Cloudflare/auth/mail/storage helpers, policy checks |
-| `packages/admin` | `@flare/admin` | Admin components (added in Phase M2) |
+| *(app template)* | — | Admin UI: shadcn/ui primitives (`components/ui`) and admin components (`components/admin`) are copied into each app as editable source, per `style-guide.md`. The earlier `@flare/admin` package plan was dropped for this reason; the admin's non-visual logic lives in `@flare/core`. |
 | `examples/*` | — | Apps produced by `flare create`, used to verify each phase's exit criteria |
 
 Helpers that a developer is expected to edit (`lib/storage.ts`, `lib/mail.ts`,
@@ -437,6 +437,52 @@ API behavior:
   every descriptor field, so an edited descriptor without a migration fails loudly.
 
 `scripts/e2e-crud.sh <url>` verifies every verb and error path against a running app.
+
+### Admin dashboard (as built, Phase M2)
+
+- **Access.** Better Auth's `admin` plugin adds `user.role` (default `"user"`),
+  ban fields and admin APIs. `lib/admin.ts` gates `/admin` on `ADMIN_ROLES`
+  (`admin`, `staff`): signed-out visitors go to `/sign-in?next=…`, other roles to
+  `/?error=forbidden`. Server actions re-check the role. Grant a role with
+  `flare user:role <email> <role> [--remote]` (a new verb: a guarded
+  `UPDATE … RETURNING`, with email and role validated and case-insensitive
+  email matching). M3 policies build on this role.
+- **Data layer.** `createResourceStore()` in `@flare/core/server` holds list /
+  get / titles / create / update / replace / delete as result objects
+  (`{ ok, data }` or `{ ok: false, status, error, issues, field }`). The REST
+  handlers and the admin's server actions both wrap it, so validation,
+  constraint mapping and search are identical everywhere.
+  `resources/server.ts` (generated) maps resource name → descriptor + table.
+- **`<ResourceTable resource searchParams>`** is a server component with state in
+  the URL (`page`, `sort`, `q`, `filter[field]`):
+  - **Columns.** Fields with `list !== false`, plus Created.
+  - **Headers.** Sortable ones link with an up/down chevron.
+  - **Cells.** Enums render as `Badge` with a tone from `statusTone()` (e.g.
+    paid → success, pending → warning, cancelled → danger). belongsTo shows the
+    related record's title (one `titles()` query per relation). Numbers are
+    right-aligned `tabular-nums`, and the first column links to edit.
+  - **Toolbar** (client). Search plus Status/boolean filter selects.
+  - **Rows.** A row menu with Edit, and Delete behind an AlertDialog → server
+    action → toast.
+  - **Footer.** Row count and filter summary bottom-left, pagination
+    bottom-right.
+  - **Other states.** An `Empty` state (with clear-filters or create
+    call-to-action), and invalid URL parameters fall back to defaults with a
+    notice.
+- **Display helpers** in `@flare/core`: `formatValue()` (per kind; dates are
+  formatted in UTC so date-only values never shift a day), `optionLabel()`,
+  `statusTone()`.
+- **Migration repair.** drizzle-kit's SQLite table-rebuild migrations (e.g.
+  adding an enum's CHECK) copy *new* columns from the old table. SQLite reads the
+  unknown double-quoted name as a string literal, so the copy fails the CHECK or
+  stores junk. Every migration Flare generates is post-processed to copy only
+  columns present in the previous snapshot, and `PRAGMA foreign_keys=OFF/ON`
+  becomes D1's `PRAGMA defer_foreign_keys`. Verified on D1 with an FK pointing
+  at the rebuilt table.
+- **D1 limit.** At most 100 bound parameters per query, so batch multi-row
+  inserts (e.g. 15 rows × 6 columns) in seeds.
+- **UI verification.** `scripts/screenshot.mjs` drives the locally installed
+  Chrome through `playwright-core` (no browser download).
 
 ### The CLI (short-verb style, `wrangler`-consistent)
 

@@ -4,7 +4,7 @@ import pc from "picocolors";
 import { templatesDir } from "../utils/fs.js";
 import type { LoadedResource } from "./load.js";
 import { DriftError, inspectGenerated, writeGenerated, type FileStatus } from "./markers.js";
-import { renderRegistry, renderRelations, renderSchemaIndex, resourceFiles } from "./render.js";
+import { renderRegistry, renderRelations, renderSchemaIndex, renderServerRegistry, resourceFiles } from "./render.js";
 
 export interface PlannedFile {
   /** Relative to the app root. */
@@ -28,6 +28,11 @@ export function planFiles(all: LoadedResource[]): PlannedFile[] {
   files.push(
     { path: "db/relations.ts", content: renderRelations(all), header: "// Drizzle relations for every resource (maintained by flare gen).\n" },
     { path: "resources/index.ts", content: renderRegistry(all), header: "// Registry of every resource descriptor (maintained by flare gen).\n" },
+    {
+      path: "resources/server.ts",
+      content: renderServerRegistry(all),
+      header: "// Server-only: resource name → descriptor and table (maintained by flare gen).\n",
+    },
     { path: "db/schema.ts", content: renderSchemaIndex(all) },
   );
   return files;

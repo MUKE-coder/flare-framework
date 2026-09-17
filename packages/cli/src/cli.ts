@@ -7,6 +7,7 @@ import { migrate, rollback } from "./commands/migrate.js";
 import { rmResource } from "./commands/rm.js";
 import { makeSeed, runSeeds } from "./commands/seed.js";
 import { syncTypes } from "./commands/sync.js";
+import { setUserRole } from "./commands/user-role.js";
 import { DELEGATED_COMMANDS } from "./commands/run.js";
 
 export function createCli() {
@@ -45,6 +46,15 @@ export function createCli() {
     .action(async (kind: string, name: string, options: { force?: boolean }) => {
       if (kind !== "resource") throw new Error(`Unknown kind "${kind}". Available: resource.`);
       await rmResource(name, options);
+    });
+
+  cli
+    .command("user:role <email> <role>", "Set a user's role, e.g. make the first admin (local database unless --remote)")
+    .option("--remote", "Target the deployed database")
+    .option("--env <name>", "Wrangler environment")
+    .example("flare user:role you@example.com admin")
+    .action(async (email: string, role: string, options: { remote?: boolean; env?: string }) => {
+      process.exitCode = await setUserRole(email, role, options);
     });
 
   cli

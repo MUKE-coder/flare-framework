@@ -229,6 +229,26 @@ export function renderRegistry(all: LoadedResource[]): string {
   ].join("\n");
 }
 
+/**
+ * Generated block of `resources/server.ts`: resource name → descriptor + Drizzle table.
+ * Server-only (imports the schema); the admin looks resources up here by name.
+ */
+export function renderServerRegistry(all: LoadedResource[]): string {
+  if (all.length === 0) return "export const resourceTables = {} as const;\n";
+  const sorted = [...all].sort((a, b) => a.resource.name.localeCompare(b.resource.name));
+  return [
+    `import { ${sorted.map(({ resource }) => tableExport(resource)).join(", ")} } from "@/db/schema";`,
+    `import { ${sorted.map(({ stem }) => resourceLocal(stem)).join(", ")} } from "./index";`,
+    "",
+    "export const resourceTables = {",
+    ...sorted.map(({ resource, stem }) => `  ${resource.name}: { resource: ${resourceLocal(stem)}, table: ${tableExport(resource)} },`),
+    "} as const;",
+    "",
+    "export type ResourceName = keyof typeof resourceTables;",
+    "",
+  ].join("\n");
+}
+
 /** Every file a resource owns, relative to the app root, with its rendered block. */
 export function resourceFiles(entry: LoadedResource, all: LoadedResource[]): { path: string; content: string }[] {
   const { resource, stem } = entry;

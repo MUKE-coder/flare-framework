@@ -65,7 +65,7 @@ with auth still 13/13.
 
 ## Phase M2 — Admin dashboard shell
 
-- [ ] Build `<ResourceTable>` — reads columns/filters/sort from a resource descriptor; paginated, sortable, filterable
+- [x] Build `<ResourceTable>` — reads columns/filters/sort from a resource descriptor; paginated, sortable, filterable
 - [ ] Build `<ResourceForm mode="create" | "edit">` — renders inputs from field metadata, wires Zod validation
 - [ ] Build all six v1 field widgets: text, textarea, number, toggle, date picker, select, file upload, relation picker
 - [ ] Build `<ResourceNav>` — auto-populates sidebar from all registered resources

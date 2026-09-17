@@ -113,6 +113,7 @@ export async function genResource(rawName: string, options: GenResourceOptions):
     const result = await generateSchemaMigration(appRoot, `${exists ? "update" : "create"}_${table}`);
     migrations = result.files;
     for (const file of migrations) log(`${pc.green("create".padEnd(9))} ${file}`);
+    for (const repair of result.repairs) log(pc.dim(`repaired  ${repair}`));
     if (migrations.length) log(`\nNext: ${pc.bold("flare migrate")} to apply it locally.`);
     else if (exists) log(pc.dim("\nNo table changes, so no migration."));
   }

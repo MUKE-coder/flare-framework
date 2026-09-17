@@ -25,6 +25,15 @@ in stat cards. Never mix icon sets.
 Monochrome-first with sparing, meaningful accent use. Define as CSS variables
 on `:root` so dark mode is a token swap, not a rewrite.
 
+*Implementation note:* the tokens below are the source of truth in
+`app/globals.css`, and shadcn/ui's tokens are derived from them. Because
+shadcn uses `--accent` for hover surfaces, this guide's `--accent` is
+implemented as shadcn's `--primary`, and shadcn's `--accent`/`--muted`/`--secondary`
+map to `--surface-muted`. The status tokens are exposed as Tailwind colors
+(`text-success`, `bg-warning/10`, …) and as `Badge` variants `success` / `warning` /
+`danger`. Dark mode follows the system unless the theme cookie adds `.dark` or
+`.light` to `<html>`.
+
 | Token | Light | Dark | Usage |
 | --- | --- | --- | --- |
 | `--background` | `#ffffff` | `#0a0a0a` | Page background |

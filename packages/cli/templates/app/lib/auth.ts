@@ -2,6 +2,7 @@ import { env, waitUntil } from "cloudflare:workers";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { nextCookies } from "better-auth/next-js";
+import { admin } from "better-auth/plugins/admin";
 import { hashPassword, verifyPassword } from "@flare/core";
 import { getDb, schema } from "@/db";
 
@@ -27,8 +28,12 @@ export const auth = betterAuth({
     // Let emails and other deferred work finish after the response is sent.
     backgroundTasks: { handler: waitUntil },
   },
-  // Must stay last: lets server actions set auth cookies.
-  plugins: [nextCookies()],
+  plugins: [
+    // Adds user.role (default "user") and admin APIs. The /admin area allows ADMIN_ROLES (lib/admin.ts).
+    admin({ defaultRole: "user", adminRoles: ["admin"] }),
+    // Must stay last: lets server actions set auth cookies.
+    nextCookies(),
+  ],
 });
 
 export type Session = typeof auth.$Infer.Session;

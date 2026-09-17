@@ -32,12 +32,13 @@ export async function genMigration(rawName: string, options: GenMigrationOptions
   const name = snakeCase(rawName);
   if (!name) throw new Error(`Invalid migration name "${rawName}". Use letters, digits, and underscores.`);
 
-  const { files } = await generateSchemaMigration(appRoot, name, { custom: !options.fromSchema });
+  const { files, repairs } = await generateSchemaMigration(appRoot, name, { custom: !options.fromSchema });
   if (files.length === 0) {
     log(options.fromSchema ? "No schema changes, so no migration was created." : "drizzle-kit didn't create a migration.");
     return [];
   }
   for (const file of files) log(`${pc.green("create".padEnd(9))} ${file}`);
+  for (const repair of repairs) log(pc.dim(`repaired  ${repair}`));
 
   if (!options.fromSchema) {
     const downDir = join(appRoot, "migrations", "down");
