@@ -5,7 +5,7 @@
  * Add hand-written tables anywhere outside the generated block below.
  */
 
-export {};
+export * from "./auth-schema";
 
 // generated:start
 // generated:end

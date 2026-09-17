@@ -3,7 +3,9 @@
  * build together (vinext is pre-1.0, so ranges are kept tight on purpose).
  */
 export const APP_DEPENDENCIES = {
+  "@better-auth/drizzle-adapter": "1.7.5",
   "@vinext/cloudflare": "1.0.0-beta.8",
+  "better-auth": "1.7.5",
   "drizzle-orm": "^0.45.2",
   react: "19.3.0",
   "react-dom": "19.3.0",

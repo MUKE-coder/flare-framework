@@ -124,6 +124,34 @@ stable compiler API yet, which tsup's declaration build needs.
 - D1 has no native down-migrations. `flare migrate:rollback` (Phase M1) must
   track and run its own down SQL.
 
+### Auth wiring (as built)
+
+- Better Auth 1.7 with `@better-auth/drizzle-adapter` (sqlite provider) over
+  the same `getDb()` client. `lib/auth.ts` is a module-level instance reading
+  bindings from `cloudflare:workers`; `app/api/auth/[...all]/route.ts` mounts it.
+- **Password hashing is PBKDF2-SHA256 (100k iterations, WebCrypto) from
+  `@flare/core`, not Better Auth's default scrypt.** Measured: scrypt ≈ 250–300ms
+  CPU per hash in pure JS vs ≈ 45ms for PBKDF2. The scrypt figure is far over the
+  Workers free-plan CPU budget. 100k is the maximum PBKDF2 iteration count
+  Workers' WebCrypto accepts. The iteration count is stored in each hash.
+- The auth tables (`db/auth-schema.ts`) and their first migration
+  (`migrations/0000_auth.sql`) ship pre-generated in the template. The
+  Better Auth CLI can't load `lib/auth.ts` in Node because it imports
+  `cloudflare:workers`, so schema changes from auth plugins mean re-running
+  `auth generate` against a Node-safe config.
+- Base URL: `BETTER_AUTH_URL` when set (custom domains); otherwise a
+  `baseURL.allowedHosts` allowlist of `localhost:*`, `127.0.0.1:*` and
+  `<app>.*.workers.dev`, so local dev on any port and a first workers.dev
+  deploy work without configuration.
+- Secrets: `flare create` writes a random `BETTER_AUTH_SECRET` to `.dev.vars`
+  (git-ignored; the vinext build copies it next to the built worker).
+  Production needs `wrangler secret put BETTER_AUTH_SECRET`, which `flare deploy`
+  should handle.
+- Session gating is two layers: `proxy.ts` does an optimistic cookie-only
+  redirect (no DB call), and pages/routes call `requireSession()` /
+  `getSession()` from `lib/session.ts`, which validate against D1.
+  `scripts/e2e-auth.sh <url>` exercises the whole flow.
+
 All bindings are accessed the vinext-native way —
 `import { env } from "cloudflare:workers"` — inside server components, route
 handlers, and server actions. No custom worker entry, no `getPlatformProxy()`,

@@ -1,8 +1,9 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { createApp, toAppName } from "../src/commands/create.js";
+import { coreDependencySpec, createApp, toAppName } from "../src/commands/create.js";
 
 const dirs: string[] = [];
 function tempDir() {
@@ -21,6 +22,18 @@ describe("toAppName", () => {
 
   it("rejects names with no usable characters", () => {
     expect(() => toAppName("/tmp/___")).toThrow(/Cannot derive/);
+  });
+});
+
+describe("coreDependencySpec", () => {
+  it("uses workspace:* for apps inside the Flare repo", () => {
+    const repoExample = fileURLToPath(new URL("../../../examples/some-app", import.meta.url));
+    expect(coreDependencySpec(repoExample, "pnpm")).toBe("workspace:*");
+  });
+
+  it("links to the local core package for apps outside the repo", () => {
+    expect(coreDependencySpec(join(tmpdir(), "elsewhere"), "pnpm")).toMatch(/^link:.*\/packages\/core$/);
+    expect(coreDependencySpec(join(tmpdir(), "elsewhere"), "npm")).toMatch(/^file:.*\/packages\/core$/);
   });
 });
 
@@ -44,6 +57,19 @@ describe("createApp", () => {
       "drizzle.config.ts",
       "db/schema.ts",
       "db/index.ts",
+      "db/auth-schema.ts",
+      "lib/auth.ts",
+      "lib/auth-client.ts",
+      "lib/session.ts",
+      "app/api/auth/[...all]/route.ts",
+      "proxy.ts",
+      "app/sign-in/page.tsx",
+      "app/sign-up/page.tsx",
+      "app/dashboard/page.tsx",
+      ".dev.vars",
+      ".dev.vars.example",
+      "migrations/0000_auth.sql",
+      "migrations/meta/_journal.json",
     ]) {
       expect(existsSync(join(dir, file)), file).toBe(true);
     }
@@ -66,6 +92,21 @@ describe("createApp", () => {
     expect(readFileSync(join(dir, "db/schema.ts"), "utf8")).toMatch(/\/\/ generated:start\n\/\/ generated:end/);
     expect(readFileSync(join(dir, "app/globals.css"), "utf8")).toContain('@import "tailwindcss"');
     expect(readFileSync(join(dir, "app/page.tsx"), "utf8")).not.toMatch(/__[A-Z_]+__/);
+
+    expect(pkg.dependencies["better-auth"]).toBeDefined();
+    expect(pkg.dependencies["@better-auth/drizzle-adapter"]).toBeDefined();
+    const devVars = readFileSync(join(dir, ".dev.vars"), "utf8");
+    expect(devVars).toMatch(/^BETTER_AUTH_SECRET=[A-Za-z0-9+/]{43}=\n$/);
+    const auth = readFileSync(join(dir, "lib/auth.ts"), "utf8");
+    expect(auth).toContain('"shop.*.workers.dev"');
+    expect(auth).toContain("hash: hashPassword");
+  });
+
+  it("generates a different auth secret per app", () => {
+    const root = tempDir();
+    createApp(join(root, "a"), { install: false, pm: "pnpm" });
+    createApp(join(root, "b"), { install: false, pm: "pnpm" });
+    expect(readFileSync(join(root, "a/.dev.vars"), "utf8")).not.toBe(readFileSync(join(root, "b/.dev.vars"), "utf8"));
   });
 
   it("does not write pnpm-workspace.yaml inside an existing workspace", () => {

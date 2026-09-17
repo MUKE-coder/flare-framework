@@ -1,0 +1,8 @@
+# Local secrets for `vinext dev` / `wrangler dev`. Copy to .dev.vars (git-ignored).
+# In production set them with `wrangler secret put <NAME>`.
+
+# Signs sessions and tokens. Generate with: openssl rand -base64 32
+BETTER_AUTH_SECRET=
+
+# Only needed on a custom domain, e.g. https://example.com
+# BETTER_AUTH_URL=

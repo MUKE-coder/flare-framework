@@ -1,6 +1,8 @@
+import { randomBytes } from "node:crypto";
 import { existsSync, readdirSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import pc from "picocolors";
+import { FLARE_VERSION } from "@flare/core";
 import { APP_DEPENDENCIES, APP_DEV_DEPENDENCIES } from "../versions.js";
 import { copyTemplate, findUp, templatesDir, writeJson } from "../utils/fs.js";
 import { detectPackageManager, isPackageManager, run, type PackageManager } from "../utils/pm.js";
@@ -27,6 +29,22 @@ export function toAppName(dir: string): string {
     .replace(/^-+|-+$/g, "");
   if (!name) throw new Error(`Cannot derive an app name from "${dir}". Use letters, digits, and dashes.`);
   return name;
+}
+
+/**
+ * How the app should depend on @flare/core. When the CLI runs from a checkout of
+ * the Flare repo (core isn't published yet), point at the local package:
+ * `workspace:*` for apps inside that workspace, a link/file path for apps elsewhere.
+ */
+export function coreDependencySpec(appDir: string, packageManager: PackageManager): string {
+  const repoCore = resolve(templatesDir, "../../core");
+  if (!existsSync(join(repoCore, "package.json"))) return `^${FLARE_VERSION}`;
+  const repoRoot = resolve(repoCore, "../..");
+  const rel = relative(repoRoot, appDir);
+  // `relative` returns an absolute path when the app is on another drive (Windows).
+  if (rel && !rel.startsWith("..") && !isAbsolute(rel)) return "workspace:*";
+  const protocol = packageManager === "pnpm" ? "link" : "file";
+  return `${protocol}:${repoCore.replaceAll("\\", "/")}`;
 }
 
 export function createApp(target: string, options: CreateOptions = {}): CreateResult {
@@ -67,10 +85,14 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
       deploy: "vinext-cloudflare deploy --config dist/server/wrangler.json",
       "cf-typegen": "wrangler types",
       "db:generate": "drizzle-kit generate",
+      "db:migrate:local": "wrangler d1 migrations apply DB --local",
     },
-    dependencies: { ...APP_DEPENDENCIES },
+    dependencies: { "@flare/core": coreDependencySpec(dir, packageManager), ...APP_DEPENDENCIES },
     devDependencies: { ...APP_DEV_DEPENDENCIES },
   });
+
+  // Local secrets (git-ignored). Production secrets are set with `wrangler secret put`.
+  writeFileSync(join(dir, ".dev.vars"), `BETTER_AUTH_SECRET=${randomBytes(32).toString("base64")}\n`);
 
   if (packageManager === "pnpm" && !inWorkspace) {
     // pnpm blocks dependency build scripts unless explicitly allowed.

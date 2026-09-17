@@ -2,9 +2,11 @@
 
 :root {
   --background: #ffffff;
+  --surface-muted: #f7f7f8;
+  --border: #e5e5e7;
   --foreground: #0a0a0a;
   --foreground-muted: #6b7280;
-  --border: #e5e5e7;
+  --danger: #dc2626;
   font-family: ui-sans-serif, -apple-system, "Inter", sans-serif;
 }
 
