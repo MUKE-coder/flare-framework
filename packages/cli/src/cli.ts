@@ -3,6 +3,7 @@ import { FLARE_VERSION } from "@flare/core";
 import { createApp, printNextSteps } from "./commands/create.js";
 import { genResource } from "./commands/gen.js";
 import { migrate, rollback } from "./commands/migrate.js";
+import { makeSeed, runSeeds } from "./commands/seed.js";
 import { DELEGATED_COMMANDS } from "./commands/run.js";
 
 export function createCli() {
@@ -47,6 +48,21 @@ export function createCli() {
     .option("--database <binding>", "D1 binding, when the app has several")
     .action(async (options: { steps: number | string; remote?: boolean; yes?: boolean; env?: string; database?: string }) => {
       process.exitCode = await rollback({ ...options, steps: Number(options.steps) });
+    });
+
+  cli
+    .command("seed [...names]", "Run seed files from seeds/ against the local D1 database")
+    .example("flare seed            # every seed, in file-name order")
+    .example("flare seed contacts   # just seeds/contacts.seed.ts")
+    .action(async (names: string[]) => {
+      await runSeeds({ names });
+    });
+
+  cli
+    .command("seed:make <name>", "Create seeds/<name>.seed.ts (with example rows for a matching resource)")
+    .option("--resource <name>", "Resource to write example rows for")
+    .action(async (name: string, options: { resource?: string }) => {
+      await makeSeed(name, options);
     });
 
   // Handled before parsing in index.ts (arguments are forwarded verbatim); registered here for --help.

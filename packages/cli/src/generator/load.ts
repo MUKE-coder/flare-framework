@@ -1,5 +1,5 @@
 import { existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import type { Resource } from "@flare/core";
 import { createJiti } from "jiti";
 
@@ -12,7 +12,8 @@ export interface LoadedResource {
 }
 
 /** Load every `resources/*.resource.ts` descriptor of an app, sorted by file name. */
-export async function loadResources(appRoot: string): Promise<LoadedResource[]> {
+export async function loadResources(root: string): Promise<LoadedResource[]> {
+  const appRoot = resolve(root);
   const dir = join(appRoot, "resources");
   if (!existsSync(dir)) return [];
   // A fresh loader each time, so edited descriptors are re-read.

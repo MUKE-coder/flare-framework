@@ -9,7 +9,7 @@ import { contacts } from "./contacts";
 export const deals = sqliteTable(
   "deals",
   {
-    id: text("id").primaryKey(),
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     title: text("title").notNull(),
     amount: real("amount"),
     companyId: text("company_id").references(() => companies.id, { onDelete: "restrict" }).notNull(),

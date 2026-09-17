@@ -145,6 +145,25 @@ stable compiler API yet, which tsup's declaration build needs.
 - Rolled-back migration files stay on disk (Rails-style). Edit or delete them,
   then `flare migrate` again.
 
+### Seeds (as built)
+
+- `flare seed:make <name> [--resource Name]` writes `seeds/<name>.seed.ts`.
+  When the name matches a resource (`contacts` → Contact) or `--resource` is
+  given, it includes three example rows with a sample value per field kind.
+  Required relations and files become `// TODO` lines.
+- `flare seed [names...]` runs every seed (file-name order, so prefix names to
+  order dependencies) or just the named ones. Each seed is
+  `export default defineSeed(async ({ db, env, log }) => …)`: `db` is Drizzle over
+  the app's `db/schema.ts`, and imports like `@/db/schema` resolve.
+- Seeds run in Node against the **local** D1 database through wrangler's
+  `getPlatformProxy()`, using the same `.wrangler/state/v3` as `flare dev`,
+  `flare start` and `flare migrate`. The app's own wrangler, drizzle-orm and
+  schema are loaded, so versions always match. Remote seeding isn't supported:
+  wrangler's remote-bindings proxy failed in testing, so use
+  `wrangler d1 execute --remote --file` for production data.
+- Generated tables give `id` a `$defaultFn(() => crypto.randomUUID())`, so
+  seeds and app code can insert without supplying ids. Timestamps have SQL defaults.
+
 ### Auth wiring (as built)
 
 - Better Auth 1.7 with `@better-auth/drizzle-adapter` (sqlite provider) over

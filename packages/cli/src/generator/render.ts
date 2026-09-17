@@ -83,7 +83,7 @@ export function renderTableModule(entry: LoadedResource, all: LoadedResource[]):
     `export const ${name} = sqliteTable(`,
     `  ${q(resource.table)},`,
     "  {",
-    `    id: text("id").primaryKey(),`,
+    `    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),`,
     ...columns.map((line) =>
       selfReference ? line.replace(`() => ${name}.id`, `(): AnySQLiteColumn => ${name}.id`) : line,
     ),

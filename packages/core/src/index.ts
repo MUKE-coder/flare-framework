@@ -22,3 +22,4 @@ export {
   type ReadUrlOptions,
 } from "./storage.js";
 export * from "./resource/index.js";
+export { defineSeed, type Seed, type SeedContext } from "./seed.js";

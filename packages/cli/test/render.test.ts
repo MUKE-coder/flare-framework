@@ -40,7 +40,7 @@ import { companies } from "./companies";
 export const contacts = sqliteTable(
   "contacts",
   {
-    id: text("id").primaryKey(),
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     name: text("name").notNull(),
     email: text("email").notNull().unique(),
     rating: real("rating"),
