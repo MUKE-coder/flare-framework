@@ -6,6 +6,7 @@
  */
 
 export * from "./auth-schema";
+export * from "./flare-schema";
 
 // generated:start hash=aaa5143544e5
 export * from "./schema/companies";

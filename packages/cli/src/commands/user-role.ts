@@ -1,5 +1,6 @@
 import pc from "picocolors";
 import { extractJson, readD1Databases, runWrangler } from "../utils/wrangler.js";
+import { listRoles } from "./role.js";
 import { findAppRoot, resolveBin } from "./run.js";
 
 export interface UserRoleOptions {
@@ -25,6 +26,14 @@ export async function setUserRole(email: string, role: string, options: UserRole
   const log = options.log ?? ((message: string) => console.log(message));
   const appRoot = findAppRoot(options.cwd ?? process.cwd());
   const sql = userRoleSql(email, role);
+
+  // Catch typos: the role table lists what the app has registered (older apps have none).
+  const roles = await listRoles(options);
+  if (roles && !roles.includes(role)) {
+    log(pc.red(`No role "${role}" is registered. Known roles: ${roles.join(", ") || "none"}.`));
+    log(pc.dim(`Register it with: flare role:add ${role}${options.remote ? " --remote" : ""}`));
+    return 1;
+  }
   const db = readD1Databases(appRoot)[0];
   if (!db) throw new Error("No d1_databases in wrangler.jsonc.");
 

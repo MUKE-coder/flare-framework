@@ -71,6 +71,13 @@
       "when": 1789668951340,
       "tag": "0009_update_deals",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1789674671317,
+      "tag": "0010_add_role_table",
+      "breakpoints": true
     }
   ]
 }

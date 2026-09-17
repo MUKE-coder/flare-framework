@@ -5,6 +5,7 @@ import { genResource } from "./commands/gen.js";
 import { genMigration } from "./commands/gen-migration.js";
 import { migrate, rollback } from "./commands/migrate.js";
 import { rmResource } from "./commands/rm.js";
+import { addRole } from "./commands/role.js";
 import { makeSeed, runSeeds } from "./commands/seed.js";
 import { syncTypes } from "./commands/sync.js";
 import { setUserRole } from "./commands/user-role.js";
@@ -46,6 +47,16 @@ export function createCli() {
     .action(async (kind: string, name: string, options: { force?: boolean }) => {
       if (kind !== "resource") throw new Error(`Unknown kind "${kind}". Available: resource.`);
       await rmResource(name, options);
+    });
+
+  cli
+    .command("role:add <name>", "Register a role users can be assigned (local database unless --remote)")
+    .option("--label <label>", "Display label (default: humanized name)")
+    .option("--remote", "Target the deployed database")
+    .option("--env <name>", "Wrangler environment")
+    .example("flare role:add staff")
+    .action(async (name: string, options: { label?: string; remote?: boolean; env?: string }) => {
+      process.exitCode = await addRole(name, options);
     });
 
   cli

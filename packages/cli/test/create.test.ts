@@ -91,7 +91,8 @@ describe("createApp", () => {
       "app/dashboard/page.tsx",
       ".dev.vars",
       ".dev.vars.example",
-      "migrations/0000_auth.sql",
+      "migrations/0000_init.sql",
+      "db/flare-schema.ts",
       "migrations/meta/_journal.json",
     ]) {
       expect(existsSync(join(dir, file)), file).toBe(true);

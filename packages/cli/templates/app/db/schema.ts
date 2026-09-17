@@ -6,6 +6,7 @@
  */
 
 export * from "./auth-schema";
+export * from "./flare-schema";
 
 // generated:start
 // generated:end
