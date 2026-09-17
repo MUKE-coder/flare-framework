@@ -1,0 +1,21 @@
+{
+  "name": "@flare/cli",
+  "version": "0.0.0",
+  "description": "The flare command-line tool: create, generate, migrate, and deploy Flare apps",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "flare": "./bin/flare.js"
+  },
+  "files": ["bin", "dist", "templates"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@flare/core": "workspace:*",
+    "cac": "^7.0.0",
+    "picocolors": "^1.1.1"
+  }
+}

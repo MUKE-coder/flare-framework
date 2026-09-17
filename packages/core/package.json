@@ -1,0 +1,21 @@
+{
+  "name": "@flare/core",
+  "version": "0.0.0",
+  "description": "Flare runtime: resource descriptors, field grammar, and Cloudflare-native helpers",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  }
+}

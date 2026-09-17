@@ -1,0 +1,141 @@
+# Flare — Build Phases
+
+Work phases **in order**. Do not start a phase's tasks until every task in the
+previous phase is checked off, unless a task explicitly says it can run in
+parallel. Check off tasks (`- [x]`) as you complete and verify them — not
+before. This file is the single source of truth for project progress; keep it
+current as you work, and re-read it at the start of every session to see
+where things stand.
+
+Each phase ends with an **exit criteria** line. Do not consider a phase done
+until that criteria is demonstrably true (write a test, run it, deploy it —
+don't just believe it).
+
+---
+
+## Phase M0 — Core scaffold
+
+- [x] Set up the monorepo (CLI package, core framework package, example app)
+- [ ] `flare create <app>` scaffolds a vinext app with TypeScript + Tailwind
+- [ ] Wire D1 + Drizzle: generated `drizzle.config.ts`, base `schema.ts`, `wrangler.jsonc` D1 binding
+- [ ] Wire Better Auth: email/password provider, D1/Drizzle adapter, session middleware
+- [ ] `--auth-providers google,github` flag generates OAuth provider config + env var scaffolding
+- [ ] Wire R2: a storage helper (`lib/storage.ts`) with signed-upload and signed-read URL helpers
+- [ ] Wire Resend: a mailer helper (`lib/mail.ts`) with a basic transactional template
+- [ ] `flare dev` / `flare start` / `flare deploy` delegate correctly to vinext's own CLI commands
+
+**Exit criteria:** a scaffolded app deploys to Cloudflare Workers and supports
+email/password login end-to-end.
+
+---
+
+## Phase M1 — Resource generator
+
+- [ ] Design and implement the `<resource>.resource.ts` descriptor format (see `project-description.md`)
+- [ ] `flare gen resource <Name> --fields "..."` parses the field grammar (including `file:[image,pdf,...]`)
+- [ ] Generator emits: Drizzle schema, D1 migration, Zod validators, REST/RPC route handlers, typed client
+- [ ] `belongsTo` / `hasMany` relations generate correct FK columns and inverse relation metadata
+- [ ] `flare migrate` / `flare migrate:rollback` work against the generated migrations
+- [ ] `flare seed` / `flare seed:make <name>` scaffold and run seed files
+- [ ] `flare sync-types` regenerates validators/client from schema and flags drift on hand-edited generated files
+- [ ] Implement the `// generated:start` / `// generated:end` marker convention so re-running `gen resource` preserves hand-written code outside those blocks
+- [ ] `flare rm resource <Name>` removes generated files, refuses on detected hand-written code outside markers unless `--force`
+- [ ] `flare gen migration <name>` scaffolds a blank migration for manual schema work
+
+**Exit criteria:** `gen resource Contact --fields "name:string, email:string"`
+followed by `migrate` produces a working CRUD REST API against D1, verified
+with a request against each HTTP verb.
+
+---
+
+## Phase M2 — Admin dashboard shell
+
+- [ ] Build `<ResourceTable>` — reads columns/filters/sort from a resource descriptor; paginated, sortable, filterable
+- [ ] Build `<ResourceForm mode="create" | "edit">` — renders inputs from field metadata, wires Zod validation
+- [ ] Build all six v1 field widgets: text, textarea, number, toggle, date picker, select, file upload, relation picker
+- [ ] Build `<ResourceNav>` — auto-populates sidebar from all registered resources
+- [ ] Generated admin pages (`page.tsx`, `new.tsx`, `[id]/edit.tsx`) are thin wrappers around the above, not hand-authored per resource
+- [ ] Session-gate the `/admin` route group (redirect non-staff/non-admin roles)
+- [ ] Apply the visual language from `style-guide.md`
+
+**Exit criteria:** generating a resource produces usable, styled list/create/edit
+admin pages with zero additional hand-written UI code.
+
+---
+
+## Phase M3 — Roles, policies, v1 launch polish
+
+- [ ] `flare role:add <name>` registers roles in the auth/roles table
+- [ ] `flare gen policy <Name> --roles a,b` generates resource-level read/create/update/delete policy files
+- [ ] `<ResourceTable>` / `<ResourceForm>` / `<ResourceNav>` enforce policies (hide nav items with no read access)
+- [ ] API layer enforces the same policies server-side (never UI-only enforcement — verify with a direct API call as an unauthorized role)
+- [ ] Wire KV data-cache adapter and Workers Cache CDN adapter with sane default TTLs
+- [ ] `<FileField>` admin component fully wired to R2 with signed-URL upload flow, respecting the `file:[types]` MIME constraint
+- [ ] Write the framework's own docs/examples
+- [ ] End-to-end test: `flare create app && flare gen resource Contact --fields "..." && flare deploy` completes in under 5 minutes for a fresh user
+
+**Exit criteria:** the 5-minute create→generate→deploy loop holds, with roles
+enforced at both UI and API layers. **This is the v1 launch bar.**
+
+---
+
+## Phase M4 — Realtime primitive
+
+- [ ] Design one Durable Object–backed broadcast/channel primitive (rooms, presence)
+- [ ] Ship `useRealtime(channel)` client hook wired to a WebSocket-hibernation-backed DO
+- [ ] Build one worked example end-to-end (e.g. live comments or live order status updates)
+- [ ] Document reconnect/backoff behavior clearly — do not attempt a general CRDT sync engine
+
+**Exit criteria:** one realtime example works reliably under connection drops
+and DO cold starts.
+
+---
+
+## Phase M5 — Billing
+
+- [ ] `flare gen billing --provider stripe --mode subscriptions` scaffolds a `Plan` resource, `Subscription` fields on `Customer`, and the Stripe webhook route
+- [ ] `flare billing:sync-plans` pulls Stripe Products/Prices into the local `Plan` table
+- [ ] `<BillingPortalButton>` opens a Stripe-hosted billing portal session
+- [ ] Webhook handler verifies signatures and keeps `Customer.status` in sync on `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
+- [ ] One-time Checkout flow (for non-subscription purchases) ships as a separate, additive path alongside subscriptions
+
+**Exit criteria:** a subscription can be purchased, upgraded, and cancelled
+entirely through generated UI, with `Customer.status` staying correct through
+every webhook event.
+
+---
+
+## Phase M6 — Security dashboard
+
+- [ ] `security.config.ts` provisions Cloudflare Rate Limiting + WAF/IP Access rules at deploy time via the Cloudflare API
+- [ ] `/admin/security` dashboard reads rule hits, blocked-request counts, and active bans back from the same API
+- [ ] Manual ban/unban from the dashboard calls the IP Access Rules API directly
+- [ ] `SecurityEvent` resource (generated like any other resource) logs app-layer signals: failed-login bursts, checkout abuse, API scraping patterns
+- [ ] App-layer counters (KV or Durable Objects) detect abuse patterns and can push an IP into the edge-layer ban list
+
+**Exit criteria:** a simulated login-brute-force attempt is detected, logged
+as a `SecurityEvent`, and results in an automatic edge-layer ban, visible in
+the dashboard.
+
+---
+
+## Phase M7 — Observability & performance analytics
+
+- [ ] Drizzle query-logging wrapper flags N+1 patterns (same query shape run >N times in one request) with the offending query and a suggested eager-load fix
+- [ ] Wire `instrumentation.ts`'s `onRequestError()` hook to write into an `ErrorEvent` resource automatically
+- [ ] `/admin/performance` dashboard: latency percentiles and resource consumption (CPU time, subrequests, D1 read/write units) via Workers Analytics Engine
+- [ ] Per-route breakdown of the above, not just app-wide aggregates
+
+**Exit criteria:** an intentionally-introduced N+1 query in a demo app is
+caught and surfaced in the dashboard before the developer notices it in
+production.
+
+---
+
+## Backlog (not phased yet — do not start without discussion)
+
+- Field-level permissions and per-record ownership (full RBAC)
+- Inline `hasMany` dashboard widgets, saved filters/views
+- Admin UI theming/plugin system
+- Workers AI + Vectorize integrations (AI-generated fields, semantic search)
+- Queues-backed background jobs
