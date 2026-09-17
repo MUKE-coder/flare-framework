@@ -45,7 +45,7 @@ forged cookie), and again after a redeploy.
 - [x] `flare migrate` / `flare migrate:rollback` work against the generated migrations
 - [x] `flare seed` / `flare seed:make <name>` scaffold and run seed files
 - [x] `flare sync-types` regenerates validators/client from schema and flags drift on hand-edited generated files
-- [ ] Implement the `// generated:start` / `// generated:end` marker convention so re-running `gen resource` preserves hand-written code outside those blocks
+- [x] Implement the `// generated:start` / `// generated:end` marker convention so re-running `gen resource` preserves hand-written code outside those blocks
 - [ ] `flare rm resource <Name>` removes generated files, refuses on detected hand-written code outside markers unless `--force`
 - [ ] `flare gen migration <name>` scaffolds a blank migration for manual schema work
 

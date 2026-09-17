@@ -6,6 +6,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { genResource } from "../src/commands/gen.js";
 import { renderDescriptor, resourceName, toField } from "../src/generator/descriptor.js";
 import { parseFields } from "../src/generator/grammar.js";
+import { hashBlock } from "../src/generator/markers.js";
 
 // Inside the package so generated files can resolve @flare/core.
 const scratch = mkdtempSync(join(import.meta.dirname, ".tmp-gen-"));
@@ -31,12 +32,13 @@ describe("renderDescriptor", () => {
   });
 
   it("wraps fields in generated markers and keeps output readable", () => {
+    const block = 'name: field.string(),\nemail: field.string({ format: "email" }),\n';
     expect(renderDescriptor("Contact", parseFields("name:string, email:string"))).toBe(`import { defineResource, field } from "@flare/core";
 
 export default defineResource({
   name: "Contact",
   fields: {
-    // generated:start
+    // generated:start hash=${hashBlock(block)}
     name: field.string(),
     email: field.string({ format: "email" }),
     // generated:end
@@ -87,12 +89,14 @@ describe("genResource", () => {
     expect(readFileSync(join(root, "resources/order-item.resource.ts"), "utf8")).toContain('name: "OrderItem"');
   });
 
-  it("requires --fields and refuses to overwrite", async () => {
+  it("requires --fields for a new resource", async () => {
     const root = app();
     const opts = { cwd: root, log: () => {}, skipMigration: true };
     await expect(genResource("Contact", opts)).rejects.toThrow(/--fields is required/);
     await genResource("Contact", { ...opts, fields: "name:string" });
-    await expect(genResource("Contact", { ...opts, fields: "name:string" })).rejects.toThrow(/already exists/);
+    // Re-running for an existing resource is now an update, not an error.
+    const again = await genResource("Contact", { ...opts, fields: "name:string" });
+    expect(again.mode).toBe("update");
   });
 
   it("refuses a belongsTo whose target doesn't exist, before writing anything", async () => {

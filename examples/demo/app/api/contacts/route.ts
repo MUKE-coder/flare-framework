@@ -17,3 +17,6 @@ const handlers = createResourceHandlers({
 export const GET = handlers.collection.GET;
 export const POST = handlers.collection.POST;
 // generated:end
+
+// Hand-written: lightweight existence check for monitors.
+export const HEAD = () => new Response(null, { status: 204, headers: { "x-hand-written": "yes" } });

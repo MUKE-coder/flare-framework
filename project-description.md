@@ -477,6 +477,29 @@ outside the generated block unless passed `--force`. This rule must be
 implemented before the resource generator is considered done — it's what
 makes regeneration safe rather than destructive.
 
+As built:
+- **Blocks only.** Every generated file has exactly one
+  `// generated:start hash=…` / `// generated:end` block. Writers replace only
+  that block, keeping its indentation. Text before and after it (imports,
+  extra exports, hand-written handlers) is preserved byte for byte.
+- **Re-running on an existing resource is an update.**
+  - `gen resource Contact --fields "…"` replaces the descriptor's fields block,
+    but only if it's unchanged since generation. Otherwise it refuses (edit the
+    descriptor directly) unless `--force`. Everything else in the descriptor
+    (e.g. `icon`, `slug`) is untouched.
+  - `gen resource Contact` without `--fields` regenerates from the descriptor as
+    it stands.
+  - Either way, all derived files are re-rendered and drizzle-kit writes an
+    `update_<table>` migration when columns changed.
+- **Validation first.** New fields and relations are checked before anything is
+  written, so a failed run leaves the app untouched.
+- **Drift across the app.** Hand-edited blocks in other files are skipped with a
+  warning rather than aborting the run (`flare sync-types` explains them).
+- **Verified in the demo.** A hand-written `HEAD` export in
+  `app/api/contacts/route.ts` survived re-running
+  `gen resource Contact --fields "…, phone:string?"`. The `ALTER TABLE … ADD phone`
+  migration applied, and the API served both.
+
 ### Roles & permissions (medium tier for v1)
 
 Resource-level (not field-level) policies: `gen policy Order --roles admin,staff`

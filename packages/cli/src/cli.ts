@@ -25,10 +25,11 @@ export function createCli() {
   cli
     .command("gen <generator> <name>", "Generate code. Generators: resource")
     .option("--fields <fields>", 'Resource fields, e.g. "name:string, email:string!, status:enum(lead,customer)"')
+    .option("--force", "Overwrite hand-edited generated blocks")
     .example('flare gen resource Contact --fields "name:string, email:string!, company:belongsTo(Company)?"')
-    .action((generator: string, name: string, options: { fields?: string }) => {
+    .action((generator: string, name: string, options: { fields?: string; force?: boolean }) => {
       if (generator !== "resource") throw new Error(`Unknown generator "${generator}". Available: resource.`);
-      return genResource(name, { fields: options.fields });
+      return genResource(name, { fields: options.fields, force: options.force });
     });
 
   cli

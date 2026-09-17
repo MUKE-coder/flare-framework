@@ -29,6 +29,13 @@
       "when": 1789660135356,
       "tag": "0003_create_deals",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1789661553706,
+      "tag": "0004_update_contacts",
+      "breakpoints": true
     }
   ]
 }

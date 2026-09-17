@@ -1,5 +1,6 @@
 import { defineResource, field as builders, kebabCase, pascalCase, type Field } from "@flare/core";
 import type { ParsedField } from "./grammar.js";
+import { hashBlock, joinMarkers } from "./markers.js";
 
 /** Resource names given on the command line ("contact", "order_item") → "Contact", "OrderItem". */
 export function resourceName(input: string): string {
@@ -63,22 +64,32 @@ export function renderField(field: ParsedField): string {
   }
 }
 
+/** The fields block of a descriptor (unindented), as written between its markers. */
+export function renderFieldsBlock(fields: ParsedField[]): string {
+  return fields.map((f) => `${renderField(f)}\n`).join("");
+}
+
 /**
  * Descriptor source for a new resource. Throws the same errors `defineResource`
- * would at runtime, so an invalid descriptor is never written.
+ * would at runtime, so an invalid descriptor is never written. The fields block is
+ * tracked, so re-running `gen resource --fields` can tell whether it was edited by hand.
  */
 export function renderDescriptor(name: string, fields: ParsedField[]): string {
   defineResource({ name, fields: Object.fromEntries(fields.map((f) => [f.key, toField(f)])) });
+  const block = renderFieldsBlock(fields);
 
-  return `import { defineResource, field } from "@flare/core";
+  return joinMarkers({
+    before: `import { defineResource, field } from "@flare/core";
 
 export default defineResource({
   name: ${literal(name)},
   fields: {
-    // generated:start
-${fields.map((f) => `    ${renderField(f)}`).join("\n")}
-    // generated:end
-  },
+`,
+    block,
+    after: `  },
 });
-`;
+`,
+    indent: "    ",
+    hash: hashBlock(block),
+  });
 }
