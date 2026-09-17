@@ -144,6 +144,15 @@ stable compiler API yet, which tsup's declaration build needs.
   5. Prints the plan first. Remote rollbacks require `--yes`.
 - Rolled-back migration files stay on disk (Rails-style). Edit or delete them,
   then `flare migrate` again.
+- `flare gen migration <name>` scaffolds a blank migration through drizzle-kit's
+  `--custom`, so it's numbered and recorded in `migrations/meta/_journal.json`
+  like generated ones (hand-numbered files would collide with the next
+  generated number). It also writes `migrations/down/<file>` as a comment-only
+  template. A down file with no SQL statements makes rollback refuse, so an
+  unwritten rollback can never silently "succeed".
+- `flare gen migration <name> --from-schema` writes drizzle-kit's diff of the
+  current tables. That's the step after editing a descriptor and running
+  `flare sync-types`, and it prints "No schema changes" when there's nothing to do.
 
 ### Seeds (as built)
 

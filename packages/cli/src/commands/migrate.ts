@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pc from "picocolors";
-import { deriveDown } from "../generator/down.js";
+import { deriveDown, splitStatements } from "../generator/down.js";
 import { extractJson, readD1Databases, runWrangler, type D1Database } from "../utils/wrangler.js";
 import { findAppRoot, resolveBin } from "./run.js";
 
@@ -94,7 +94,11 @@ export async function rollback(options: RollbackOptions = {}): Promise<number> {
     if (!/^[\w.-]+\.sql$/.test(name)) throw new Error(`Unexpected migration name "${name}" in d1_migrations.`);
     const handWritten = join(migrationsDir, "down", name);
     if (existsSync(handWritten)) {
-      plan.push({ name, sql: readFileSync(handWritten, "utf8"), source: `migrations/down/${name}` });
+      const sql = readFileSync(handWritten, "utf8");
+      if (splitStatements(sql).length === 0) {
+        throw new Error(`Can't roll back ${name}: migrations/down/${name} has no SQL statements yet. Write the rollback SQL, then run the rollback again. Nothing was changed.`);
+      }
+      plan.push({ name, sql, source: `migrations/down/${name}` });
       continue;
     }
     const upPath = join(migrationsDir, name);

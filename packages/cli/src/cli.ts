@@ -2,6 +2,7 @@ import { cac } from "cac";
 import { FLARE_VERSION } from "@flare/core";
 import { createApp, printNextSteps } from "./commands/create.js";
 import { genResource } from "./commands/gen.js";
+import { genMigration } from "./commands/gen-migration.js";
 import { migrate, rollback } from "./commands/migrate.js";
 import { rmResource } from "./commands/rm.js";
 import { makeSeed, runSeeds } from "./commands/seed.js";
@@ -24,13 +25,17 @@ export function createCli() {
     });
 
   cli
-    .command("gen <generator> <name>", "Generate code. Generators: resource")
-    .option("--fields <fields>", 'Resource fields, e.g. "name:string, email:string!, status:enum(lead,customer)"')
-    .option("--force", "Overwrite hand-edited generated blocks")
+    .command("gen <generator> <name>", "Generate code. Generators: resource, migration")
+    .option("--fields <fields>", 'resource: fields, e.g. "name:string, email:string!, status:enum(lead,customer)"')
+    .option("--force", "resource: overwrite hand-edited generated blocks")
+    .option("--from-schema", "migration: diff the current tables instead of a blank migration")
     .example('flare gen resource Contact --fields "name:string, email:string!, company:belongsTo(Company)?"')
-    .action((generator: string, name: string, options: { fields?: string; force?: boolean }) => {
-      if (generator !== "resource") throw new Error(`Unknown generator "${generator}". Available: resource.`);
-      return genResource(name, { fields: options.fields, force: options.force });
+    .example("flare gen migration backfill_contact_status")
+    .example("flare gen migration add_phone_to_contacts --from-schema")
+    .action(async (generator: string, name: string, options: { fields?: string; force?: boolean; fromSchema?: boolean }) => {
+      if (generator === "resource") return genResource(name, { fields: options.fields, force: options.force });
+      if (generator === "migration") return genMigration(name, { fromSchema: options.fromSchema });
+      throw new Error(`Unknown generator "${generator}". Available: resource, migration.`);
     });
 
   cli

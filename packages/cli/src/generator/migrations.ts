@@ -16,7 +16,11 @@ const listSql = (dir: string) => (existsSync(dir) ? readdirSync(dir).filter((fil
  * write a migration named `name`. New files are found by diffing the directory,
  * not by parsing drizzle-kit's output.
  */
-export async function generateSchemaMigration(appRoot: string, name: string): Promise<GenerateMigrationResult> {
+export async function generateSchemaMigration(
+  appRoot: string,
+  name: string,
+  options: { custom?: boolean } = {},
+): Promise<GenerateMigrationResult> {
   const dir = join(appRoot, "migrations");
   const before = new Set(listSql(dir));
   const bin = resolveBin(appRoot, "drizzle-kit", "drizzle-kit");
@@ -24,7 +28,8 @@ export async function generateSchemaMigration(appRoot: string, name: string): Pr
   const { code, output } = await new Promise<{ code: number; output: string }>((resolve, reject) => {
     // stdin is closed: if drizzle-kit needs an interactive answer (e.g. rename vs. drop), it fails
     // instead of hanging, and we surface its message.
-    const child = spawn(process.execPath, [bin, "generate", "--name", name], {
+    const args = ["generate", "--name", name, ...(options.custom ? ["--custom"] : [])];
+    const child = spawn(process.execPath, [bin, ...args], {
       cwd: appRoot,
       stdio: ["ignore", "pipe", "pipe"],
     });
