@@ -613,6 +613,47 @@ of role names). The admin UI and the API layer both enforce it — policy
 checks are never UI-only. Field-level rules and per-record ownership are
 explicitly deferred (see `phases.md`).
 
+**As built (Phase M3).** Roles live in a `role` table created by the initial
+migration, next to the Better Auth tables. `flare role:add <name>` registers one
+(`--label`, `--remote`, `--env`), and `flare user:role <email> <role>` refuses a
+name the table doesn't know, so a typo can't quietly produce an account with no
+access. A user's current role is `user.role`, from Better Auth's admin plugin.
+
+`flare gen policy <Resource> --roles admin,staff [--delete-roles admin]` writes
+`policies/<resource>.policy.ts`:
+
+```ts
+export default definePolicy({
+  resource: "Deal",
+  // generated:start hash=…
+  read: ["admin", "staff"],
+  create: ["admin", "staff"],
+  update: ["admin", "staff"],
+  delete: ["admin"],
+  // generated:end
+});
+```
+
+Delete defaults to the first role only, since it's usually the narrowest
+permission. The roles block follows the same marker contract as every other
+generated file: re-running with `--roles` rewrites it, hand-written code around
+it survives, and hand edits inside it stop the rewrite until `--force`.
+`policies/index.ts` (generated) keys every policy by resource name.
+
+Enforcement reads that one registry from both sides:
+
+- **API** — `authorize` in `lib/api.ts`, which every generated route already
+  calls: 401 without a session, 403 when the role isn't listed for the action.
+- **Admin UI** — `lib/admin.ts` (`requireAccess`, `adminPermissions`,
+  `visibleResources`). The sidebar and dashboard list only readable resources,
+  `ResourceTable` requires read and hides the New button and row actions the role
+  can't use, the create and edit pages require create and update, and every
+  server action in `app/admin/actions.ts` re-checks before touching the store.
+
+A resource with no policy stays open to any signed-in user, so adding policies is
+opt-in per resource. `"*"` in a roles array means any signed-in user. Removing a
+resource removes its policy with it.
+
 ### Security & observability
 
 Security dashboard: edge-layer Cloudflare WAF/Rate Limiting/IP Access Rules

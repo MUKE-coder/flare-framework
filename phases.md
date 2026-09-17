@@ -89,10 +89,22 @@ monochrome chrome, status-only color, labels above inputs, dark mode).
 
 ## Phase M3 — Roles, policies, v1 launch polish
 
-- [ ] `flare role:add <name>` registers roles in the auth/roles table
-- [ ] `flare gen policy <Name> --roles a,b` generates resource-level read/create/update/delete policy files
-- [ ] `<ResourceTable>` / `<ResourceForm>` / `<ResourceNav>` enforce policies (hide nav items with no read access)
-- [ ] API layer enforces the same policies server-side (never UI-only enforcement — verify with a direct API call as an unauthorized role)
+- [x] `flare role:add <name>` registers roles in the auth/roles table
+- [x] `flare gen policy <Name> --roles a,b` generates resource-level read/create/update/delete policy files
+- [x] `<ResourceTable>` / `<ResourceForm>` / `<ResourceNav>` enforce policies (hide nav items with no read access)
+- [x] API layer enforces the same policies server-side (never UI-only enforcement — verify with a direct API call as an unauthorized role)
+✅ **Roles and policies (2026-09-17).** `flare role:add staff` registers a role;
+`flare gen policy Deal --roles admin,staff` writes `policies/deal.policy.ts`
+(delete narrowed to `admin`) and registers it. Against the running demo with three
+users — admin, staff, and one with no role — the API answered exactly as the policy
+says: `GET/POST/PATCH /api/deals` 200/201/200 for both admin and staff, `DELETE`
+403 for staff and 204 for admin, and 403 on every verb for the roleless user, whose
+Contacts and Companies (no policy) stayed open. In the browser, admin saw Edit and
+Delete, staff saw Edit only, and after narrowing create/update to `admin`, staff got
+no New button and no row menu at all — with `POST`/`PATCH` also turning 403, so the
+UI never became the only gate. The roleless user saw no Deals in the sidebar and was
+redirected off `/admin/deals` and `/admin/deals/new`. 234 unit tests pass.
+
 - [ ] Wire KV data-cache adapter and Workers Cache CDN adapter with sane default TTLs
 - [ ] `<FileField>` admin component fully wired to R2 with signed-URL upload flow, respecting the `file:[types]` MIME constraint
 - [ ] Write the framework's own docs/examples
