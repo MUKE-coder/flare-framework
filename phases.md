@@ -53,6 +53,14 @@ forged cookie), and again after a redeploy.
 followed by `migrate` produces a working CRUD REST API against D1, verified
 with a request against each HTTP verb.
 
+✅ **Met (2026-09-17).** In a fresh `flare create` app, exactly
+`flare gen resource Contact --fields "name:string, email:string"` → `flare migrate`
+→ `flare start` passed `scripts/e2e-crud.sh` 21/21 on local D1: GET list/item,
+POST, PATCH, PUT, DELETE, plus 401/403/404/415/422/400 paths. The demo was then
+deployed with `flare deploy` (remote migrations applied before release), and the
+same script passed 21/21 against live D1 at https://demo.gmukejohnbaptist.workers.dev,
+with auth still 13/13.
+
 ---
 
 ## Phase M2 — Admin dashboard shell
