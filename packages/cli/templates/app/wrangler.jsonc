@@ -8,5 +8,14 @@
     "directory": "dist/client",
     "not_found_handling": "none",
     "binding": "ASSETS"
-  }
+  },
+  "d1_databases": [
+    {
+      // No database_id: wrangler creates the database on first deploy and
+      // uses a local SQLite file during development.
+      "binding": "DB",
+      "database_name": "__APP_NAME__-db",
+      "migrations_dir": "migrations"
+    }
+  ]
 }

@@ -4,6 +4,7 @@
  */
 export const APP_DEPENDENCIES = {
   "@vinext/cloudflare": "1.0.0-beta.8",
+  "drizzle-orm": "^0.45.2",
   react: "19.3.0",
   "react-dom": "19.3.0",
   "react-server-dom-webpack": "19.3.0",
@@ -18,6 +19,7 @@ export const APP_DEV_DEPENDENCIES = {
   "@types/react-dom": "^19.3.0",
   "@vitejs/plugin-react": "^6.1.1",
   "@vitejs/plugin-rsc": "^0.5.35",
+  "drizzle-kit": "^0.31.10",
   tailwindcss: "^4.3.3",
   typescript: "^7.0.2",
   vite: "^8.3.0",

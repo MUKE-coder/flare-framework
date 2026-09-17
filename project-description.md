@@ -107,6 +107,23 @@ name is taken, so the publish name for the CLI is still open.
 Framework packages pin TypeScript 5.9: TypeScript 7 (the native port) has no
 stable compiler API yet, which tsup's declaration build needs.
 
+### Database wiring (as built)
+
+- `wrangler.jsonc` declares the `DB` binding **without a `database_id`**:
+  wrangler auto-provisions the D1 database on first deploy and uses a local
+  SQLite file in development, so `flare create` needs no Cloudflare login.
+- `db/schema.ts` is the single Drizzle schema entry (with a
+  `// generated:start` / `// generated:end` block for the generator);
+  `db/index.ts` exposes `getDb()`, bound to `env.DB` from `cloudflare:workers`.
+- drizzle-kit writes flat SQL files to `migrations/`, which is also the
+  binding's `migrations_dir`, so `wrangler d1 migrations apply` runs them
+  directly (it ignores drizzle's `meta/` folder).
+- Local state must live in one place: the app's `start` script passes
+  `--persist-to .wrangler/state`, otherwise `wrangler dev` against the built
+  output uses `dist/server/.wrangler` and never sees locally applied migrations.
+- D1 has no native down-migrations. `flare migrate:rollback` (Phase M1) must
+  track and run its own down SQL.
+
 All bindings are accessed the vinext-native way —
 `import { env } from "cloudflare:workers"` — inside server components, route
 handlers, and server actions. No custom worker entry, no `getPlatformProxy()`,

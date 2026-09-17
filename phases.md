@@ -17,7 +17,7 @@ don't just believe it).
 
 - [x] Set up the monorepo (CLI package, core framework package, example app)
 - [x] `flare create <app>` scaffolds a vinext app with TypeScript + Tailwind
-- [ ] Wire D1 + Drizzle: generated `drizzle.config.ts`, base `schema.ts`, `wrangler.jsonc` D1 binding
+- [x] Wire D1 + Drizzle: generated `drizzle.config.ts`, base `schema.ts`, `wrangler.jsonc` D1 binding
 - [ ] Wire Better Auth: email/password provider, D1/Drizzle adapter, session middleware
 - [ ] `--auth-providers google,github` flag generates OAuth provider config + env var scaffolding
 - [ ] Wire R2: a storage helper (`lib/storage.ts`) with signed-upload and signed-read URL helpers

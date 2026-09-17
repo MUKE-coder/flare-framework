@@ -41,6 +41,9 @@ describe("createApp", () => {
       "app/page.tsx",
       "app/globals.css",
       "pnpm-workspace.yaml",
+      "drizzle.config.ts",
+      "db/schema.ts",
+      "db/index.ts",
     ]) {
       expect(existsSync(join(dir, file)), file).toBe(true);
     }
@@ -54,6 +57,13 @@ describe("createApp", () => {
     const wrangler = readFileSync(join(dir, "wrangler.jsonc"), "utf8");
     expect(wrangler).toContain('"name": "shop"');
     expect(wrangler).toContain('"compatibility_date": "2026-09-17"');
+    expect(wrangler).toContain('"binding": "DB"');
+    expect(wrangler).toContain('"database_name": "shop-db"');
+    expect(pkg.scripts.start).toContain("--persist-to .wrangler/state");
+    expect(pkg.dependencies["drizzle-orm"]).toBeDefined();
+    expect(pkg.devDependencies["drizzle-kit"]).toBeDefined();
+    expect(readFileSync(join(dir, "drizzle.config.ts"), "utf8")).toContain('out: "./migrations"');
+    expect(readFileSync(join(dir, "db/schema.ts"), "utf8")).toMatch(/\/\/ generated:start\n\/\/ generated:end/);
     expect(readFileSync(join(dir, "app/globals.css"), "utf8")).toContain('@import "tailwindcss"');
     expect(readFileSync(join(dir, "app/page.tsx"), "utf8")).not.toMatch(/__[A-Z_]+__/);
   });

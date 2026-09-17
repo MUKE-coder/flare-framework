@@ -61,8 +61,12 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
     scripts: {
       dev: "vinext dev",
       build: "vinext build",
-      start: "wrangler dev --config dist/server/wrangler.json",
+      // --persist-to keeps local D1/R2/KV state in the app root, shared with `vinext dev`
+      // and `wrangler d1 migrations apply --local` (otherwise it lands in dist/server/.wrangler).
+      start: "wrangler dev --config dist/server/wrangler.json --persist-to .wrangler/state",
       deploy: "vinext-cloudflare deploy --config dist/server/wrangler.json",
+      "cf-typegen": "wrangler types",
+      "db:generate": "drizzle-kit generate",
     },
     dependencies: { ...APP_DEPENDENCIES },
     devDependencies: { ...APP_DEV_DEPENDENCIES },
@@ -76,6 +80,9 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   if (options.install !== false) {
     const code = run(packageManager, ["install"], dir);
     if (code !== 0) throw new Error(`${packageManager} install failed (exit code ${code}).`);
+    // Generate worker-configuration.d.ts so `env.DB` and other bindings are typed.
+    const typegen = run(packageManager, ["run", "cf-typegen"], dir);
+    if (typegen !== 0) throw new Error(`wrangler types failed (exit code ${typegen}).`);
   }
 
   return { dir, name, packageManager, inWorkspace };
