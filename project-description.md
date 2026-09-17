@@ -207,7 +207,25 @@ arguments verbatim (including `--help`):
 | `flare dev` | `vinext dev` |
 | `flare build` | `vinext build` |
 | `flare start` | `wrangler dev --config dist/server/wrangler.json --persist-to .wrangler/state` (runs `flare build` first if there is no build). `vinext start` is vinext's Node server, not workerd, so it isn't used. |
-| `flare deploy` | `vinext-cloudflare deploy --config dist/server/wrangler.json` (builds, then deploys) |
+| `flare deploy` | `vinext-cloudflare deploy --config dist/server/wrangler.json` (builds, then deploys), wrapped with migrations and secrets (below) |
+
+`flare deploy` around the vinext deploy:
+
+1. For each D1 database in `wrangler.jsonc`: if it exists (`wrangler d1 info`),
+   apply remote migrations **before** deploying, and a failure aborts the deploy.
+   If wrangler reports it missing (first deploy), the deploy creates it and
+   migrations run right after. Any other lookup error aborts.
+2. After deploying: if `BETTER_AUTH_SECRET` isn't set on the Worker, generate a
+   fresh 32-byte value and upload it through stdin. The local dev secret is never
+   reused. Optional variables from `.dev.vars.example` that are still unset are
+   listed with their `wrangler secret put` command.
+3. `--skip-migrations` / `--skip-secrets` opt out; `--env`/`--preview` are
+   forwarded to every wrangler call; `--dry-run`/`--help` touch nothing remote.
+
+Verified against a real account: wrangler auto-provisions D1 and R2 by
+`database_name`/`bucket_name` (no IDs in config), `d1 migrations apply --remote`
+resolves the database by name and auto-confirms without a TTY, and
+`secret put` accepts the value on stdin.
 
 Bins are executed as `node <bin.js>` rather than through a shell, so arguments
 survive Windows `.cmd` shims. Scaffolded apps depend on `@flare/cli` and their

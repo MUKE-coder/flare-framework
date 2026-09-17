@@ -27,6 +27,13 @@ don't just believe it).
 **Exit criteria:** a scaffolded app deploys to Cloudflare Workers and supports
 email/password login end-to-end.
 
+✅ **Met (2026-09-17).** `examples/demo` (from `flare create`) was deployed from a
+clean account state with only `pnpm run deploy` (`flare deploy`): D1 and R2 were
+provisioned, migrations applied, and the auth secret generated. `scripts/e2e-auth.sh`
+passed 13/13 against https://demo.gmukejohnbaptist.workers.dev (sign-up, duplicate
+and wrong-password rejection, sign-in, session, protected dashboard, sign-out,
+forged cookie), and again after a redeploy.
+
 ---
 
 ## Phase M1 — Resource generator

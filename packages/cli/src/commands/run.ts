@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { findUp } from "../utils/fs.js";
+import { runDeploy } from "./deploy.js";
 
 /**
  * `flare dev` / `build` / `start` / `deploy` delegate to the app's own vinext and
@@ -18,7 +19,8 @@ export const DELEGATED_COMMANDS = {
     args: ["dev", "--config", "dist/server/wrangler.json", "--persist-to", ".wrangler/state"],
   },
   deploy: {
-    description: "Build and deploy to Cloudflare Workers (vinext-cloudflare deploy)",
+    description:
+      "Migrate D1, build and deploy to Cloudflare Workers (vinext-cloudflare deploy), then ensure secrets. Flags: --skip-migrations, --skip-secrets",
     pkg: "@vinext/cloudflare",
     bin: "vinext-cloudflare",
     args: ["deploy", "--config", "dist/server/wrangler.json"],
@@ -82,6 +84,14 @@ export async function runDelegated(command: DelegatedCommand, forwarded: string[
     console.log("No production build found; running `flare build` first.\n");
     const code = await runNode(delegatedArgv(appRoot, "build", []), appRoot);
     if (code !== 0) return code;
+  }
+
+  if (command === "deploy") {
+    return runDeploy(forwarded, {
+      appRoot,
+      wranglerBin: resolveBin(appRoot, "wrangler", "wrangler"),
+      deploy: (args) => runNode(delegatedArgv(appRoot, "deploy", args), appRoot),
+    });
   }
 
   return runNode(delegatedArgv(appRoot, command, forwarded), appRoot);
