@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vinext dev",
-    "build": "vinext build",
-    "start": "wrangler dev --config dist/server/wrangler.json --persist-to .wrangler/state",
-    "deploy": "vinext-cloudflare deploy --config dist/server/wrangler.json",
+    "dev": "flare dev",
+    "build": "flare build",
+    "start": "flare start",
+    "deploy": "flare deploy",
     "cf-typegen": "wrangler types",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply DB --local"
@@ -24,6 +24,7 @@
     "vinext": "1.0.0-beta.10"
   },
   "devDependencies": {
+    "@flare/cli": "workspace:*",
     "@cloudflare/vite-plugin": "^1.54.10",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.20.3",

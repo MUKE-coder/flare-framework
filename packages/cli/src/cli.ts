@@ -1,6 +1,7 @@
 import { cac } from "cac";
 import { FLARE_VERSION } from "@flare/core";
 import { createApp, printNextSteps } from "./commands/create.js";
+import { DELEGATED_COMMANDS } from "./commands/run.js";
 
 export function createCli() {
   const cli = cac("flare");
@@ -16,6 +17,11 @@ export function createCli() {
       const result = createApp(dir, { pm: options.pm, install, authProviders: options.authProviders });
       printNextSteps(result, install);
     });
+
+  // Handled before parsing in index.ts (arguments are forwarded verbatim); registered here for --help.
+  for (const [name, spec] of Object.entries(DELEGATED_COMMANDS)) {
+    cli.command(`${name} [...args]`, spec.description).allowUnknownOptions();
+  }
 
   cli.help();
   cli.version(FLARE_VERSION);

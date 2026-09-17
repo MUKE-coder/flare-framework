@@ -22,7 +22,7 @@ don't just believe it).
 - [x] `--auth-providers google,github` flag generates OAuth provider config + env var scaffolding
 - [x] Wire R2: a storage helper (`lib/storage.ts`) with signed-upload and signed-read URL helpers
 - [x] Wire Resend: a mailer helper (`lib/mail.ts`) with a basic transactional template
-- [ ] `flare dev` / `flare start` / `flare deploy` delegate correctly to vinext's own CLI commands
+- [x] `flare dev` / `flare start` / `flare deploy` delegate correctly to vinext's own CLI commands
 
 **Exit criteria:** a scaffolded app deploys to Cloudflare Workers and supports
 email/password login end-to-end.

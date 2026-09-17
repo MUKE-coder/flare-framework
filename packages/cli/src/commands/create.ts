@@ -35,19 +35,20 @@ export function toAppName(dir: string): string {
 }
 
 /**
- * How the app should depend on @flare/core. When the CLI runs from a checkout of
- * the Flare repo (core isn't published yet), point at the local package:
- * `workspace:*` for apps inside that workspace, a link/file path for apps elsewhere.
+ * How the app should depend on a Flare package (`core` or `cli`). When the CLI runs
+ * from a checkout of the Flare repo (packages aren't published yet), point at the
+ * local package: `workspace:*` for apps inside that workspace, a link/file path for
+ * apps elsewhere.
  */
-export function coreDependencySpec(appDir: string, packageManager: PackageManager): string {
-  const repoCore = resolve(templatesDir, "../../core");
-  if (!existsSync(join(repoCore, "package.json"))) return `^${FLARE_VERSION}`;
-  const repoRoot = resolve(repoCore, "../..");
+export function flarePackageSpec(pkg: "core" | "cli", appDir: string, packageManager: PackageManager): string {
+  const repoPackage = resolve(templatesDir, "../..", pkg);
+  if (!existsSync(join(repoPackage, "package.json"))) return `^${FLARE_VERSION}`;
+  const repoRoot = resolve(repoPackage, "../..");
   const rel = relative(repoRoot, appDir);
   // `relative` returns an absolute path when the app is on another drive (Windows).
   if (rel && !rel.startsWith("..") && !isAbsolute(rel)) return "workspace:*";
   const protocol = packageManager === "pnpm" ? "link" : "file";
-  return `${protocol}:${repoCore.replaceAll("\\", "/")}`;
+  return `${protocol}:${repoPackage.replaceAll("\\", "/")}`;
 }
 
 export function createApp(target: string, options: CreateOptions = {}): CreateResult {
@@ -83,18 +84,16 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
     private: true,
     type: "module",
     scripts: {
-      dev: "vinext dev",
-      build: "vinext build",
-      // --persist-to keeps local D1/R2/KV state in the app root, shared with `vinext dev`
-      // and `wrangler d1 migrations apply --local` (otherwise it lands in dist/server/.wrangler).
-      start: "wrangler dev --config dist/server/wrangler.json --persist-to .wrangler/state",
-      deploy: "vinext-cloudflare deploy --config dist/server/wrangler.json",
+      dev: "flare dev",
+      build: "flare build",
+      start: "flare start",
+      deploy: "flare deploy",
       "cf-typegen": "wrangler types",
       "db:generate": "drizzle-kit generate",
       "db:migrate:local": "wrangler d1 migrations apply DB --local",
     },
-    dependencies: { "@flare/core": coreDependencySpec(dir, packageManager), ...APP_DEPENDENCIES },
-    devDependencies: { ...APP_DEV_DEPENDENCIES },
+    dependencies: { "@flare/core": flarePackageSpec("core", dir, packageManager), ...APP_DEPENDENCIES },
+    devDependencies: { "@flare/cli": flarePackageSpec("cli", dir, packageManager), ...APP_DEV_DEPENDENCIES },
   });
 
   // Local secrets (git-ignored). Production secrets are set with `wrangler secret put`.

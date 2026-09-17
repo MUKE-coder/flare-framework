@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { coreDependencySpec, createApp, toAppName } from "../src/commands/create.js";
+import { createApp, flarePackageSpec, toAppName } from "../src/commands/create.js";
 
 const dirs: string[] = [];
 function tempDir() {
@@ -25,15 +25,16 @@ describe("toAppName", () => {
   });
 });
 
-describe("coreDependencySpec", () => {
+describe("flarePackageSpec", () => {
   it("uses workspace:* for apps inside the Flare repo", () => {
     const repoExample = fileURLToPath(new URL("../../../examples/some-app", import.meta.url));
-    expect(coreDependencySpec(repoExample, "pnpm")).toBe("workspace:*");
+    expect(flarePackageSpec("core", repoExample, "pnpm")).toBe("workspace:*");
+    expect(flarePackageSpec("cli", repoExample, "pnpm")).toBe("workspace:*");
   });
 
-  it("links to the local core package for apps outside the repo", () => {
-    expect(coreDependencySpec(join(tmpdir(), "elsewhere"), "pnpm")).toMatch(/^link:.*\/packages\/core$/);
-    expect(coreDependencySpec(join(tmpdir(), "elsewhere"), "npm")).toMatch(/^file:.*\/packages\/core$/);
+  it("links to the local packages for apps outside the repo", () => {
+    expect(flarePackageSpec("core", join(tmpdir(), "elsewhere"), "pnpm")).toMatch(/^link:.*\/packages\/core$/);
+    expect(flarePackageSpec("cli", join(tmpdir(), "elsewhere"), "npm")).toMatch(/^file:.*\/packages\/cli$/);
   });
 });
 
@@ -90,7 +91,8 @@ describe("createApp", () => {
     expect(wrangler).toContain('"database_name": "shop-db"');
     expect(wrangler).toContain('"binding": "STORAGE"');
     expect(wrangler).toContain('"bucket_name": "shop-storage"');
-    expect(pkg.scripts.start).toContain("--persist-to .wrangler/state");
+    expect(pkg.scripts).toMatchObject({ dev: "flare dev", build: "flare build", start: "flare start", deploy: "flare deploy" });
+    expect(pkg.devDependencies["@flare/cli"]).toBeDefined();
     expect(pkg.dependencies["drizzle-orm"]).toBeDefined();
     expect(pkg.devDependencies["drizzle-kit"]).toBeDefined();
     expect(readFileSync(join(dir, "drizzle.config.ts"), "utf8")).toContain('out: "./migrations"');

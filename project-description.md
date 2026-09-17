@@ -196,6 +196,23 @@ stable compiler API yet, which tsup's declaration build needs.
 - The template is a monochrome, table-based email with escaped content, an
   optional action button (absolute http(s) URLs only) and a matching text part.
 
+### Run commands (as built)
+
+`flare dev|build|start|deploy` resolve the app root (nearest package.json
+depending on vinext) and run the app's own installs, forwarding all later
+arguments verbatim (including `--help`):
+
+| Flare | Runs |
+| --- | --- |
+| `flare dev` | `vinext dev` |
+| `flare build` | `vinext build` |
+| `flare start` | `wrangler dev --config dist/server/wrangler.json --persist-to .wrangler/state` (runs `flare build` first if there is no build). `vinext start` is vinext's Node server, not workerd, so it isn't used. |
+| `flare deploy` | `vinext-cloudflare deploy --config dist/server/wrangler.json` (builds, then deploys) |
+
+Bins are executed as `node <bin.js>` rather than through a shell, so arguments
+survive Windows `.cmd` shims. Scaffolded apps depend on `@flare/cli` and their
+`dev`/`build`/`start`/`deploy` scripts call these commands.
+
 All bindings are accessed the vinext-native way —
 `import { env } from "cloudflare:workers"` — inside server components, route
 handlers, and server actions. No custom worker entry, no `getPlatformProxy()`,
