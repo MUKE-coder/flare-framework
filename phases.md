@@ -71,10 +71,19 @@ with auth still 13/13.
 - [x] Build `<ResourceNav>` — auto-populates sidebar from all registered resources
 - [x] Generated admin pages (`page.tsx`, `new.tsx`, `[id]/edit.tsx`) are thin wrappers around the above, not hand-authored per resource
 - [x] Session-gate the `/admin` route group (redirect non-staff/non-admin roles)
-- [ ] Apply the visual language from `style-guide.md`
+- [x] Apply the visual language from `style-guide.md`
 
 **Exit criteria:** generating a resource produces usable, styled list/create/edit
 admin pages with zero additional hand-written UI code.
+
+✅ **Met (2026-09-17).** In a fresh `flare create` app,
+`flare gen resource Ticket --fields "title:string, body:text?, priority:enum(low,normal,high), due:date?, done:boolean?, hours:float?"`
+→ `flare migrate` → `flare dev` produced working admin pages with no hand-written
+UI: the resource appeared in the sidebar, the empty list explained what to do, and a
+record was created (select, date picker, toggle, number), listed with formatted
+values and a status badge, edited, and deleted — all through the generated pages,
+with no client errors. Screenshots confirmed the style guide (flat cards,
+monochrome chrome, status-only color, labels above inputs, dark mode).
 
 ---
 

@@ -39,10 +39,10 @@ export default async function AdminPage() {
             <Card key={resource.name}>
               <CardHeader>
                 <CardDescription className="flex items-center gap-2">
-                  <Icon className="size-4" />
+                  <Icon className="size-5" />
                   {resource.pluralLabel}
                 </CardDescription>
-                <CardTitle className="text-3xl tabular-nums">{counts[index]!.toLocaleString()}</CardTitle>
+                <CardTitle className="text-3xl font-bold tabular-nums">{counts[index]!.toLocaleString()}</CardTitle>
                 <CardAction>
                   <Button variant="ghost" size="icon" aria-label={`New ${resource.label.toLowerCase()}`} asChild>
                     <Link href={adminPath(resource, "new")}>

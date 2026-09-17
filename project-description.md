@@ -504,6 +504,19 @@ API behavior:
   at the rebuilt table.
 - **D1 limit.** At most 100 bound parameters per query, so batch multi-row
   inserts (e.g. 15 rows × 6 columns) in seeds.
+- **Navigation and shell.** `<ResourceNav>` builds the sidebar from the registered
+  resources: label from `pluralLabel`, icon from the descriptor's `icon` via a
+  curated, tree-shakeable map in `components/admin/resource-icon.tsx` (lucide has no
+  per-icon entry points, so a dynamic lookup would bundle every icon), active item
+  from the path. It collapses (persisted in a cookie). The header has the theme
+  toggle and user menu; `/admin` itself lists every resource with its record count.
+- **Theme.** A `flare-theme` cookie (`light`/`dark`/`system`) is read in the root
+  layout and applied as a class on `<html>`, so the server renders the chosen theme
+  with no flash; without a choice it follows the system preference.
+- **Generated pages.** `gen resource` also writes
+  `app/admin/<slug>/page.tsx`, `new/page.tsx` and `[id]/edit/page.tsx` — thin
+  wrappers over `<ResourceTable>` and `<ResourceFormPage>`. `rm resource` and
+  `sync-types` track `app/admin` too.
 - **UI verification.** `scripts/screenshot.mjs` drives the locally installed
   Chrome through `playwright-core` (no browser download).
 
