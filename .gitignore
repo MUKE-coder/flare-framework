@@ -11,3 +11,6 @@ next-env.d.ts
 *.tsbuildinfo
 
 .tmp-*
+
+# Duplicate skill copies the skills CLI writes for other agents (.claude/skills is the tracked copy)
+.agents/
