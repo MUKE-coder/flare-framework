@@ -4,6 +4,8 @@
  */
 export const APP_DEPENDENCIES = {
   "@better-auth/drizzle-adapter": "1.7.5",
+  // Server components import Slot from here rather than the "radix-ui" umbrella (see components/ui/button.tsx).
+  "@radix-ui/react-slot": "1.3.3",
   "@vinext/cloudflare": "1.0.0-beta.8",
   "better-auth": "1.7.5",
   // Admin UI (shadcn/ui primitives in components/ui).
