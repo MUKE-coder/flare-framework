@@ -61,3 +61,6 @@ CREATE TABLE `role` (
 	`label` text NOT NULL,
 	`created_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL
 );
+--> statement-breakpoint
+-- Built-in roles: lib/admin.ts lets both into /admin. Add more with `flare role:add`.
+INSERT INTO `role` (`name`, `label`) VALUES ('admin', 'Admin'), ('staff', 'Staff');
