@@ -4,17 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { resourceIcon } from "@/components/admin/resource-icon";
-import { adminPath, adminStore, visibleResources } from "@/lib/admin";
+import { adminPath, recordCount, visibleResources } from "@/lib/admin";
 
 /** Admin landing page: one card per resource with its record count. */
 export default async function AdminPage() {
   const resources = await visibleResources();
-  const counts = await Promise.all(
-    resources.map(async (resource) => {
-      const result = await adminStore(resource.name).list(new URLSearchParams({ perPage: "1" }));
-      return result.ok ? result.data.meta.total : 0;
-    }),
-  );
+  const counts = await Promise.all(resources.map((resource) => recordCount(resource.name)));
 
   if (resources.length === 0) {
     return (

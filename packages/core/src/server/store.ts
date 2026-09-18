@@ -34,10 +34,24 @@ export interface ListResult<T = Record<string, unknown>> {
   meta: { page: number; perPage: number; total: number; totalPages: number };
 }
 
+export interface ChangeEvent {
+  /** Resource name, e.g. "Deal". */
+  resource: string;
+  action: "create" | "update" | "delete";
+  id: string;
+}
+
 export interface ResourceStoreOptions {
   resource: Resource;
   table: SQLiteTable;
   getDb: () => AnyDatabase;
+  /**
+   * Called after a write succeeds, for cache invalidation. Runs before the
+   * operation returns, so a caller that revalidates tags can't hand back a
+   * response the cache would then contradict. Failures are logged, not thrown:
+   * the write already happened.
+   */
+  onChange?: (event: ChangeEvent) => void | Promise<void>;
 }
 
 /** Walks an error and its causes (drizzle and D1 both wrap SQLite errors). */
@@ -104,6 +118,26 @@ export function createResourceStore(options: ResourceStoreOptions) {
     }
   }
 
+  /** Announce a successful write. A broken listener must not turn a completed write into an error. */
+  async function announce(action: ChangeEvent["action"], result: Result<{ id?: unknown }>): Promise<void> {
+    if (!options.onChange || !result.ok) return;
+    try {
+      await options.onChange({ resource: resource.name, action, id: String(result.data.id) });
+    } catch (error) {
+      console.error(`[flare] ${resource.name} ${action} cache invalidation failed:`, error);
+    }
+  }
+
+  /** Run a write, then announce it before handing the result back. */
+  async function writing<T extends { id?: unknown }>(
+    action: ChangeEvent["action"],
+    work: () => Promise<Result<T>>,
+  ): Promise<Result<T>> {
+    const result = await guarded(action, work);
+    await announce(action, result);
+    return result;
+  }
+
   const invalid = (issues: { path: PropertyKey[]; message: string }[]) =>
     fail(422, "Validation failed.", { issues: issues.map((issue) => ({ path: issue.path.map(String).join("."), message: issue.message })) });
 
@@ -164,7 +198,7 @@ export function createResourceStore(options: ResourceStoreOptions) {
     create(input: unknown): Promise<Result<Record<string, unknown>>> {
       const result = validators.create.safeParse(input);
       if (!result.success) return Promise.resolve(invalid(result.error.issues));
-      return guarded("create", async () => {
+      return writing("create", async () => {
         const now = new Date();
         const [record] = await getDb()
           .insert(table)
@@ -178,7 +212,7 @@ export function createResourceStore(options: ResourceStoreOptions) {
     update(id: string, input: unknown): Promise<Result<Record<string, unknown>>> {
       const result = validators.update.safeParse(input);
       if (!result.success) return Promise.resolve(invalid(result.error.issues));
-      return guarded("update", async () => {
+      return writing("update", async () => {
         const [record] = await getDb()
           .update(table)
           .set({ ...(result.data as object), updatedAt: new Date() })
@@ -192,7 +226,7 @@ export function createResourceStore(options: ResourceStoreOptions) {
     replace(id: string, input: unknown): Promise<Result<Record<string, unknown>>> {
       const result = validators.create.safeParse(input);
       if (!result.success) return Promise.resolve(invalid(result.error.issues));
-      return guarded("update", async () => {
+      return writing("update", async () => {
         const values: Record<string, unknown> = {};
         for (const [key, def] of fields) {
           values[key] = "default" in def && def.default !== undefined ? def.default : def.required ? undefined : null;
@@ -204,7 +238,7 @@ export function createResourceStore(options: ResourceStoreOptions) {
     },
 
     delete(id: string): Promise<Result<{ id: string }>> {
-      return guarded("delete", async () => {
+      return writing("delete", async () => {
         const deleted = await getDb().delete(table).where(byId(id)).returning({ id: idColumn });
         return deleted.length ? { ok: true, data: { id } } : notFound();
       });

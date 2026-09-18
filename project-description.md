@@ -61,7 +61,7 @@ opinionated stack that gets out of the way once it's running.
 | File storage | Cloudflare R2 | S3-compatible, zero egress fees |
 | Mail | Resend | Simple fetch-based API, works natively in Workers |
 | Realtime | Durable Objects (WebSocket Hibernation API) | The only Cloudflare-native way to do stateful realtime coordination |
-| Caching / CDN | Workers KV (data cache) + Workers Cache API (CDN/ISR) | vinext ships pluggable cache adapters for both already |
+| Caching / CDN | Workers KV (data cache) + Workers Cache API (CDN/ISR) | vinext ships pluggable cache adapters for both; the KV one is on by default, the Workers Cache one is still experimental in vinext 1.0 beta and off (see Caching) |
 | Billing | Stripe (Checkout + Billing Portal + subscriptions) | Industry standard, webhook-driven, no custom payment UI needed |
 | Security | Cloudflare WAF / Rate Limiting / IP Access Rules APIs + app-layer event logging | Edge-layer protection Cloudflare already offers, surfaced in-app |
 | Observability | Workers Analytics Engine + `instrumentation.ts` hooks + a Drizzle query-logging wrapper | N+1 detection, error tracking, latency percentiles, resource consumption |
@@ -604,6 +604,52 @@ As built:
   `app/api/contacts/route.ts` survived re-running
   `gen resource Contact --fields "…, phone:string?"`. The `ALTER TABLE … ADD phone`
   migration applied, and the API served both.
+
+### Caching (as built, Phase M3)
+
+**Data cache — on by default.** `vite.config.ts` registers vinext's
+`kvDataAdapter` against a `VINEXT_KV_CACHE` namespace. The binding has no id, so
+wrangler creates the namespace on the first deploy (as it does for D1 and R2) and
+simulates it locally. Entries live a day unless revalidated; a colo may reuse its
+own copy for 60 s after a write elsewhere.
+
+`lib/cache.ts` is the app-facing surface:
+
+- `cached(fn, keyParts, { tags, revalidate })` wraps `unstable_cache` with a
+  default of `TTL.medium` (5 min). `TTL.short` is 60 s, `TTL.long` 1 h.
+- `resourceTag("Deal")` → `resource/Deal`, `recordTag("Deal", id)` →
+  `resource/Deal/<id>`.
+- `revalidateResource(event)` drops both tags with `{ expire: 0 }` (no
+  stale-while-revalidate after a write).
+
+Invalidation is automatic: `createResourceStore` accepts `onChange`, called after
+every successful create/update/delete and before the operation returns. Generated
+API routes and `adminStore()` both pass `revalidateResource`, so a write through
+either path invalidates without app code remembering to. The admin dashboard's
+record counts go through `cached()` (`recordCount()` in `lib/admin.ts`).
+
+Tags must not contain `:`, `\` or control characters. vinext's KV adapter
+silently drops such tags, so the entry is stored untagged and nothing can ever
+revalidate it. `cached()` throws on them instead.
+
+Verified against the deployed demo: a dashboard count stayed cached through a
+row inserted directly in D1, then refreshed on the next load after a write
+through the API. `/admin` is served `no-store`.
+
+**CDN cache (Workers Cache) — off.** vinext's `cdnAdapter` builds and deploys,
+but in `vinext@1.0.0-beta.10` it isn't usable yet:
+
+- Behind it, any page that redirects fails with `TypeError: Too many
+  redirects`: the front Worker's internal fetch of the response stage follows
+  the redirect instead of returning it. Signed-out `/admin` returned 500 on the
+  deployed demo until the adapter was removed.
+- It only emits public cache headers after the experimental
+  `--experimental-warm-cdn-cache` deploy, whose route probe returned HTTP 500 for
+  9 of the demo's 11 routes.
+
+Pages stay CDN-ready anyway: the root layout applies the saved theme with an
+inline script rather than reading `cookies()`, since a layout that reads cookies
+makes every page under it dynamic.
 
 ### Roles & permissions (medium tier for v1)
 

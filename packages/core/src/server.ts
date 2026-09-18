@@ -8,6 +8,7 @@ export {
 export {
   createResourceStore,
   type AnyDatabase,
+  type ChangeEvent,
   type Failure,
   type FieldIssue,
   type ListResult,

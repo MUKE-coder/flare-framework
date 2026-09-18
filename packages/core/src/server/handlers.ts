@@ -1,6 +1,6 @@
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import type { Resource } from "../resource/define.js";
-import { createResourceStore, type AnyDatabase, type Failure, type ResourceAction, type Result } from "./store.js";
+import { createResourceStore, type AnyDatabase, type ChangeEvent, type Failure, type ResourceAction, type Result } from "./store.js";
 
 export type { ResourceAction } from "./store.js";
 
@@ -19,6 +19,8 @@ export interface ResourceHandlerOptions {
   table: SQLiteTable;
   getDb: () => AnyDatabase;
   authorize: Authorize;
+  /** Called after a write succeeds, for cache invalidation. */
+  onChange?: (event: ChangeEvent) => void | Promise<void>;
 }
 
 type RouteContext = { params: Promise<{ id: string }> };

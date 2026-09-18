@@ -107,11 +107,12 @@ export function findOrphans(appRoot: string, all: LoadedResource[]): { path: str
 
 /** Files every app needs once resources exist (copied from the app template if missing). */
 export function ensureSupportFiles(appRoot: string, log: (message: string) => void) {
-  const apiHelper = join(appRoot, "lib/api.ts");
-  if (!existsSync(apiHelper)) {
-    mkdirSync(dirname(apiHelper), { recursive: true });
-    copyFileSync(join(templatesDir, "app/lib/api.ts"), apiHelper);
-    log(`${pc.green("create".padEnd(9))} lib/api.ts`);
+  for (const path of ["lib/api.ts", "lib/cache.ts"]) {
+    const target = join(appRoot, path);
+    if (existsSync(target)) continue;
+    mkdirSync(dirname(target), { recursive: true });
+    copyFileSync(join(templatesDir, "app", path), target);
+    log(`${pc.green("create".padEnd(9))} ${path}`);
   }
 }
 

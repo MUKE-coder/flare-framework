@@ -157,6 +157,7 @@ const handlerImports = (entry: LoadedResource) => [
   `import { getDb } from "@/db";`,
   `import { ${tableExport(entry.resource)} } from "@/db/schema";`,
   `import { authorize } from "@/lib/api";`,
+  `import { revalidateResource } from "@/lib/cache";`,
   `import ${resourceLocal(entry.stem)} from "@/resources/${entry.stem}.resource";`,
   "",
   `const handlers = createResourceHandlers({`,
@@ -164,6 +165,7 @@ const handlerImports = (entry: LoadedResource) => [
   `  table: ${tableExport(entry.resource)},`,
   `  getDb,`,
   `  authorize,`,
+  `  onChange: revalidateResource,`,
   `});`,
   "",
 ];

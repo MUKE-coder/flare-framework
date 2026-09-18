@@ -106,6 +106,8 @@ UI never became the only gate. The roleless user saw no Deals in the sidebar and
 redirected off `/admin/deals` and `/admin/deals/new`. 234 unit tests pass.
 
 - [ ] Wire KV data-cache adapter and Workers Cache CDN adapter with sane default TTLs
+  - KV data cache: done and verified on the deployed demo (see "Caching" in `project-description.md`).
+  - Workers Cache CDN adapter: blocked upstream. vinext 1.0 beta's `cdnAdapter` breaks every redirecting page. Awaiting a decision on how to proceed.
 - [ ] `<FileField>` admin component fully wired to R2 with signed-URL upload flow, respecting the `file:[types]` MIME constraint
 - [ ] Write the framework's own docs/examples
 - [ ] End-to-end test: `flare create app && flare gen resource Contact --fields "..." && flare deploy` completes in under 5 minutes for a fresh user

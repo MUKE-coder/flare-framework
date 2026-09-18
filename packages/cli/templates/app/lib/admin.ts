@@ -7,6 +7,7 @@ import { getDb } from "@/db";
 import { policies } from "@/policies";
 import { resourceTables } from "@/resources/server";
 import { auth } from "./auth";
+import { cached, resourceTag, revalidateResource, TTL } from "./cache";
 
 /** Default upload limit for file fields without an explicit maxBytes (10 MB). */
 export const DEFAULT_MAX_UPLOAD = 10 * 1024 * 1024;
@@ -66,10 +67,27 @@ export function adminStore(name: string): ResourceStore {
   if (!entry) notFound();
   let store = stores.get(name);
   if (!store) {
-    store = createResourceStore({ resource: entry.resource, table: entry.table, getDb });
+    store = createResourceStore({ resource: entry.resource, table: entry.table, getDb, onChange: revalidateResource });
     stores.set(name, store);
   }
   return store;
+}
+
+/**
+ * How many records a resource has. Cached in the data cache under the resource's tag,
+ * so the dashboard does not count every table on every visit, and a write through the
+ * admin or the API drops the count on its way out.
+ */
+export function recordCount(name: string): Promise<number> {
+  const count = cached(
+    async (resourceName: string) => {
+      const result = await adminStore(resourceName).list(new URLSearchParams({ perPage: "1" }));
+      return result.ok ? result.data.meta.total : 0;
+    },
+    ["flare", "record-count"],
+    { tags: [resourceTag(name)], revalidate: TTL.short },
+  );
+  return count(name);
 }
 
 /** Every resource descriptor (unfiltered): navigation uses `visibleResources()` instead. */
