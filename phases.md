@@ -108,7 +108,8 @@ redirected off `/admin/deals` and `/admin/deals/new`. 234 unit tests pass.
 - [x] Wire KV data-cache adapter ~~and Workers Cache CDN adapter~~ with sane default TTLs
   - KV data cache: done and verified on the deployed demo (see "Caching" in `project-description.md`).
   - Workers Cache CDN adapter: moved to the Backlog (2026-09-18). vinext 1.0 beta's `cdnAdapter` breaks every redirecting page.
-- [ ] `<FileField>` admin component fully wired to R2 with signed-URL upload flow, respecting the `file:[types]` MIME constraint
+- [x] `<FileField>` admin component fully wired to R2 with signed-URL upload flow, respecting the `file:[types]` MIME constraint
+  - Verified against the production build in workerd: `scripts/e2e-file-field.mjs` 15/15 (type, size and content refused in the browser; HTML relabelled as a PNG refused by the server with the browser check bypassed; real upload with progress; stored image previewed and served; another field's key refused on save). axe WCAG 2.2 AA clean in light and dark; keyboard-only upload works.
 - [ ] Write the framework's own docs/examples
 - [ ] End-to-end test: `flare create app && flare gen resource Contact --fields "..." && flare deploy` completes in under 5 minutes for a fresh user
 
@@ -177,4 +178,5 @@ production.
 - Admin UI theming/plugin system
 - Workers AI + Vectorize integrations (AI-generated fields, semantic search)
 - Queues-backed background jobs
+- Orphaned uploads: delete the R2 object when a file is replaced or removed, or its record is deleted
 - Workers Cache CDN adapter (`cdnAdapter`): re-enable in `vite.config.ts` once vinext fixes redirects behind it and the two-stage warm deploy leaves experimental. Pages are already CDN-ready (the root layout no longer reads cookies)

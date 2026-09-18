@@ -21,5 +21,6 @@ export {
   type UploadUrlOptions,
   type ReadUrlOptions,
 } from "./storage.js";
+export { sniffMatches, SNIFF_BYTES } from "./sniff.js";
 export * from "./resource/index.js";
 export { defineSeed, type Seed, type SeedContext } from "./seed.js";

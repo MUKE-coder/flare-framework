@@ -9,9 +9,6 @@ import { resourceTables } from "@/resources/server";
 import { auth } from "./auth";
 import { cached, resourceTag, revalidateResource, TTL } from "./cache";
 
-/** Default upload limit for file fields without an explicit maxBytes (10 MB). */
-export const DEFAULT_MAX_UPLOAD = 10 * 1024 * 1024;
-
 /**
  * Roles that always reach /admin, whatever the policies say. Other roles get in when a
  * policy grants them read access to at least one resource.

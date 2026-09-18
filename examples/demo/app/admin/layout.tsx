@@ -20,7 +20,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <SidebarProvider defaultOpen={!collapsed}>
-      <ResourceNav appName="__APP_NAME__" resources={resources} />
+      <ResourceNav appName="demo" resources={resources} />
       <SidebarInset>
         <AdminHeader user={{ name: session.user.name, email: session.user.email }} initialTheme={theme} />
         <main className="flex-1 p-6 md:p-8">{children}</main>

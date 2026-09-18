@@ -143,6 +143,12 @@ export function mimeTypesFor(accept: readonly FileCategory[]): string[] {
   return [...new Set(accept.flatMap((category) => FILE_CATEGORIES[category]))];
 }
 
+/** Upload limit for file fields without an explicit `maxBytes` (10 MB). */
+export const DEFAULT_FILE_MAX_BYTES = 10 * 1024 * 1024;
+
+/** The upload limit a file field enforces. */
+export const fileMaxBytes = (field: { maxBytes?: number }) => field.maxBytes ?? DEFAULT_FILE_MAX_BYTES;
+
 function build<K extends FieldKind, O extends object>(kind: K, options: O | undefined, extra: object = {}) {
   return { kind, ...extra, ...options, required: (options as { required?: boolean } | undefined)?.required !== false };
 }

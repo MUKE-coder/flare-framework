@@ -145,6 +145,17 @@ describe("createValidators", () => {
     expect(create.safeParse({ ...valid, age: 151 }).success).toBe(false);
   });
 
+  it("only accepts file keys issued for that field", () => {
+    // The table is "contacts", so avatar uploads live under contacts/avatar/.
+    expect(create.safeParse({ ...valid, avatar: "contacts/avatar/2026/09/abc-me.png" }).success).toBe(true);
+    for (const avatar of ["deals/contract/2026/09/abc-secret.pdf", "contacts/other/x.png", "uploads/x.png"]) {
+      const result = update.safeParse({ avatar });
+      expect(result.success, avatar).toBe(false);
+      expect(result.error!.issues[0]!.message).toBe("This file wasn't uploaded for this field");
+    }
+    expect(update.safeParse({ avatar: null }).success).toBe(true);
+  });
+
   it("allows null only for optional fields", () => {
     expect(create.safeParse({ ...valid, phone: null, companyId: null }).success).toBe(true);
     expect(create.safeParse({ ...valid, score: null }).success).toBe(false);

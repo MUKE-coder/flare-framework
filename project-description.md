@@ -229,6 +229,37 @@ stable compiler API yet, which tsup's declaration build needs.
 - Rejected uploads have their body read and discarded (streamed, constant
   memory) before the 4xx is returned. With the body left unread, every other
   request through wrangler's local proxy failed with a 500.
+- **Uploads are checked by content, not just by label** (Phase M3). The
+  Content-Type is whatever the sender chose, so the upload route reads the first
+  32 bytes and compares them with the declared type's signature (`sniffMatches`
+  in `@flare/core`: PNG, JPEG, GIF, WebP, AVIF, PDF, zip-based Office and
+  OpenDocument files, legacy Office, common audio/video containers; text must
+  not contain control bytes). A mismatch is a 415. The body then streams on to
+  R2 through a `FixedLengthStream`, since R2 only accepts streams of known
+  length. That also fails the upload if fewer bytes arrive than
+  `Content-Length` promised. Types with no known signature are let through, so
+  custom types passed to `createUploadUrl` keep working.
+- **A file field only stores keys issued for it.** Uploads for field `contract`
+  on table `deals` live under `deals/contract/` (`fileKeyPrefix`), and the
+  resource validators reject any other key with "This file wasn't uploaded for
+  this field". Otherwise anyone who can edit a record could attach another
+  resource's private file and read it through their own.
+- **Read URLs are scoped.** The admin's `createReadUrlAction(resource, field,
+  key)` signs only keys under that field's prefix, and only for roles with
+  read, create or update access to the resource.
+- **The admin file widget** (`components/admin/fields/file-field.tsx`) checks
+  type, size (`fileMaxBytes`, 10 MB by default) and contents in the browser
+  first for instant feedback; the server repeats every check. It uploads with
+  progress and cancel, supports drag and drop, and previews images (a local
+  preview while uploading, then the stored image through a read URL). Errors
+  appear inline under the field, as the style guide requires. The field label
+  names the drop zone, and the native input is hidden from assistive tech so
+  screen readers find one control, not two. axe (WCAG 2.2 AA) reports no
+  violations in light or dark, and the widget works by keyboard alone.
+- Not yet handled: a replaced or removed file, or a deleted record's file,
+  stays in R2. Orphan cleanup is in the Backlog.
+- `scripts/e2e-file-field.mjs` checks all of the above against a running app
+  (15 checks, including the server gate with the browser's check bypassed).
 
 ### Mail wiring (as built)
 

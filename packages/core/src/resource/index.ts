@@ -1,6 +1,8 @@
 export {
   field,
   mimeTypesFor,
+  fileMaxBytes,
+  DEFAULT_FILE_MAX_BYTES,
   FILE_CATEGORIES,
   type Field,
   type FieldKind,
@@ -32,7 +34,7 @@ export {
   type Resource,
   type ResourceConfig,
 } from "./define.js";
-export { createValidators, fieldSchema, type ResourceValidators } from "./validators.js";
+export { createValidators, fieldSchema, fileKeyPrefix, type ResourceValidators } from "./validators.js";
 export { camelCase, humanize, kebabCase, pascalCase, pluralize, snakeCase, words } from "./naming.js";
 export {
   relationGraph,

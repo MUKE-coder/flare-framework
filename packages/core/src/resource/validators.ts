@@ -68,12 +68,27 @@ export function fieldSchema(def: StoredField): z.ZodType {
   }
 }
 
+/**
+ * Where a file field's uploads live: `<table>/<field>/`. The admin issues upload URLs
+ * under this prefix, and a record only accepts keys under it — otherwise anyone who can
+ * edit a record could attach another resource's private file and read it through theirs.
+ */
+export const fileKeyPrefix = (resource: Pick<Resource, "table">, fieldKey: string) => `${resource.table}/${fieldKey}/`;
+
 export function createValidators<Fields extends Record<string, Field>>(resource: Resource<Fields>): ResourceValidators<Fields> {
   const create: Record<string, z.ZodType> = {};
   const update: Record<string, z.ZodType> = {};
 
   for (const [key, def] of storedFields(resource as unknown as Resource)) {
-    const base = fieldSchema(def);
+    let base = fieldSchema(def);
+    if (def.kind === "file") {
+      const prefix = fileKeyPrefix(resource as unknown as Resource, key);
+      // Malformed keys already fail the format check; report one problem at a time.
+      base = base.refine(
+        (value) => typeof value !== "string" || !OBJECT_KEY.test(value) || value.startsWith(prefix),
+        "This file wasn't uploaded for this field",
+      );
+    }
     const value = def.required ? base : base.nullable();
     update[key] = value.optional();
     const hasDefault = "default" in def && def.default !== undefined;

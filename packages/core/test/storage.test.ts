@@ -35,11 +35,15 @@ function setup(secret = SECRET) {
   return { storage: createStorage({ bucket, secret }), objects, bucket };
 }
 
-function put(url: string, body: string, contentType: string, headers: Record<string, string> = {}) {
+/** The 8-byte PNG signature, then some bytes: enough to pass content sniffing. */
+const PNG = (rest = "png-bytes") => new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...new TextEncoder().encode(rest)]);
+
+function put(url: string, body: string | Uint8Array, contentType: string, headers: Record<string, string> = {}) {
+  const bytes = typeof body === "string" ? new TextEncoder().encode(body) : body;
   return new Request(ORIGIN + url, {
     method: "PUT",
-    body,
-    headers: { "content-type": contentType, "content-length": String(new TextEncoder().encode(body).length), ...headers },
+    body: bytes as BodyInit,
+    headers: { "content-type": contentType, "content-length": String(bytes.byteLength), ...headers },
   });
 }
 
@@ -89,13 +93,13 @@ describe("storage", () => {
     const upload = await storage.createUploadUrl({ key: "uploads/a.png", contentTypes: ["image/*"], maxBytes: 100 });
     expect(upload.url).toMatch(/^\/api\/storage\?token=[\w-]+\.[\w-]+$/);
 
-    const res = await storage.handleRequest(put(upload.url, "png-bytes", "image/png"));
+    const res = await storage.handleRequest(put(upload.url, PNG(), "image/png"));
     expect(res.status).toBe(201);
     expect(objects.get("uploads/a.png")?.contentType).toBe("image/png");
 
     const read = await storage.handleRequest(new Request(ORIGIN + (await storage.createReadUrl({ key: "uploads/a.png" }))));
     expect(read.status).toBe(200);
-    expect(await read.text()).toBe("png-bytes");
+    expect(new Uint8Array(await read.arrayBuffer())).toEqual(PNG());
     expect(read.headers.get("content-type")).toBe("image/png");
     expect(read.headers.get("content-disposition")).toBe("inline; filename*=UTF-8''a.png");
   });
@@ -109,6 +113,25 @@ describe("storage", () => {
     const noLength = new Request(ORIGIN + url, { method: "PUT", body: "12", headers: { "content-type": "image/png" } });
     expect((await storage.handleRequest(noLength)).status).toBe(411);
     expect(objects.size).toBe(0);
+  });
+
+  it("rejects files whose bytes contradict their Content-Type", async () => {
+    const { storage, objects } = setup();
+    const { url } = await storage.createUploadUrl({ key: "k", contentTypes: ["image/*", "application/pdf"], maxBytes: 1000 });
+
+    // An HTML page labelled as a PNG, and a PNG labelled as a PDF.
+    const html = put(url, "<html><script>alert(1)</script></html>", "image/png");
+    const res = await storage.handleRequest(html);
+    expect(res.status).toBe(415);
+    expect(((await res.json()) as { error: string }).error).toMatch(/contents don't match its type \(image\/png\)/);
+    expect(html.bodyUsed).toBe(true);
+    expect((await storage.handleRequest(put(url, PNG(), "application/pdf"))).status).toBe(415);
+    expect(objects.size).toBe(0);
+
+    // The real thing passes, and arrives intact even when the body spans many chunks.
+    const big = PNG("x".repeat(900));
+    expect((await storage.handleRequest(put(url, big, "image/png"))).status).toBe(201);
+    expect(objects.get("k")?.data).toEqual(big);
   });
 
   it("drains the body of rejected uploads", async () => {

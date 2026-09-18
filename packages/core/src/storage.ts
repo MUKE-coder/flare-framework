@@ -1,4 +1,5 @@
 import { importSigningKey, signToken, verifyToken } from "./signing.js";
+import { SNIFF_BYTES, sniffMatches } from "./sniff.js";
 
 /**
  * Signed upload/read URLs for an R2 bucket binding.
@@ -102,11 +103,65 @@ function isValidKey(key: string): boolean {
 
 async function discard(body: ReadableStream): Promise<void> {
   try {
-    const reader = body.getReader();
+    await drain(body.getReader());
+  } catch {
+    // The client went away; nothing left to drain.
+  }
+}
+
+async function drain(reader: ReadableStreamDefaultReader<Uint8Array>): Promise<void> {
+  try {
     while (!(await reader.read()).done);
   } catch {
     // The client went away; nothing left to drain.
   }
+}
+
+/** Read at least `bytes` bytes (or the whole body, if shorter) without losing them. */
+async function readHead(body: ReadableStream<Uint8Array>, bytes: number) {
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (size < bytes) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    size += value.byteLength;
+  }
+  const head = new Uint8Array(Math.min(size, bytes));
+  let offset = 0;
+  for (const chunk of chunks) {
+    if (offset >= head.length) break;
+    const part = chunk.subarray(0, head.length - offset);
+    head.set(part, offset);
+    offset += part.length;
+  }
+  return { head, chunks, reader };
+}
+
+/**
+ * The body again, head chunks first. R2 only accepts streams of known length, so on
+ * Workers it's piped through a FixedLengthStream — which also fails the upload if
+ * the client sends a different number of bytes than its Content-Length promised.
+ */
+function replay(chunks: Uint8Array[], reader: ReadableStreamDefaultReader<Uint8Array>, length: number): ReadableStream {
+  const source = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(chunk);
+    },
+    async pull(controller) {
+      const { done, value } = await reader.read();
+      if (done) controller.close();
+      else controller.enqueue(value);
+    },
+    cancel: (reason) => reader.cancel(reason),
+  });
+  const FixedLength = (globalThis as { FixedLengthStream?: new (length: number) => TransformStream<Uint8Array, Uint8Array> })
+    .FixedLengthStream;
+  if (!FixedLength) return source;
+  const fixed = new FixedLength(length);
+  source.pipeTo(fixed.writable).catch(() => {});
+  return fixed.readable;
 }
 
 function error(status: number, message: string): Response {
@@ -143,7 +198,14 @@ export function createStorage(options: StorageOptions) {
       }
       if (length > payload.max) return error(413, `File exceeds the ${payload.max}-byte limit.`);
       if (!request.body) return error(400, "Missing request body.");
-      await options.bucket.put(payload.key, request.body, { httpMetadata: { contentType } });
+
+      // The Content-Type is whatever the sender chose; check the bytes agree with it.
+      const { head, chunks, reader } = await readHead(request.body, SNIFF_BYTES);
+      if (sniffMatches(contentType, head) === false) {
+        await drain(reader);
+        return error(415, `The file's contents don't match its type (${contentType.split(";")[0]!.trim()}).`);
+      }
+      await options.bucket.put(payload.key, replay(chunks, reader, length), { httpMetadata: { contentType } });
       return Response.json({ key: payload.key }, { status: 201 });
     }
 
