@@ -8,11 +8,13 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "deploy": "astro build && wrangler deploy",
+    "deploy": "node scripts/clean.mjs && astro build && node scripts/check-dist.mjs && wrangler deploy",
     "astro": "astro"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.42.2",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
     "astro": "^7.2.10",
     "sharp": "^0.35.3"
   },

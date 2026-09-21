@@ -1,0 +1,1219 @@
+---
+/**
+ * The docs home page. One idea carries it: describe a resource once, and Flare
+ * writes the rest. The hero panel shows exactly that, with real generator output.
+ */
+const install = [
+  { id: "npm", label: "npm", command: "npm create flare-framework@latest my-app" },
+  { id: "pnpm", label: "pnpm", command: "pnpm create flare-framework my-app" },
+  { id: "bun", label: "bun", command: "bun create flare-framework my-app" },
+  { id: "sh", label: "macOS / Linux", command: "curl -fsSL https://flare-docs.codetotech.com/install.sh | bash" },
+  { id: "ps", label: "Windows", command: "irm https://flare-docs.codetotech.com/install.ps1 | iex" },
+];
+
+const generated = [
+  { path: "db/schema/contacts.ts", what: "Drizzle table" },
+  { path: "migrations/0001_create_contacts.sql", what: "Migration" },
+  { path: "app/api/contacts/route.ts", what: "List and create" },
+  { path: "app/api/contacts/[id]/route.ts", what: "Read, update, delete" },
+  { path: "resources/contact.validators.ts", what: "Zod validation" },
+  { path: "resources/contact.client.ts", what: "Typed client" },
+  { path: "app/admin/contacts/page.tsx", what: "Admin table" },
+  { path: "app/admin/contacts/new/page.tsx", what: "Create form" },
+  { path: "app/admin/contacts/[id]/edit/page.tsx", what: "Edit form" },
+];
+
+const stack = ["Cloudflare Workers", "D1", "R2", "Durable Objects", "vinext", "Drizzle", "Better Auth", "Stripe", "Resend"];
+
+const batteries = [
+  { name: "Authentication", body: "Email and password, Google and GitHub sign-in through Better Auth.", href: "/guides/auth/", icon: "key" },
+  { name: "Database", body: "D1 with Drizzle, typed schema and migrations you can read.", href: "/guides/migrations-and-seeds/", icon: "db" },
+  { name: "Admin dashboard", body: "Tables, filters and forms for every resource, driven by its descriptor.", href: "/guides/admin-dashboard/", icon: "grid" },
+  { name: "Roles and policies", body: "Who can read and write each resource, enforced by the API and the admin.", href: "/guides/roles-and-policies/", icon: "shield" },
+  { name: "File storage", body: "Uploads to R2 with type sniffing and size limits built in.", href: "/guides/storage/", icon: "box" },
+  { name: "Email", body: "Verification and password reset mail through Resend.", href: "/guides/mail/", icon: "mail" },
+  { name: "Caching", body: "A KV data cache shared by every colo, revalidated by tag on write.", href: "/guides/caching/", icon: "bolt" },
+  { name: "Realtime", body: "Channels and presence on Durable Objects, with a React hook.", href: "/guides/realtime/", icon: "wave" },
+];
+
+const generators = [
+  {
+    id: "resource",
+    label: "Resources",
+    command: 'npx flare gen resource Deal --fields "title:string, value:int, stage:enum(lead,won,lost), company:belongsTo(Company)"',
+    lead: "A table, an API, validation and admin screens for any record your app keeps.",
+    creates: ["db/schema/deals.ts", "app/api/deals/route.ts", "resources/deal.validators.ts", "app/admin/deals/page.tsx", "migrations/0002_create_deals.sql"],
+    href: "/concepts/generated-files/",
+  },
+  {
+    id: "policy",
+    label: "Policies",
+    command: "npx flare gen policy Deal --roles admin,staff --delete-roles admin",
+    lead: "Decide who reads, creates, updates and deletes. The API and the admin both obey it.",
+    creates: ["policies/deal.policy.ts", "policies/index.ts"],
+    href: "/guides/roles-and-policies/",
+  },
+  {
+    id: "billing",
+    label: "Billing",
+    command: "npx flare gen billing --provider stripe --mode subscriptions",
+    lead: "Stripe Checkout, the customer portal, plan changes and a verified webhook.",
+    creates: ["lib/stripe.ts", "app/api/webhooks/stripe/route.ts", "app/dashboard/billing/page.tsx", "resources/plan.resource.ts"],
+    href: "/guides/billing/",
+  },
+  {
+    id: "security",
+    label: "Security",
+    command: "npx flare gen security",
+    lead: "Bans, rate limits and abuse detection in front of every request, with a dashboard.",
+    creates: ["security.config.ts", "lib/security.ts", "app/admin/security/page.tsx", "resources/security-event.resource.ts"],
+    href: "/guides/security/",
+  },
+];
+---
+
+<div class="fl-landing not-content">
+  <!-- Hero -->
+  <section class="fl-hero" aria-labelledby="fl-hero-title">
+    <div class="fl-hero-grid" aria-hidden="true"></div>
+    <a class="fl-pill" href="/guides/tunnels/">
+      <span class="fl-pill-tag">New</span>
+      <span class="fl-pill-text">Public URLs for your local app</span>
+    </a>
+    <h1 id="fl-hero-title" class="fl-hero-title">
+      <span class="fl-line">The fullstack framework</span>
+      <span class="fl-line fl-ember-text">for the Cloudflare edge</span>
+    </h1>
+    <p class="fl-hero-lead">
+      Describe a resource once. Flare writes the table, the API, the validation and the admin screens, with
+      auth, storage and billing already wired, then deploys it all to Workers.
+    </p>
+    <div class="fl-actions">
+      <a class="fl-btn fl-btn-primary" href="/start/quickstart/">Start building</a>
+      <a class="fl-btn fl-btn-quiet" href="https://github.com/MUKE-coder/flare-framework">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" /></svg>
+        View on GitHub
+      </a>
+    </div>
+
+    <div class="fl-install" data-tabs>
+      <div class="fl-install-tabs" role="tablist" aria-label="Install with">
+        {install.map((item, index) => (
+          <button role="tab" id={`fl-i-${item.id}`} aria-controls={`fl-ip-${item.id}`} aria-selected={index === 0 ? "true" : "false"} tabindex={index === 0 ? 0 : -1}>
+            {item.label}
+          </button>
+        ))}
+      </div>
+      {install.map((item, index) => (
+        <div class="fl-install-line" role="tabpanel" id={`fl-ip-${item.id}`} aria-labelledby={`fl-i-${item.id}`} hidden={index !== 0}>
+          <span class="fl-prompt" aria-hidden="true">$</span>
+          <code>{item.command}</code>
+          <button class="fl-copy" data-copy={item.command} aria-label="Copy command">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
+            <span class="fl-copy-label">Copy</span>
+          </button>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- The idea, shown: one descriptor in, the whole feature out -->
+  <div class="fl-frame">
+    <section class="fl-demo fl-rail" aria-label="What flare gen resource writes">
+      <div class="fl-demo-pane">
+        <div class="fl-pane-head">
+          <span class="fl-dot" aria-hidden="true"></span>
+          resources/contact.resource.ts
+          <span class="fl-pane-note">you write</span>
+        </div>
+        <pre class="fl-code"><code><span class="k">import</span> {"{"} defineResource, field {"}"} <span class="k">from</span> <span class="s">"@flaredev/core"</span>;
+
+<span class="k">export default</span> <span class="f">defineResource</span>({"{"}
+  name: <span class="s">"Contact"</span>,
+  fields: {"{"}
+    name: field.<span class="f">string</span>(),
+    email: field.<span class="f">string</span>({"{"} format: <span class="s">"email"</span> {"}"}),
+    phone: field.<span class="f">string</span>({"{"} required: <span class="n">false</span> {"}"}),
+    status: field.<span class="f">enum</span>([<span class="s">"lead"</span>, <span class="s">"customer"</span>]),
+  {"}"},
+{"}"});</code></pre>
+      </div>
+      <div class="fl-demo-arrow" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+      </div>
+      <div class="fl-demo-pane">
+        <div class="fl-pane-head">
+          <span class="fl-dot fl-dot-ember" aria-hidden="true"></span>
+          npx flare gen resource Contact
+          <span class="fl-pane-note">Flare writes</span>
+        </div>
+        <ol class="fl-gen">
+          {generated.map((file, index) => (
+            <li style={`--i:${index}`}>
+              <span class="fl-plus" aria-hidden="true">+</span>
+              <span class="fl-path">{file.path}</span>
+              <span class="fl-what">{file.what}</span>
+            </li>
+          ))}
+        </ol>
+        <p class="fl-demo-foot">Edit the descriptor and run it again: every file follows, and your own code outside the generated blocks is kept.</p>
+      </div>
+    </section>
+
+    <section class="fl-stack fl-rail" aria-label="Built on">
+      <span class="fl-stack-label">Built on</span>
+      <ul>
+        {stack.map((name) => <li>{name}</li>)}
+      </ul>
+    </section>
+
+    <!-- 01 Create -->
+    <section class="fl-section fl-rail" aria-labelledby="fl-create">
+      <p class="fl-step"><span>[ 01 / 03 ]</span> Create</p>
+      <div class="fl-section-head">
+        <h2 id="fl-create">Everything a real app needs,<br /><span class="fl-ember-text">wired on day one</span></h2>
+        <p>
+          <code>flare create</code> gives you a working app with sign-in, a database, an admin area and the Cloudflare
+          bindings behind them, already connected. No choosing libraries, no glue code.
+        </p>
+      </div>
+      <ul class="fl-batteries">
+        {batteries.map((item) => (
+          <li>
+            <a href={item.href}>
+              <span class="fl-icon" aria-hidden="true">
+                {item.icon === "key" && <svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4" /><path d="M10.8 12.2 20 3M17 6l3 3M14.5 8.5l2 2" /></svg>}
+                {item.icon === "db" && <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" /></svg>}
+                {item.icon === "grid" && <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" /></svg>}
+                {item.icon === "shield" && <svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.4 8 8 9 4.6-1 8-4 8-9V6l-8-3Z" /><path d="m9 12 2 2 4-4" /></svg>}
+                {item.icon === "box" && <svg viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z" /><path d="m3 8 9 5 9-5M12 13v8" /></svg>}
+                {item.icon === "mail" && <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>}
+                {item.icon === "bolt" && <svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" /></svg>}
+                {item.icon === "wave" && <svg viewBox="0 0 24 24"><path d="M2 12h3l3-7 4 14 3-9 2 2h5" /></svg>}
+              </span>
+              <span class="fl-battery-name">{item.name}</span>
+              <span class="fl-battery-body">{item.body}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <!-- 02 Generate -->
+    <section class="fl-section fl-rail" aria-labelledby="fl-generate">
+      <p class="fl-step"><span>[ 02 / 03 ]</span> Generate</p>
+      <div class="fl-section-head">
+        <h2 id="fl-generate">Grow the app<br /><span class="fl-ember-text">one command at a time</span></h2>
+        <p>Each generator writes plain, readable files into your project. Change them, or regenerate: Flare keeps your edits and tells you when something drifted.</p>
+      </div>
+
+      <div class="fl-gens" data-tabs>
+        <div class="fl-gens-tabs" role="tablist" aria-label="Generators">
+          {generators.map((item, index) => (
+            <button role="tab" id={`fl-g-${item.id}`} aria-controls={`fl-gp-${item.id}`} aria-selected={index === 0 ? "true" : "false"} tabindex={index === 0 ? 0 : -1}>
+              {item.label}
+            </button>
+          ))}
+        </div>
+        {generators.map((item, index) => (
+          <div class="fl-gens-panel" role="tabpanel" id={`fl-gp-${item.id}`} aria-labelledby={`fl-g-${item.id}`} hidden={index !== 0}>
+            <div class="fl-gens-copy">
+              <p>{item.lead}</p>
+              <a href={item.href} class="fl-link">Read the guide</a>
+            </div>
+            <div class="fl-terminal">
+              <div class="fl-terminal-cmd">
+                <span class="fl-prompt" aria-hidden="true">$</span>
+                <code>{item.command}</code>
+              </div>
+              <ul class="fl-terminal-out">
+                {item.creates.map((path) => (
+                  <li><span class="fl-created">create</span> {path}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- 03 Ship -->
+    <section class="fl-section fl-rail" aria-labelledby="fl-ship">
+      <p class="fl-step"><span>[ 03 / 03 ]</span> Ship</p>
+      <div class="fl-section-head">
+        <h2 id="fl-ship">Live on Cloudflare<br /><span class="fl-ember-text">in one command</span></h2>
+        <p><code>flare deploy</code> migrates the database first, deploys the Worker, then sets any secret you're missing. Nothing to configure on the dashboard.</p>
+      </div>
+      <div class="fl-ship">
+        <div class="fl-terminal fl-terminal-tall">
+          <div class="fl-terminal-cmd">
+            <span class="fl-prompt" aria-hidden="true">$</span>
+            <code>npx flare deploy</code>
+          </div>
+          <ul class="fl-terminal-out">
+            <li><span class="fl-step-mark">flare</span> Applying migrations to my-app-db (remote)</li>
+            <li class="fl-dim">&nbsp;&nbsp;0001_create_contacts.sql ✓</li>
+            <li><span class="fl-step-mark">flare</span> Deploying</li>
+            <li class="fl-dim">&nbsp;&nbsp;Uploaded my-app</li>
+            <li><span class="fl-step-mark">flare</span> Generating BETTER_AUTH_SECRET for production</li>
+            <li class="fl-ok">Deployed to https://my-app.you.workers.dev</li>
+          </ul>
+        </div>
+        <div class="fl-ship-side">
+          <div class="fl-stat">
+            <span class="fl-stat-number">114<span>s</span></span>
+            <span class="fl-stat-label">from <code>flare create</code> to a deployed app that signs users up and serves its API, timed end to end on a fresh app.</span>
+          </div>
+          <div class="fl-share">
+            <p class="fl-share-title">Show it before you ship it</p>
+            <p>Put the app on your machine on a public HTTPS link. No account, DNS or open ports.</p>
+            <code class="fl-share-cmd">npx flare dev --tunnel</code>
+            <a href="/guides/tunnels/" class="fl-link">Sharing your local app</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Close -->
+    <section class="fl-close fl-rail" aria-labelledby="fl-close">
+      <h2 id="fl-close">Build your first app<br /><span class="fl-ember-text">in the next five minutes</span></h2>
+      <div class="fl-actions">
+        <a class="fl-btn fl-btn-primary" href="/start/quickstart/">Follow the quickstart</a>
+        <a class="fl-btn fl-btn-quiet" href="/reference/cli/">CLI reference</a>
+      </div>
+    </section>
+
+    <footer class="fl-footer fl-rail">
+      <span class="fl-footer-brand">
+        <img src="/favicon.svg" alt="" width="18" height="18" /> Flare
+      </span>
+      <span class="fl-footer-meta">Open source under the MIT license</span>
+      <nav aria-label="Project links">
+        <a href="https://github.com/MUKE-coder/flare-framework">GitHub</a>
+        <a href="https://www.npmjs.com/package/@flaredev/cli">npm</a>
+        <a href="/start/installation/">Installation</a>
+      </nav>
+    </footer>
+  </div>
+</div>
+
+<script>
+  // Tabs (install methods, generators): click or arrow keys, ARIA tabs pattern.
+  for (const group of document.querySelectorAll<HTMLElement>("[data-tabs]")) {
+    const tabs = [...group.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const select = (tab: HTMLButtonElement) => {
+      for (const other of tabs) {
+        const selected = other === tab;
+        other.setAttribute("aria-selected", String(selected));
+        other.tabIndex = selected ? 0 : -1;
+        const panel = document.getElementById(other.getAttribute("aria-controls") ?? "");
+        if (panel) panel.hidden = !selected;
+      }
+    };
+    tabs.forEach((tab, index) => {
+      tab.addEventListener("click", () => select(tab));
+      tab.addEventListener("keydown", (event) => {
+        const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+        if (!step) return;
+        event.preventDefault();
+        const next = tabs[(index + step + tabs.length) % tabs.length]!;
+        select(next);
+        next.focus();
+      });
+    });
+  }
+
+  // Copy buttons: confirm in place, then return to "Copy".
+  for (const button of document.querySelectorAll<HTMLButtonElement>("[data-copy]")) {
+    button.addEventListener("click", async () => {
+      const label = button.querySelector(".fl-copy-label");
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy ?? "");
+        if (label) label.textContent = "Copied";
+      } catch {
+        if (label) label.textContent = "Press Ctrl+C";
+      }
+      setTimeout(() => label && (label.textContent = "Copy"), 1800);
+    });
+  }
+</script>
+
+<style>
+  /* The landing breaks out of Starlight's content column to the full width. */
+  :global(:root:has(.fl-landing)) {
+    --fl-page: #fafafa;
+  }
+  :global(:root[data-theme="dark"]:has(.fl-landing)),
+  :global(:root:not([data-theme]):has(.fl-landing)) {
+    --fl-page: #121212;
+  }
+  :global(body:has(.fl-landing)) {
+    background: var(--fl-page);
+    overflow-x: clip;
+  }
+  :global(body:has(.fl-landing) .header) {
+    background: color-mix(in srgb, var(--fl-page) 88%, transparent);
+  }
+  :global(.main-frame:has(.fl-landing) .content-panel) {
+    padding: 0;
+    border: 0;
+  }
+  :global(.main-frame:has(.fl-landing) .sl-container) {
+    max-width: none;
+    margin: 0;
+  }
+  :global(.main-frame:has(.fl-landing) .sl-markdown-content) {
+    margin: 0;
+  }
+  :global(.main-frame:has(.fl-landing) h1#_top) {
+    display: none;
+  }
+
+  /* Layout rules below set display; the hidden attribute (inactive tab panels) must still win. */
+  .fl-landing [hidden] {
+    display: none !important;
+  }
+
+  .fl-landing {
+    /* The rail crosshairs hang past the frame edge; never let them widen the page. */
+    overflow-x: clip;
+    --frame: 75rem;
+    --gutter: clamp(1rem, 4vw, 2.5rem);
+    color: var(--fl-body);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .fl-landing code {
+    font-family: var(--sl-font-mono);
+    font-size: 0.9em;
+  }
+
+  .fl-ember-text {
+    color: var(--fl-ember);
+  }
+
+  /* ---- Hero ---- */
+  .fl-hero {
+    position: relative;
+    text-align: center;
+    padding: clamp(3.5rem, 9vw, 7rem) var(--gutter) clamp(3rem, 6vw, 4.5rem);
+    isolation: isolate;
+  }
+
+  .fl-hero-grid {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image:
+      linear-gradient(var(--fl-rule) 1px, transparent 1px),
+      linear-gradient(90deg, var(--fl-rule) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-position: center top;
+    mask-image: radial-gradient(ellipse 60% 70% at 50% 35%, #000 10%, transparent 75%);
+    opacity: 0.55;
+  }
+
+  .fl-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.3125rem 0.875rem 0.3125rem 0.3125rem;
+    border: 1px solid var(--fl-rule);
+    border-radius: 999px;
+    background: var(--fl-paper);
+    color: var(--fl-body);
+    font-size: 0.8125rem;
+    text-decoration: none;
+    transition: border-color 0.15s ease;
+  }
+
+  .fl-pill {
+    max-width: 100%;
+    text-align: left;
+  }
+
+  .fl-pill-text {
+    min-width: 0;
+  }
+
+  .fl-pill-text code {
+    white-space: nowrap;
+  }
+
+  .fl-pill:hover {
+    border-color: var(--fl-ember);
+  }
+
+  .fl-pill-tag {
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    background: var(--fl-ember-soft);
+    color: var(--fl-ember-strong);
+    font-weight: 600;
+    font-size: 0.75rem;
+  }
+
+  .fl-hero-title {
+    margin: 1.75rem auto 0;
+    max-width: 16ch;
+    font-size: clamp(2.375rem, 1.2rem + 5vw, 4.75rem);
+    font-weight: 650;
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+    color: var(--fl-ink);
+    text-wrap: balance;
+  }
+
+  .fl-line {
+    display: block;
+    text-wrap: balance;
+  }
+
+  .fl-hero-lead {
+    margin: 1.5rem auto 0;
+    max-width: 38rem;
+    font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.1875rem);
+    line-height: 1.6;
+    color: var(--fl-muted);
+    text-wrap: pretty;
+  }
+
+  .fl-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 2rem;
+  }
+
+  .fl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2.75rem;
+    padding: 0 1.25rem;
+    border-radius: 0.625rem;
+    font-size: 0.9375rem;
+    font-weight: 560;
+    text-decoration: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .fl-btn svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .fl-btn-primary {
+    background: var(--fl-ember-strong);
+    color: var(--fl-on-ember);
+  }
+
+  .fl-btn-primary:hover {
+    background: color-mix(in srgb, var(--fl-ember-strong) 88%, #000);
+  }
+
+  .fl-btn-quiet {
+    border: 1px solid var(--fl-rule-strong);
+    background: var(--fl-paper);
+    color: var(--fl-ink);
+  }
+
+  .fl-btn-quiet:hover {
+    border-color: var(--fl-muted);
+  }
+
+  /* Install command */
+  .fl-install {
+    margin: 2.75rem auto 0;
+    max-width: 40rem;
+    border: 1px solid var(--fl-rule);
+    border-radius: 0.875rem;
+    background: var(--fl-paper);
+    text-align: left;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 12px 32px -12px rgba(0, 0, 0, 0.08);
+  }
+
+  .fl-install-tabs,
+  .fl-gens-tabs {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.375rem;
+    border-bottom: 1px solid var(--fl-rule);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .fl-install-tabs button,
+  .fl-gens-tabs button {
+    flex: none;
+    border: 0;
+    background: transparent;
+    color: var(--fl-muted);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+  }
+
+  .fl-install-tabs button:hover,
+  .fl-gens-tabs button:hover {
+    color: var(--fl-ink);
+  }
+
+  .fl-install-tabs button[aria-selected="true"],
+  .fl-gens-tabs button[aria-selected="true"] {
+    background: var(--fl-raised);
+    color: var(--fl-ink);
+  }
+
+  .fl-install-line {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 0.625rem 0.875rem 1.125rem;
+  }
+
+  .fl-install-line code {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    color: var(--fl-ink);
+    font-size: 0.875rem;
+  }
+
+  .fl-prompt {
+    font-family: var(--sl-font-mono);
+    color: var(--fl-ember);
+    user-select: none;
+  }
+
+  .fl-copy {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border: 1px solid var(--fl-rule);
+    background: var(--fl-surface);
+    color: var(--fl-muted);
+    font: inherit;
+    font-size: 0.75rem;
+    padding: 0.3125rem 0.625rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+  }
+
+  .fl-copy:hover {
+    color: var(--fl-ink);
+    border-color: var(--fl-rule-strong);
+  }
+
+  .fl-copy svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+
+  /* ---- Frame: side rails with ember crosshairs where sections meet them ---- */
+  .fl-frame {
+    max-width: var(--frame);
+    margin: 0 auto;
+    border-inline: 1px solid var(--fl-rule);
+  }
+
+  .fl-rail {
+    position: relative;
+    border-top: 1px solid var(--fl-rule);
+  }
+
+  .fl-rail::before,
+  .fl-rail::after {
+    content: "+";
+    position: absolute;
+    top: -0.8rem;
+    font-family: var(--sl-font-mono);
+    font-size: 1rem;
+    line-height: 1.5rem;
+    color: var(--fl-ember);
+    pointer-events: none;
+  }
+
+  .fl-rail::before {
+    left: -0.4rem;
+  }
+
+  .fl-rail::after {
+    right: -0.4rem;
+  }
+
+  /* ---- Demo panel ---- */
+  .fl-demo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.15fr);
+    align-items: stretch;
+    gap: 0;
+    background: var(--fl-paper);
+  }
+
+  .fl-demo-pane {
+    min-width: 0;
+    padding: 1.5rem clamp(1rem, 2.5vw, 2rem) 1.75rem;
+  }
+
+  .fl-pane-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--sl-font-mono);
+    font-size: 0.78125rem;
+    color: var(--fl-ink);
+    padding-bottom: 0.875rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px dashed var(--fl-rule-strong);
+  }
+
+  .fl-pane-note {
+    margin-left: auto;
+    font-family: var(--sl-font);
+    color: var(--fl-muted);
+    font-size: 0.75rem;
+  }
+
+  .fl-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--fl-rule-strong);
+  }
+
+  .fl-dot-ember {
+    background: var(--fl-ember);
+  }
+
+  .fl-code {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    font-family: var(--sl-font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.75;
+    color: var(--fl-ink);
+    overflow-x: auto;
+  }
+
+  .fl-code .k {
+    color: #8250df;
+  }
+  .fl-code .s {
+    color: var(--fl-ember-strong);
+  }
+  .fl-code .f {
+    color: #0550ae;
+  }
+  .fl-code .n {
+    color: #0550ae;
+  }
+  :global(:root:not([data-theme="light"])) .fl-code .k {
+    color: #d2a8ff;
+  }
+  :global(:root:not([data-theme="light"])) .fl-code .f,
+  :global(:root:not([data-theme="light"])) .fl-code .n {
+    color: #79c0ff;
+  }
+
+  .fl-demo-arrow {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    border-inline: 1px dashed var(--fl-rule);
+    background: var(--fl-surface);
+  }
+
+  .fl-demo-arrow svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: none;
+    stroke: var(--fl-ember);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .fl-gen {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--sl-font-mono);
+    font-size: 0.8125rem;
+  }
+
+  .fl-gen li {
+    display: grid;
+    grid-template-columns: 1rem minmax(0, 1fr) auto;
+    gap: 0.5rem;
+    align-items: baseline;
+    padding: 0.3125rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--fl-rule) 60%, transparent);
+    animation: fl-write 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: calc(var(--i) * 90ms + 250ms);
+  }
+
+  .fl-plus {
+    color: var(--fl-ember);
+    font-weight: 600;
+  }
+
+  .fl-path {
+    color: var(--fl-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .fl-what {
+    font-family: var(--sl-font);
+    font-size: 0.75rem;
+    color: var(--fl-muted);
+  }
+
+  .fl-demo-foot {
+    margin: 1rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--fl-muted);
+    max-width: 44ch;
+  }
+
+  @keyframes fl-write {
+    from {
+      opacity: 0;
+      transform: translateX(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fl-gen li {
+      animation: none;
+    }
+  }
+
+  /* ---- Stack strip ---- */
+  .fl-stack {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.25rem clamp(1rem, 2.5vw, 2rem);
+    background: var(--fl-page);
+  }
+
+  .fl-stack-label {
+    flex: none;
+    font-size: 0.8125rem;
+    color: var(--fl-muted);
+  }
+
+  .fl-stack ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .fl-stack li {
+    font-size: 0.9375rem;
+    font-weight: 560;
+    letter-spacing: -0.015em;
+    color: var(--fl-ink);
+    padding-inline: 1rem;
+    border-inline-start: 1px solid var(--fl-rule);
+  }
+
+  /* ---- Sections ---- */
+  .fl-section {
+    padding: clamp(3.5rem, 7vw, 5.5rem) clamp(1rem, 4vw, 3rem);
+  }
+
+  .fl-step {
+    margin: 0 0 1.75rem;
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--fl-muted);
+  }
+
+  .fl-step span {
+    color: var(--fl-ember);
+    margin-right: 0.5rem;
+  }
+
+  .fl-section-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 1.5rem 3rem;
+    align-items: end;
+    margin-bottom: 2.75rem;
+  }
+
+  .fl-section-head h2,
+  .fl-close h2 {
+    margin: 0;
+    font-size: clamp(1.875rem, 1.2rem + 2.6vw, 3rem);
+    font-weight: 650;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    color: var(--fl-ink);
+    text-wrap: balance;
+  }
+
+  .fl-section-head p {
+    margin: 0;
+    max-width: 34rem;
+    color: var(--fl-muted);
+    font-size: 1.0625rem;
+  }
+
+  .fl-section-head code,
+  .fl-stat-label code {
+    color: var(--fl-ink);
+  }
+
+  /* Batteries: one ruled grid, not floating cards */
+  .fl-batteries {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--fl-rule);
+    border-left: 1px solid var(--fl-rule);
+  }
+
+  .fl-batteries li {
+    border-right: 1px solid var(--fl-rule);
+    border-bottom: 1px solid var(--fl-rule);
+  }
+
+  .fl-batteries a {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    height: 100%;
+    padding: 1.5rem 1.375rem 1.625rem;
+    text-decoration: none;
+    background: var(--fl-paper);
+    transition: background-color 0.15s ease;
+  }
+
+  .fl-batteries a:hover {
+    background: var(--fl-surface);
+  }
+
+  .fl-batteries a:hover .fl-battery-name {
+    color: var(--fl-ember-strong);
+  }
+
+  .fl-icon svg {
+    width: 1.375rem;
+    height: 1.375rem;
+    fill: none;
+    stroke: var(--fl-ember);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    margin-bottom: 0.625rem;
+  }
+
+  .fl-battery-name {
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--fl-ink);
+    transition: color 0.15s ease;
+  }
+
+  .fl-battery-body {
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--fl-muted);
+  }
+
+  /* Generators */
+  .fl-gens {
+    border: 1px solid var(--fl-rule);
+    border-radius: 0.875rem;
+    background: var(--fl-paper);
+    overflow: hidden;
+  }
+
+  .fl-gens-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr);
+  }
+
+  .fl-gens-copy {
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1.25rem;
+  }
+
+  .fl-gens-copy p {
+    margin: 0;
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    color: var(--fl-ink);
+    max-width: 30ch;
+  }
+
+  .fl-link {
+    font-size: 0.875rem;
+    font-weight: 560;
+    color: var(--fl-ember-strong);
+    text-decoration: none;
+  }
+
+  .fl-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .fl-terminal {
+    min-width: 0;
+    background: var(--fl-surface);
+    border-left: 1px solid var(--fl-rule);
+    font-family: var(--sl-font-mono);
+    font-size: 0.8125rem;
+  }
+
+  .fl-terminal-cmd {
+    display: flex;
+    gap: 0.625rem;
+    padding: 1.125rem 1.375rem;
+    border-bottom: 1px dashed var(--fl-rule-strong);
+  }
+
+  .fl-terminal-cmd code {
+    color: var(--fl-ink);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .fl-terminal-out {
+    margin: 0;
+    padding: 1rem 1.375rem 1.25rem;
+    list-style: none;
+    line-height: 1.9;
+    color: var(--fl-body);
+  }
+
+  .fl-created {
+    color: var(--fl-ember);
+    display: inline-block;
+    width: 4.5rem;
+  }
+
+  .fl-step-mark {
+    color: var(--fl-ember);
+    font-weight: 600;
+    margin-right: 0.5rem;
+  }
+
+  .fl-dim {
+    color: var(--fl-muted);
+  }
+
+  .fl-ok {
+    color: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="light"])) .fl-ok {
+    color: #3fb950;
+  }
+
+  /* Ship */
+  .fl-ship {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+
+  .fl-terminal-tall {
+    border: 1px solid var(--fl-rule);
+    border-radius: 0.875rem;
+  }
+
+  .fl-ship-side {
+    display: grid;
+    gap: 1.5rem;
+    align-content: start;
+  }
+
+  .fl-stat {
+    display: grid;
+    gap: 0.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--fl-rule);
+  }
+
+  .fl-stat-number {
+    font-size: clamp(3.5rem, 2.5rem + 3vw, 5rem);
+    font-weight: 650;
+    letter-spacing: -0.05em;
+    line-height: 1;
+    color: var(--fl-ink);
+  }
+
+  .fl-stat-number span {
+    color: var(--fl-ember);
+    font-size: 0.5em;
+    letter-spacing: -0.02em;
+    margin-left: 0.1em;
+  }
+
+  .fl-stat-label {
+    font-size: 0.9375rem;
+    color: var(--fl-muted);
+    max-width: 34ch;
+  }
+
+  .fl-share {
+    display: grid;
+    gap: 0.5rem;
+    justify-items: start;
+  }
+
+  .fl-share p {
+    margin: 0;
+    color: var(--fl-muted);
+    font-size: 0.9375rem;
+  }
+
+  .fl-share .fl-share-title {
+    color: var(--fl-ink);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  .fl-share-cmd {
+    margin: 0.25rem 0;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--fl-rule);
+    border-radius: 0.5rem;
+    background: var(--fl-paper);
+    color: var(--fl-ink);
+  }
+
+  /* Close + footer */
+  .fl-close {
+    text-align: center;
+    padding: clamp(4rem, 8vw, 6rem) var(--gutter);
+    background: var(--fl-paper);
+  }
+
+  .fl-close h2 {
+    margin-inline: auto;
+    max-width: 18ch;
+  }
+
+  .fl-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+    padding: 1.5rem clamp(1rem, 2.5vw, 2rem);
+    font-size: 0.8125rem;
+    color: var(--fl-muted);
+  }
+
+  .fl-footer-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--fl-ink);
+  }
+
+  .fl-footer nav {
+    display: flex;
+    gap: 1.25rem;
+    margin-left: auto;
+  }
+
+  .fl-footer a {
+    color: var(--fl-muted);
+    text-decoration: none;
+  }
+
+  .fl-footer a:hover {
+    color: var(--fl-ink);
+  }
+
+  /* ---- Narrow screens ---- */
+  @media (max-width: 64rem) {
+    .fl-batteries {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 50rem) {
+    .fl-demo {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .fl-demo-arrow {
+      width: auto;
+      height: 2.5rem;
+      border-inline: 0;
+      border-block: 1px dashed var(--fl-rule);
+    }
+    .fl-demo-arrow svg {
+      transform: rotate(90deg);
+    }
+    .fl-section-head,
+    .fl-gens-panel,
+    .fl-ship {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .fl-terminal {
+      border-left: 0;
+      border-top: 1px solid var(--fl-rule);
+    }
+    .fl-terminal-tall {
+      border: 1px solid var(--fl-rule);
+    }
+    .fl-stack {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+    .fl-stack li:first-child {
+      border-inline-start: 0;
+      padding-inline-start: 0;
+    }
+    .fl-footer nav {
+      margin-left: 0;
+    }
+  }
+
+  @media (max-width: 34rem) {
+    .fl-batteries {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .fl-what {
+      display: none;
+    }
+  }
+</style>
