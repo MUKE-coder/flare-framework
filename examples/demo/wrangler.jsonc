@@ -3,12 +3,26 @@
   "name": "demo",
   "compatibility_date": "2026-09-17",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "vinext/server/fetch-handler",
+  "main": "./worker/index.ts",
   "assets": {
     "directory": "dist/client",
     "not_found_handling": "none",
     "binding": "ASSETS"
   },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "FLARE_REALTIME",
+        "class_name": "RealtimeChannel"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["RealtimeChannel"]
+    }
+  ],
   "d1_databases": [
     {
       // No database_id: wrangler creates the database on first deploy and

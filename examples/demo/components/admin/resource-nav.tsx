@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboardIcon } from "lucide-react";
+import { LayoutDashboardIcon, RadioIcon } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -69,6 +69,22 @@ export function ResourceNav({ appName, resources }: { appName: string; resources
                   </SidebarMenuItem>
                 );
               })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Platform</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/admin/realtime"} tooltip="Realtime">
+                  <Link href="/admin/realtime">
+                    <RadioIcon />
+                    <span>Realtime</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
