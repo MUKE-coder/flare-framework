@@ -87,7 +87,7 @@ export const billingHeader = () =>
 const STRIPE_API_VERSION = "2026-08-26.dahlia";
 
 /** `lib/stripe.ts`: the Stripe client, customer linking, and the webhook's database sync. */
-export const renderLibStripe = (): string => `import Stripe from "stripe";
+export const renderLibStripe = (appName: string): string => `import Stripe from "stripe";
 import { env } from "cloudflare:workers";
 import { and, eq, isNull } from "drizzle-orm";
 import { checkoutPaid, shouldApplySubscription, subscriptionState } from "@flare/core";
@@ -95,6 +95,9 @@ import { getDb } from "@/db";
 import { customers, plans, purchases } from "@/db/schema";
 
 export type CustomerRow = typeof customers.$inferSelect;
+
+/** This app's tag in Stripe metadata (flare_app), so several apps can share one Stripe account. */
+const FLARE_APP = ${JSON.stringify(appName)};
 
 export function stripeSecrets(): { STRIPE_SECRET_KEY?: string; STRIPE_WEBHOOK_SECRET?: string; BETTER_AUTH_URL?: string } {
   return env as { STRIPE_SECRET_KEY?: string; STRIPE_WEBHOOK_SECRET?: string; BETTER_AUTH_URL?: string };
@@ -158,14 +161,14 @@ export async function getOrCreateCustomer(user: { id: string; email: string; nam
 let portalConfiguration: string | undefined;
 
 /**
- * The portal configuration \`flare billing:sync-plans\` maintains (tagged flare=billing),
+ * The portal configuration \`flare billing:sync-plans\` maintains for this app (metadata flare_app),
  * which allows switching between the synced plans. Undefined falls back to the
  * account's default portal settings.
  */
 export async function billingPortalConfiguration(stripe: Stripe): Promise<string | undefined> {
   if (portalConfiguration) return portalConfiguration;
   for await (const configuration of stripe.billingPortal.configurations.list({ active: true, limit: 100 })) {
-    if (configuration.metadata?.flare === "billing") return (portalConfiguration = configuration.id);
+    if (configuration.metadata?.flare_app === FLARE_APP) return (portalConfiguration = configuration.id);
   }
   return undefined;
 }
@@ -721,6 +724,7 @@ export const billingDevVarsExampleEntries = (): string =>
     "# Subscriptions, Products and Prices. Test in a Stripe sandbox, never with live keys.",
     "# Production: wrangler secret put STRIPE_SECRET_KEY",
     "STRIPE_SECRET_KEY=",
+    "# billing:sync-plans imports Products whose metadata has flare_app=<this app's name>.",
     "# The signing secret of the webhook endpoint pointing at <app URL>/api/webhooks/stripe.",
     "# Locally: stripe listen --forward-to localhost:8787/api/webhooks/stripe prints one.",
     "STRIPE_WEBHOOK_SECRET=",

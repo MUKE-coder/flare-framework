@@ -45,9 +45,9 @@ export interface GenBillingOptions {
 const STRIPE_DEP = "22.6.0";
 
 /** Files `flare gen billing` owns. Each is marker-tracked, like every generator output. */
-export function billingFiles(): { path: string; content: string }[] {
+export function billingFiles(appName: string): { path: string; content: string }[] {
   return [
-    { path: "lib/stripe.ts", content: renderLibStripe() },
+    { path: "lib/stripe.ts", content: renderLibStripe(appName) },
     { path: "lib/billing.ts", content: renderLibBilling() },
     { path: "app/api/billing/checkout/route.ts", content: renderCheckoutRoute() },
     { path: "app/api/billing/portal/route.ts", content: renderPortalRoute() },
@@ -135,7 +135,8 @@ export async function genBilling(options: GenBillingOptions = {}): Promise<{ fil
   }
 
   const files: FileResult[] = [];
-  for (const { path, content } of billingFiles()) {
+  const appName = (JSON.parse(readFileSync(join(appRoot, "package.json"), "utf8")) as { name?: string }).name ?? "app";
+  for (const { path, content } of billingFiles(appName)) {
     const outcome = writeGenerated(join(appRoot, path), content, { header: billingHeader(), force: options.force });
     files.push({ path, status: "missing", outcome });
     const label = outcome === "create" ? pc.green("create") : outcome === "update" ? pc.yellow("update") : pc.dim("identical");
@@ -186,7 +187,7 @@ export async function genBilling(options: GenBillingOptions = {}): Promise<{ fil
       `Next:`,
       `  1. Put a Stripe test key in .dev.vars (STRIPE_SECRET_KEY, ideally a restricted rk_test_ key).`,
       `  2. ${pc.bold("flare migrate")} to create the billing tables.`,
-      `  3. Create one Product per plan in Stripe, then ${pc.bold("flare billing:sync-plans")}.`,
+      `  3. Create one Product per plan in Stripe with metadata flare_app=${appName}, then ${pc.bold("flare billing:sync-plans")}.`,
       `  4. ${pc.bold("stripe listen --forward-to localhost:8787/api/webhooks/stripe")} and put its signing secret in STRIPE_WEBHOOK_SECRET.`,
       `  5. ${pc.bold("flare start")} and open ${pc.bold("/dashboard/billing")}.`,
     ].join("\n"),

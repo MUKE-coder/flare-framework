@@ -120,14 +120,17 @@ describe("billing:sync-plans", () => {
     expect(skipped).toEqual(["Pro (p4)"]);
   });
 
-  it("upserts by price, escapes text, and deactivates prices no longer in Stripe", () => {
+  it("upserts by price, escapes text, and retires prices no longer in Stripe", () => {
     const sql = renderSyncSql(
       [{ name: "Owner's plan", slug: "owners", description: null, stripeProductId: "prod_1", stripePriceId: "price_1", amount: 1200, currency: "usd", interval: "month", sort: 0 }],
       () => "id-1",
     );
     expect(sql).toContain(`'Owner''s plan'`);
     expect(sql).toContain("ON CONFLICT(stripe_price_id) DO UPDATE");
-    expect(sql).toContain("UPDATE plans SET active = 0 WHERE stripe_price_id IS NOT NULL AND stripe_price_id NOT IN ('price_1');");
-    expect(renderSyncSql([])).toContain("UPDATE plans SET active = 0 WHERE stripe_price_id IS NOT NULL;");
+    // Retire first: deactivate gone prices and free their slugs for a changed price.
+    expect(sql.indexOf("UPDATE plans SET active = 0")).toBeLessThan(sql.indexOf("INSERT INTO plans"));
+    expect(sql).toContain("slug = CASE WHEN slug IN ('owners') THEN slug || '-' ||");
+    expect(sql).toContain("WHERE stripe_price_id IS NOT NULL AND stripe_price_id NOT IN ('price_1');");
+    expect(renderSyncSql([])).toBe("UPDATE plans SET active = 0 WHERE stripe_price_id IS NOT NULL;\n");
   });
 });

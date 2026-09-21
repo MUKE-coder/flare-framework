@@ -140,10 +140,11 @@ export function createCli() {
     .command("billing:sync-plans", "Pull Stripe Products/Prices into the Plan table and enable plan changes in the portal (local database unless --remote)")
     .option("--remote", "Write to the deployed database")
     .option("--env <name>", "Wrangler environment")
+    .option("--all", "Import every active Product, not only those tagged flare_app=<app name>")
     .example("flare billing:sync-plans")
     .example("flare billing:sync-plans --remote")
-    .action(async (options: { remote?: boolean; env?: string }) => {
-      await syncPlans({ remote: options.remote, env: options.env });
+    .action(async (options: { remote?: boolean; env?: string; all?: boolean }) => {
+      await syncPlans({ remote: options.remote, env: options.env, all: options.all });
     });
 
   cli

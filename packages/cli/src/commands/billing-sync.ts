@@ -12,6 +12,8 @@ export interface SyncPlansOptions {
   cwd?: string;
   /** Write to the deployed database instead of the local one. */
   remote?: boolean;
+  /** Import every active Product, not only those tagged flare_app=<app name>. */
+  all?: boolean;
   env?: string;
   log?: (message: string) => void;
 }
@@ -20,7 +22,7 @@ export interface StripeProduct {
   id: string;
   name: string;
   description?: string | null;
-  metadata?: { slug?: string; sort?: string } | null;
+  metadata?: { slug?: string; sort?: string; flare_app?: string } | null;
 }
 
 export interface StripePrice {
@@ -109,7 +111,16 @@ const sql = (value: string | number | null) =>
  * longer active in Stripe so nobody can buy an archived price.
  */
 export function renderSyncSql(rows: PlanRow[], newId: () => string = () => crypto.randomUUID()): string {
-  const statements = rows.map(
+  const live = rows.map((row) => sql(row.stripePriceId)).join(", ");
+  const slugs = rows.map((row) => sql(row.slug)).join(", ");
+  // First retire rows whose price is gone. A plan whose price changed in Stripe gets
+  // a new price id under the same slug, so the old row also gives up its slug (it
+  // stays, deactivated, so existing subscribers on the old price still map to it).
+  const retire =
+    `UPDATE plans SET active = 0` +
+    (slugs ? `, slug = CASE WHEN slug IN (${slugs}) THEN slug || '-' || substr(coalesce(stripe_price_id, id), -8) ELSE slug END` : "") +
+    ` WHERE stripe_price_id IS NOT NULL${live ? ` AND stripe_price_id NOT IN (${live})` : ""};`;
+  const upserts = rows.map(
     (row) =>
       `INSERT INTO plans (id, name, slug, description, stripe_product_id, stripe_price_id, amount, currency, \`interval\`, active, sort) ` +
       `VALUES (${[newId(), row.name, row.slug, row.description, row.stripeProductId, row.stripePriceId, row.amount, row.currency, row.interval].map(sql).join(", ")}, 1, ${sql(row.sort)}) ` +
@@ -117,9 +128,7 @@ export function renderSyncSql(rows: PlanRow[], newId: () => string = () => crypt
       `stripe_product_id = excluded.stripe_product_id, amount = excluded.amount, currency = excluded.currency, ` +
       `\`interval\` = excluded.\`interval\`, active = 1, sort = excluded.sort;`,
   );
-  const live = rows.map((row) => sql(row.stripePriceId)).join(", ");
-  statements.push(`UPDATE plans SET active = 0 WHERE stripe_price_id IS NOT NULL${live ? ` AND stripe_price_id NOT IN (${live})` : ""};`);
-  return statements.join("\n") + "\n";
+  return [retire, ...upserts].join("\n") + "\n";
 }
 
 interface StripeList<T> {
@@ -140,9 +149,9 @@ interface StripeClient {
 /**
  * The portal settings plan changes rely on: switch between the synced subscription
  * plans (prorated), cancel at period end, update payment methods, see invoices.
- * Kept in a configuration tagged `flare=billing`, which the portal route uses.
+ * Kept in a configuration tagged with this app (metadata flare_app), which its portal route uses.
  */
-async function syncPortalConfiguration(stripe: StripeClient, rows: PlanRow[]): Promise<string | null> {
+async function syncPortalConfiguration(stripe: StripeClient, rows: PlanRow[], appName: string): Promise<string | null> {
   const byProduct = new Map<string, string[]>();
   for (const row of rows) if (row.interval) byProduct.set(row.stripeProductId, [...(byProduct.get(row.stripeProductId) ?? []), row.stripePriceId]);
   if (byProduct.size === 0) return null;
@@ -159,10 +168,10 @@ async function syncPortalConfiguration(stripe: StripeClient, rows: PlanRow[]): P
       payment_method_update: { enabled: true },
       invoice_history: { enabled: true },
     },
-    metadata: { flare: "billing" },
+    metadata: { flare_app: appName },
   };
   const existing = (await stripe.billingPortal.configurations.list({ active: true, limit: 100 }).autoPagingToArray({ limit: 1000 })).find(
-    (configuration) => configuration.metadata?.flare === "billing",
+    (configuration) => configuration.metadata?.flare_app === appName,
   );
   return existing ? (await stripe.billingPortal.configurations.update(existing.id, settings)).id : (await stripe.billingPortal.configurations.create(settings)).id;
 }
@@ -187,7 +196,16 @@ export async function syncPlans(options: SyncPlansOptions = {}): Promise<{ creat
   const stripeModule = (await import(pathToFileURL(appRequire.resolve("stripe")).href)) as { default: new (key: string, options: object) => StripeClient };
   const stripe = new stripeModule.default(key, { apiVersion: "2026-08-26.dahlia" });
 
-  const products = await stripe.products.list({ active: true, limit: 100 }).autoPagingToArray({ limit: 10_000 });
+  // Several apps often share one Stripe account: only this app's Products, unless --all.
+  const appName = (JSON.parse(readFileSync(join(appRoot, "package.json"), "utf8")) as { name?: string }).name ?? "app";
+  const everything = await stripe.products.list({ active: true, limit: 100 }).autoPagingToArray({ limit: 10_000 });
+  const products = options.all ? everything : everything.filter((product) => product.metadata?.flare_app === appName);
+  if (products.length === 0) {
+    throw new Error(
+      `No active Products in Stripe have metadata flare_app=${appName} (${everything.length} other active Products were ignored). ` +
+        `Tag this app's Products, or pass --all to import every Product.`,
+    );
+  }
   const catalog = await Promise.all(
     products.map(async (product) => ({ product, prices: await stripe.prices.list({ product: product.id, active: true, limit: 100 }).autoPagingToArray({ limit: 10_000 }) })),
   );
@@ -221,7 +239,7 @@ export async function syncPlans(options: SyncPlansOptions = {}): Promise<{ creat
   }
   for (const name of skipped) log(pc.yellow(`skipped  ${name}: only monthly, yearly and one-time prices become plans`));
 
-  const configuration = await syncPortalConfiguration(stripe, rows);
+  const configuration = await syncPortalConfiguration(stripe, rows, appName);
   if (configuration) log(`${pc.dim("portal".padEnd(9))} plan changes enabled for ${new Set(rows.filter((row) => row.interval).map((row) => row.stripeProductId)).size} product(s) (${configuration})`);
 
   log(pc.green(`\n${rows.length} plan(s) synced to the ${options.remote ? "remote" : "local"} database; plans no longer active in Stripe were deactivated.`));
