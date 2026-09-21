@@ -30,6 +30,14 @@
     "./realtime/server": {
       "types": "./dist/realtime/server.d.ts",
       "import": "./dist/realtime/server.js"
+    },
+    "./security": {
+      "types": "./dist/security/index.d.ts",
+      "import": "./dist/security/index.js"
+    },
+    "./security/server": {
+      "types": "./dist/security/worker.d.ts",
+      "import": "./dist/security/worker.js"
     }
   },
   "files": [

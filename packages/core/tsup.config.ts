@@ -8,6 +8,8 @@ export default defineConfig({
     "src/react.ts",
     "src/realtime/client.ts",
     "src/realtime/server.ts",
+    "src/security/index.ts",
+    "src/security/worker.ts",
   ],
   format: ["esm"],
   dts: true,
