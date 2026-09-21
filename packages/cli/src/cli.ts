@@ -1,6 +1,7 @@
 import { cac } from "cac";
 import { FLARE_VERSION } from "@flare/core";
 import { createApp, printNextSteps } from "./commands/create.js";
+import { genBilling } from "./commands/gen-billing.js";
 import { genResource } from "./commands/gen.js";
 import { genMigration } from "./commands/gen-migration.js";
 import { genPolicy } from "./commands/gen-policy.js";
@@ -8,6 +9,7 @@ import { migrate, rollback } from "./commands/migrate.js";
 import { rmResource } from "./commands/rm.js";
 import { addRole } from "./commands/role.js";
 import { makeSeed, runSeeds } from "./commands/seed.js";
+import { syncPlans } from "./commands/billing-sync.js";
 import { syncTypes } from "./commands/sync.js";
 import { setUserRole } from "./commands/user-role.js";
 import { DELEGATED_COMMANDS } from "./commands/run.js";
@@ -28,22 +30,48 @@ export function createCli() {
     });
 
   cli
-    .command("gen <generator> <name>", "Generate code. Generators: resource, migration, policy")
+    .command("gen <generator> [name]", "Generate code. Generators: resource, migration, policy, billing")
     .option("--fields <fields>", 'resource: fields, e.g. "name:string, email:string!, status:enum(lead,customer)"')
-    .option("--force", "resource: overwrite hand-edited generated blocks")
+    .option("--force", "resource/policy/billing: overwrite hand-edited generated blocks")
     .option("--from-schema", "migration: diff the current tables instead of a blank migration")
     .option("--roles <roles>", "policy: roles allowed to read, create and update, e.g. admin,staff")
     .option("--delete-roles <roles>", "policy: roles allowed to delete (default: the first --roles entry)")
+    .option("--provider <provider>", "billing: payment provider (default: stripe)")
+    .option("--mode <mode>", "billing: subscriptions (the default; includes one-time checkout)")
+    .option("--skip-install", "billing: write files without installing the stripe dependency")
+    .option("--skip-migration", "billing: skip generating the schema migration")
     .example('flare gen resource Contact --fields "name:string, email:string!, company:belongsTo(Company)?"')
     .example("flare gen migration backfill_contact_status")
     .example("flare gen migration add_phone_to_contacts --from-schema")
     .example("flare gen policy Invoice --roles admin,staff --delete-roles admin")
-    .action(async (generator: string, name: string, options: { fields?: string; force?: boolean; fromSchema?: boolean; roles?: string; deleteRoles?: string }) => {
-      if (generator === "resource") return genResource(name, { fields: options.fields, force: options.force });
-      if (generator === "migration") return genMigration(name, { fromSchema: options.fromSchema });
-      if (generator === "policy") return genPolicy(name, { roles: options.roles, deleteRoles: options.deleteRoles, force: options.force });
-      throw new Error(`Unknown generator "${generator}". Available: resource, migration, policy.`);
-    });
+    .example("flare gen billing --provider stripe --mode subscriptions")
+    .action(
+      async (
+        generator: string,
+        name: string | undefined,
+        options: {
+          fields?: string;
+          force?: boolean;
+          fromSchema?: boolean;
+          roles?: string;
+          deleteRoles?: string;
+          provider?: string;
+          mode?: string;
+          skipInstall?: boolean;
+          skipMigration?: boolean;
+        },
+      ) => {
+        if (generator === "billing")
+          return genBilling({ provider: options.provider, mode: options.mode, force: options.force, skipInstall: options.skipInstall, skipMigration: options.skipMigration });
+        if (["resource", "migration", "policy"].includes(generator) && !name) {
+          throw new Error(`flare gen ${generator} needs a name, e.g. flare gen ${generator} ${generator === "migration" ? "add_phone_to_contacts" : "Contact"}`);
+        }
+        if (generator === "resource") return genResource(name!, { fields: options.fields, force: options.force });
+        if (generator === "migration") return genMigration(name!, { fromSchema: options.fromSchema });
+        if (generator === "policy") return genPolicy(name!, { roles: options.roles, deleteRoles: options.deleteRoles, force: options.force });
+        throw new Error(`Unknown generator "${generator}". Available: resource, migration, policy, billing.`);
+      },
+    );
 
   cli
     .command("rm <kind> <name>", "Remove generated code. Kinds: resource")
@@ -106,6 +134,16 @@ export function createCli() {
     .option("--resource <name>", "Resource to write example rows for")
     .action(async (name: string, options: { resource?: string }) => {
       await makeSeed(name, options);
+    });
+
+  cli
+    .command("billing:sync-plans", "Pull Stripe Products/Prices into the Plan table and enable plan changes in the portal (local database unless --remote)")
+    .option("--remote", "Write to the deployed database")
+    .option("--env <name>", "Wrangler environment")
+    .example("flare billing:sync-plans")
+    .example("flare billing:sync-plans --remote")
+    .action(async (options: { remote?: boolean; env?: string }) => {
+      await syncPlans({ remote: options.remote, env: options.env });
     });
 
   cli

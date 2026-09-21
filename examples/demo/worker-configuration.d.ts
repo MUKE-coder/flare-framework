@@ -9,6 +9,8 @@ interface __BaseEnv_Env {
 	BETTER_AUTH_SECRET: string;
 	RESEND_API_KEY: string;
 	MAIL_FROM: string;
+	STRIPE_SECRET_KEY: string;
+	STRIPE_WEBHOOK_SECRET: string;
 	FLARE_REALTIME: DurableObjectNamespace<import("./worker/index").RealtimeChannel>;
 }
 declare namespace Cloudflare {
@@ -23,7 +25,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "BETTER_AUTH_SECRET" | "RESEND_API_KEY" | "MAIL_FROM">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "BETTER_AUTH_SECRET" | "RESEND_API_KEY" | "MAIL_FROM" | "STRIPE_SECRET_KEY" | "STRIPE_WEBHOOK_SECRET">> {}
 }
 
 // Begin runtime types

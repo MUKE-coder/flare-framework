@@ -11,3 +11,12 @@ BETTER_AUTH_SECRET=
 RESEND_API_KEY=
 # Sender on a domain verified in Resend, e.g. "Acme <hello@acme.com>"
 MAIL_FROM=
+
+# Stripe. Use a restricted key (rk_test_ / rk_live_) with write access to
+# Customers, Checkout Sessions and Customer portal, and read access to
+# Subscriptions, Products and Prices. Test in a Stripe sandbox, never with live keys.
+# Production: wrangler secret put STRIPE_SECRET_KEY
+STRIPE_SECRET_KEY=
+# The signing secret of the webhook endpoint pointing at <app URL>/api/webhooks/stripe.
+# Locally: stripe listen --forward-to localhost:8787/api/webhooks/stripe prints one.
+STRIPE_WEBHOOK_SECRET=

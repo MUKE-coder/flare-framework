@@ -164,11 +164,14 @@ are now refused there too.
 
 ## Phase M5 — Billing
 
-- [ ] `flare gen billing --provider stripe --mode subscriptions` scaffolds a `Plan` resource, `Subscription` fields on `Customer`, and the Stripe webhook route
+- [x] `flare gen billing --provider stripe --mode subscriptions` scaffolds a `Plan` resource, `Subscription` fields on `Customer`, and the Stripe webhook route
+  - Scaffolds Plan, Customer (merging the subscription fields into an existing Customer, keeping its own) and Purchase, with policies that keep billing records admin-only for writes, plus the routes, the billing page and a migration. Subscription rules live in `@flare/core` (`billing.ts`, unit-tested). Verified on the demo with `scripts/e2e-billing-offline.mjs` (16/16 on workerd): roleless users get 403 on customers, purchases and plan writes; the webhook refuses unsigned, forged, tampered and stale events and accepts a correctly signed one; the billing page renders plans and one-time products and shows Stripe errors inline.
 - [ ] `flare billing:sync-plans` pulls Stripe Products/Prices into the local `Plan` table
 - [ ] `<BillingPortalButton>` opens a Stripe-hosted billing portal session
 - [ ] Webhook handler verifies signatures and keeps `Customer.status` in sync on `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
 - [ ] One-time Checkout flow (for non-subscription purchases) ships as a separate, additive path alongside subscriptions
+
+> The remaining four tasks are implemented (portal plan changes, webhook sync by re-fetching from Stripe, one-time purchases, paginated plan sync with portal setup) but need a Stripe test account to verify against real Stripe objects.
 
 **Exit criteria:** a subscription can be purchased, upgraded, and cancelled
 entirely through generated UI, with `Customer.status` staying correct through
