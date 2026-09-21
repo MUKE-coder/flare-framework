@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "1.7.5",
-    "@flare/core": "workspace:*",
+    "@flaredev/core": "workspace:*",
     "@radix-ui/react-slot": "1.3.3",
     "@vinext/cloudflare": "1.0.0-beta.8",
     "better-auth": "1.7.5",
@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.54.10",
-    "@flare/cli": "workspace:*",
+    "@flaredev/cli": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.20.3",
     "@types/react": "^19.3.0",

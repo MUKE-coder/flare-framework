@@ -25,11 +25,11 @@ The demo ships a working live deal board at `/admin/realtime`.
 
 | Where | Import from |
 | --- | --- |
-| Worker / server code (`handleRealtimeUpgrade`, `realtimeHub`, `RealtimeChannel`, types) | `@flare/core/realtime/server` |
-| React hook (`useRealtime`) | `@flare/core/react` |
-| Plain JS client (`RealtimeClient`), no React | `@flare/core/realtime` |
+| Worker / server code (`handleRealtimeUpgrade`, `realtimeHub`, `RealtimeChannel`, types) | `@flaredev/core/realtime/server` |
+| React hook (`useRealtime`) | `@flaredev/core/react` |
+| Plain JS client (`RealtimeClient`), no React | `@flaredev/core/realtime` |
 
-Realtime is **not** exported from `@flare/core/server`.
+Realtime is **not** exported from `@flaredev/core/server`.
 
 ## Who may connect
 
@@ -103,7 +103,7 @@ returns the current members.
 ```tsx
 "use client";
 
-import { useRealtime } from "@flare/core/react";
+import { useRealtime } from "@flaredev/core/react";
 
 export function DealFeed({ email }: { email: string }) {
   const { status, members } = useRealtime("deals", {

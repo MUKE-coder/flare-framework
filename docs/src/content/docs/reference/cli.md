@@ -16,7 +16,7 @@ Scaffold a new app.
 | `--skip-install` | Write files without installing dependencies |
 
 ```bash
-npx @flare/cli create shop --auth-providers google,github
+npx @flaredev/cli create shop --auth-providers google,github
 ```
 
 ## `flare gen resource <Name>`

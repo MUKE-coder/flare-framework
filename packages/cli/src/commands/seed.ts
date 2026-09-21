@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { kebabCase, storedFields, type Resource, type StoredField } from "@flare/core";
+import { kebabCase, storedFields, type Resource, type StoredField } from "@flaredev/core";
 import { createJiti } from "jiti";
 import pc from "picocolors";
 import { loadResources } from "../generator/load.js";
@@ -109,7 +109,7 @@ function sampleValue(key: string, def: StoredField, row: number): string | undef
 /** Seed source for `flare seed:make`, with example rows for `resource` when there is one. */
 export function renderSeed(resource: Resource | undefined): string {
   if (!resource) {
-    return `import { defineSeed } from "@flare/core";
+    return `import { defineSeed } from "@flaredev/core";
 
 export default defineSeed(async ({ db, log }) => {
   // Insert rows with Drizzle, e.g.:
@@ -126,7 +126,7 @@ export default defineSeed(async ({ db, log }) => {
     if (value !== undefined) lines.push(`    ${key}: ${value},`);
     else if (def.required) todos.push(`    // ${key}: TODO (${def.kind === "belongsTo" ? `id of an existing ${def.target}` : "R2 object key"}),`);
   }
-  return `import { defineSeed } from "@flare/core";
+  return `import { defineSeed } from "@flaredev/core";
 import { ${table} } from "@/db/schema";
 
 export default defineSeed(async ({ db, log }) => {

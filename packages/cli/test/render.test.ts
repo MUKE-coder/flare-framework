@@ -1,4 +1,4 @@
-import { defineResource, field, type Resource } from "@flare/core";
+import { defineResource, field, type Resource } from "@flaredev/core";
 import { describe, expect, it } from "vitest";
 import type { LoadedResource } from "../src/generator/load.js";
 import {

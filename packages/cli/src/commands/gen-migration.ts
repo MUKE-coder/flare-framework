@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { snakeCase } from "@flare/core";
+import { snakeCase } from "@flaredev/core";
 import pc from "picocolors";
 import { generateSchemaMigration } from "../generator/migrations.js";
 import { findAppRoot } from "./run.js";

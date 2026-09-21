@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition, type FormEvent } from "react";
-import { createValidators, formValuesToInput, initialFormValues, issuesByField, storedFields, type Resource } from "@flare/core";
+import { createValidators, formValuesToInput, initialFormValues, issuesByField, storedFields, type Resource } from "@flaredev/core";
 import { toast } from "sonner";
 import { createRecordAction, updateRecordAction } from "@/app/admin/actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";

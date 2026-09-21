@@ -1,5 +1,5 @@
 import { cac } from "cac";
-import { FLARE_VERSION } from "@flare/core";
+import { FLARE_VERSION } from "@flaredev/core";
 import { createApp, printNextSteps } from "./commands/create.js";
 import { genBilling } from "./commands/gen-billing.js";
 import { genSecurity } from "./commands/gen-security.js";

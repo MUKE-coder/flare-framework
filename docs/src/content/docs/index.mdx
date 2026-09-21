@@ -19,7 +19,7 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 ## The five-minute loop
 
 ```bash
-npx @flare/cli create myapp
+npm create flare-framework@latest myapp
 cd myapp
 npx flare gen resource Contact --fields "name:string, email:string"
 npx flare deploy
@@ -29,8 +29,10 @@ That's a live, authenticated CRUD app on Cloudflare Workers with a working
 admin dashboard — no hand-wired D1 bindings, no auth library to pick, no
 admin UI to build by hand.
 
-Flare's packages aren't published to npm yet; until they are,
-[run the CLI from a checkout of the repo](/start/installation/#run-the-cli-from-this-repo-for-now).
+Prefer a global `flare` command? `npm i -g @flaredev/cli`, or
+`curl -fsSL https://flare-docs.codetotech.com/install.sh | bash` (macOS/Linux) and
+`irm https://flare-docs.codetotech.com/install.ps1 | iex` (Windows). See
+[Installation](/start/installation/).
 
 ## Why Flare
 

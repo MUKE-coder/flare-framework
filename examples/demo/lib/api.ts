@@ -1,5 +1,5 @@
-import { can, type Policy } from "@flare/core";
-import type { Authorize } from "@flare/core/server";
+import { can, type Policy } from "@flaredev/core";
+import type { Authorize } from "@flaredev/core/server";
 import { policies } from "@/policies";
 import { auth } from "./auth";
 

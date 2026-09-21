@@ -1,0 +1,40 @@
+{
+  "name": "create-flare-framework",
+  "version": "0.1.0",
+  "description": "Start a new Flare app: npm create flare-framework@latest my-app",
+  "license": "MIT",
+  "author": "Muke Johnbaptist",
+  "homepage": "https://flare-docs.codetotech.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MUKE-coder/flare-framework.git",
+    "directory": "packages/create-flare-framework"
+  },
+  "bugs": {
+    "url": "https://github.com/MUKE-coder/flare-framework/issues"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "vinext",
+    "flare",
+    "create"
+  ],
+  "type": "module",
+  "bin": {
+    "create-flare-framework": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "dependencies": {
+    "@flaredev/cli": "workspace:*"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -4,7 +4,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { genResource } from "../src/commands/gen.js";
 import { syncTypes } from "../src/commands/sync.js";
 
-// Inside the package so descriptors can resolve @flare/core.
+// Inside the package so descriptors can resolve @flaredev/core.
 const scratch = mkdtempSync(join(import.meta.dirname, ".tmp-sync-"));
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 

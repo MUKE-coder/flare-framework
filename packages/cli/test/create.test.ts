@@ -112,7 +112,7 @@ describe("createApp", () => {
     expect(wrangler).toContain('"binding": "STORAGE"');
     expect(wrangler).toContain('"bucket_name": "shop-storage"');
     expect(pkg.scripts).toMatchObject({ dev: "flare dev", build: "flare build", start: "flare start", deploy: "flare deploy" });
-    expect(pkg.devDependencies["@flare/cli"]).toBeDefined();
+    expect(pkg.devDependencies["@flaredev/cli"]).toBeDefined();
     expect(pkg.dependencies["drizzle-orm"]).toBeDefined();
     expect(pkg.devDependencies["drizzle-kit"]).toBeDefined();
     expect(readFileSync(join(dir, "drizzle.config.ts"), "utf8")).toContain('out: "./migrations"');

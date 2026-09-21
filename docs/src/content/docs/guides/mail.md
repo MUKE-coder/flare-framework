@@ -4,7 +4,7 @@ description: Transactional email over Resend's REST API, no SDK.
 ---
 
 `lib/mail.ts` exposes `mailer` and `sendTransactionalEmail()`, built on
-`createMailer()` / `renderTransactionalEmail()` from `@flare/core`, which
+`createMailer()` / `renderTransactionalEmail()` from `@flaredev/core`, which
 call Resend's REST API directly with `fetch` — no SDK dependency to bundle
 into your Worker.
 
@@ -39,7 +39,7 @@ await sendTransactionalEmail({
 ```
 
 `sendTransactionalEmail` takes the fields of `TransactionalEmail` (from
-`@flare/core`) except `appName`, which `lib/mail.ts` fills in, plus `to`,
+`@flaredev/core`) except `appName`, which `lib/mail.ts` fills in, plus `to`,
 `subject` and an optional `idempotencyKey`:
 
 | Field | Type | |

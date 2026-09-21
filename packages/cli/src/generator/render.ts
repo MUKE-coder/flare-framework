@@ -1,4 +1,4 @@
-import { camelCase, columnName, relationGraph, storedFields, type Resource, type StoredField } from "@flare/core";
+import { camelCase, columnName, relationGraph, storedFields, type Resource, type StoredField } from "@flaredev/core";
 import type { LoadedResource } from "./load.js";
 
 /** Import name of a descriptor: "order-item" → "orderItemResource" (suffixed so it can never collide with a table export). */
@@ -153,7 +153,7 @@ export function renderRelations(all: LoadedResource[]): string {
 }
 
 const handlerImports = (entry: LoadedResource) => [
-  `import { createResourceHandlers } from "@flare/core/server";`,
+  `import { createResourceHandlers } from "@flaredev/core/server";`,
   `import { getDb } from "@/db";`,
   `import { ${tableExport(entry.resource)} } from "@/db/schema";`,
   `import { authorize } from "@/lib/api";`,
@@ -244,7 +244,7 @@ export function renderClient(entry: LoadedResource): string {
   const { resource, stem } = entry;
   const local = resourceLocal(stem);
   return [
-    `import { createResourceClient } from "@flare/core/client";`,
+    `import { createResourceClient } from "@flaredev/core/client";`,
     `import type ${local} from "./${stem}.resource";`,
     "",
     `export const ${camelCase(stem)}Client = createResourceClient<typeof ${local}>(${q(`/api/${resource.slug}`)});`,
@@ -260,7 +260,7 @@ export function renderClient(entry: LoadedResource): string {
 export function renderValidators(entry: LoadedResource): string {
   const local = resourceLocal(entry.stem);
   return [
-    `import { createValidators } from "@flare/core";`,
+    `import { createValidators } from "@flaredev/core";`,
     `import ${local} from "./${entry.stem}.resource";`,
     "",
     `export const ${camelCase(entry.stem)}Validators = createValidators(${local});`,

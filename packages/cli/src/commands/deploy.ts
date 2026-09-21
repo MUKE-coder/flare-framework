@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { createZoneClient, type SecurityConfig } from "@flare/core/security";
+import { createZoneClient, type SecurityConfig } from "@flaredev/core/security";
 import { createJiti } from "jiti";
 import pc from "picocolors";
 import { readD1Databases, runWrangler, type D1Database } from "../utils/wrangler.js";

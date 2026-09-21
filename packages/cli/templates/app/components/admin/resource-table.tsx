@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
-import { formatValue, statusTone, storedFields, type Resource, type StoredField } from "@flare/core";
-import { isSortable } from "@flare/core/server";
+import { formatValue, statusTone, storedFields, type Resource, type StoredField } from "@flaredev/core";
+import { isSortable } from "@flaredev/core/server";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -1,8 +1,8 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { allowedActions, can, type Policy, type PolicyAction, type Resource } from "@flare/core";
+import { allowedActions, can, type Policy, type PolicyAction, type Resource } from "@flaredev/core";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
-import { createResourceStore, type ResourceStore } from "@flare/core/server";
+import { createResourceStore, type ResourceStore } from "@flaredev/core/server";
 import { getDb } from "@/db";
 import { policies } from "@/policies";
 import { resourceTables } from "@/resources/server";

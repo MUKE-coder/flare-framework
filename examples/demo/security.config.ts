@@ -1,4 +1,4 @@
-import { DEFAULT_DETECTORS, defineSecurity } from "@flare/core/security";
+import { DEFAULT_DETECTORS, defineSecurity } from "@flaredev/core/security";
 
 /**
  * What Flare watches for and blocks. The Worker layer applies this on every request

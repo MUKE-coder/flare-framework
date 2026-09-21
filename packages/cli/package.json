@@ -1,8 +1,30 @@
 {
-  "name": "@flare/cli",
-  "version": "0.0.0",
+  "name": "@flaredev/cli",
+  "version": "0.1.0",
   "description": "The flare command-line tool: create, generate, migrate, and deploy Flare apps",
   "license": "MIT",
+  "author": "Muke Johnbaptist",
+  "homepage": "https://flare-docs.codetotech.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MUKE-coder/flare-framework.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/MUKE-coder/flare-framework/issues"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "vinext",
+    "fullstack",
+    "framework",
+    "d1",
+    "drizzle",
+    "generator",
+    "admin",
+    "cli"
+  ],
   "type": "module",
   "bin": {
     "flare": "./bin/flare.js"
@@ -10,7 +32,8 @@
   "files": [
     "bin",
     "dist",
-    "templates"
+    "templates",
+    "README.md"
   ],
   "scripts": {
     "build": "tsup",
@@ -18,10 +41,16 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@flare/core": "workspace:*",
+    "@flaredev/core": "workspace:*",
     "cac": "^7.0.0",
     "jiti": "^2.7.0",
     "jsonc-parser": "^3.3.1",
     "picocolors": "^1.1.1"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

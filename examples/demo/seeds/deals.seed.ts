@@ -1,4 +1,4 @@
-import { defineSeed } from "@flare/core";
+import { defineSeed } from "@flaredev/core";
 import { companies, deals } from "@/db/schema";
 
 export default defineSeed(async ({ db, log }) => {

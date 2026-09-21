@@ -11,7 +11,7 @@ require regenerating anything.
 
 ```ts
 // resources/contact.resource.ts
-import { defineResource, field } from "@flare/core";
+import { defineResource, field } from "@flaredev/core";
 
 export default defineResource({
   name: "Contact", // PascalCase singular

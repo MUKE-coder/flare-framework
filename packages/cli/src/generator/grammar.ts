@@ -1,4 +1,4 @@
-import { camelCase, FILE_CATEGORIES, type FileCategory } from "@flare/core";
+import { camelCase, FILE_CATEGORIES, type FileCategory } from "@flaredev/core";
 
 /**
  * The `--fields` grammar of `flare gen resource`:

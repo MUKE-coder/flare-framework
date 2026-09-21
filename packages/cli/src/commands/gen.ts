@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { camelCase, defineResource, relationGraph, type Resource } from "@flare/core";
+import { camelCase, defineResource, relationGraph, type Resource } from "@flaredev/core";
 import pc from "picocolors";
 import { descriptorPath, renderDescriptor, renderFieldsBlock, resourceName, toField } from "../generator/descriptor.js";
 import { parseFields, type ParsedField } from "../generator/grammar.js";

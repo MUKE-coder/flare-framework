@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createObjectKey, fileKeyPrefix, fileMaxBytes, matchesContentType, mimeTypesFor, type FileField } from "@flare/core";
-import type { FieldIssue } from "@flare/core/server";
+import { createObjectKey, fileKeyPrefix, fileMaxBytes, matchesContentType, mimeTypesFor, type FileField } from "@flaredev/core";
+import type { FieldIssue } from "@flaredev/core/server";
 import { storage } from "@/lib/storage";
-import { can, type PolicyAction } from "@flare/core";
+import { can, type PolicyAction } from "@flaredev/core";
 import { adminPath, adminSession, adminStore, policyFor } from "@/lib/admin";
 
 export type ActionResult<T = unknown> =

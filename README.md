@@ -11,6 +11,17 @@ CRUD app on Cloudflare Workers with a working admin dashboard. No
 hand-wired D1 bindings, no auth library to pick, no admin UI to build by
 hand.
 
+## Install
+
+```sh
+npm create flare-framework@latest myapp          # scaffold an app, no install
+npm install -g @flaredev/cli                     # or a global `flare` command
+curl -fsSL https://flare-docs.codetotech.com/install.sh | bash   # macOS / Linux
+irm https://flare-docs.codetotech.com/install.ps1 | iex          # Windows PowerShell
+```
+
+Requires Node.js 22+. See [Installation](https://flare-docs.codetotech.com/start/installation/).
+
 **Docs:** [flare-docs.codetotech.com](https://flare-docs.codetotech.com). The
 source is in [`docs/src/content/docs/`](./docs/src/content/docs/); run it locally
 with `cd docs && npx astro dev`.
@@ -21,10 +32,11 @@ A pnpm workspace:
 
 | Path | Package | Role |
 | --- | --- | --- |
-| `packages/cli` | `@flare/cli` (bin: `flare`) | Every CLI verb (including the field grammar parser, `src/generator/grammar.ts`), plus the app template scaffolded by `flare create` |
-| `packages/core` | `@flare/core` | Runtime: descriptor types, resource store and validators, Cloudflare/auth/mail/storage helpers, policy checks, realtime |
+| `packages/cli` | `@flaredev/cli` (bin: `flare`) | Every CLI verb (including the field grammar parser, `src/generator/grammar.ts`), plus the app template scaffolded by `flare create` |
+| `packages/create-flare-framework` | `create-flare-framework` | `npm create flare-framework` entry point: runs `flare create` |
+| `packages/core` | `@flaredev/core` | Runtime: descriptor types, resource store and validators, Cloudflare/auth/mail/storage helpers, policy checks, realtime |
 | `examples/demo` | — | A small CRM, generated entirely through the CLI, used to verify every phase's exit criteria |
-| `docs/` | `@flare/docs` | This repo's documentation site (Astro + Starlight), published at [flare-docs.codetotech.com](https://flare-docs.codetotech.com) |
+| `docs/` | `@flaredev/docs` | This repo's documentation site (Astro + Starlight), published at [flare-docs.codetotech.com](https://flare-docs.codetotech.com) |
 
 ## Working on Flare itself
 

@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { createMailer, renderTransactionalEmail, type TransactionalEmail } from "@flare/core";
+import { createMailer, renderTransactionalEmail, type TransactionalEmail } from "@flaredev/core";
 
 /**
  * Transactional email via Resend.

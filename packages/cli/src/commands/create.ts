@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { appendFileSync, existsSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import pc from "picocolors";
-import { FLARE_VERSION } from "@flare/core";
+import { FLARE_VERSION } from "@flaredev/core";
 import { devVarsEntries, devVarsExampleEntries, parseAuthProviders, socialProvidersCode } from "../auth-providers.js";
 import { APP_DEPENDENCIES, APP_DEV_DEPENDENCIES } from "../versions.js";
 import { copyTemplate, findUp, templatesDir, writeJson } from "../utils/fs.js";
@@ -36,14 +36,20 @@ export function toAppName(dir: string): string {
 
 /**
  * How the app should depend on a Flare package (`core` or `cli`). When the CLI runs
- * from a checkout of the Flare repo (packages aren't published yet), point at the
+ * from a checkout of the Flare repo (developing Flare itself), point at the
  * local package: `workspace:*` for apps inside that workspace, a link/file path for
  * apps elsewhere.
  */
 export function flarePackageSpec(pkg: "core" | "cli", appDir: string, packageManager: PackageManager): string {
   const repoPackage = resolve(templatesDir, "../..", pkg);
-  if (!existsSync(join(repoPackage, "package.json"))) return `^${FLARE_VERSION}`;
   const repoRoot = resolve(repoPackage, "../..");
+  // Installed from npm, @flaredev/cli and @flaredev/core are siblings too; only a checkout
+  // of the Flare repo (packages/* under a pnpm workspace, not in node_modules) links locally.
+  const fromCheckout =
+    existsSync(join(repoPackage, "package.json")) &&
+    existsSync(join(repoRoot, "pnpm-workspace.yaml")) &&
+    !repoPackage.split(/[\\/]/).includes("node_modules");
+  if (!fromCheckout) return `^${FLARE_VERSION}`;
   const rel = relative(repoRoot, appDir);
   // `relative` returns an absolute path when the app is on another drive (Windows).
   if (rel && !rel.startsWith("..") && !isAbsolute(rel)) return "workspace:*";
@@ -92,8 +98,8 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
       "db:generate": "drizzle-kit generate",
       "db:migrate:local": "wrangler d1 migrations apply DB --local",
     },
-    dependencies: { "@flare/core": flarePackageSpec("core", dir, packageManager), ...APP_DEPENDENCIES },
-    devDependencies: { "@flare/cli": flarePackageSpec("cli", dir, packageManager), ...APP_DEV_DEPENDENCIES },
+    dependencies: { "@flaredev/core": flarePackageSpec("core", dir, packageManager), ...APP_DEPENDENCIES },
+    devDependencies: { "@flaredev/cli": flarePackageSpec("cli", dir, packageManager), ...APP_DEV_DEPENDENCIES },
   });
 
   // Local secrets (git-ignored). Production secrets are set with `wrangler secret put`.

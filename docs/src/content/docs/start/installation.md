@@ -1,65 +1,83 @@
 ---
 title: Installation
-description: Prerequisites and how to install the Flare CLI.
+description: Prerequisites and every way to install the Flare CLI.
 ---
 
 ## Prerequisites
 
-- **Node.js 22+** and a package manager: pnpm, npm, yarn, or bun. Flare
-  detects whichever one you use to run its own CLI and scaffolds the app
-  with that manager's lockfile.
-- **A Cloudflare account** — but not yet. You don't need one to scaffold an
-  app or run it locally. `flare dev` and `flare start` simulate D1, R2, and
-  KV locally through Wrangler. You only need `wrangler login` when you're
-  ready to run `flare deploy`.
+- **Node.js 22+** and a package manager: npm, pnpm, yarn or bun. Flare detects
+  the one you use to run it and scaffolds the app with that manager's lockfile.
+- **A Cloudflare account**, but not yet. You don't need one to create an app
+  or run it locally: `flare dev` and `flare start` simulate D1, R2 and KV
+  through Wrangler. You only need `wrangler login` when you're ready to run
+  `flare deploy`.
 
-:::note
-Flare is pre-1.0 and its packages are **not published to npm yet**, so
-`npx @flare/cli ...` won't resolve today. The package name isn't finalized
-either — these docs use `@flare/cli`, the workspace package name. The
-`flare` binary name and every command below are stable regardless of how
-the package ends up published. Until then, run the CLI from a checkout of
-the repo, as below.
-:::
+## Create an app (no install)
 
-## Run the CLI from this repo (for now)
+The fastest start. This runs the latest CLI once and scaffolds the app:
 
 ```bash
-git clone https://github.com/MUKE-coder/flare-framework.git
-cd flare-framework
-pnpm install
-pnpm build                                   # builds @flare/core and @flare/cli
-node packages/cli/bin/flare.js create ../myapp
+npm create flare-framework@latest myapp
 ```
 
-When the CLI runs from a checkout, `flare create` points the new app's
-`@flare/core` and `@flare/cli` dependencies at the local packages (a
-`link:`/`file:` path, or `workspace:*` if the app is inside the repo's
-workspace), so inside the app `npx flare ...` works as documented.
-
-## Install the CLI
+Or with your package manager of choice:
 
 ```bash
-npm install --save-dev @flare/cli
+pnpm create flare-framework myapp
+yarn create flare-framework myapp
+bun create flare-framework myapp
 ```
 
-You don't have to install it globally. `flare create` scaffolds a new app
-that adds `@flare/cli` as a dev dependency automatically, so every command
-after that runs through your package manager:
+`flare create` flags pass straight through, e.g.
+`npm create flare-framework@latest myapp -- --auth-providers google,github`.
+
+Every app lists `@flaredev/cli` as a dev dependency, so inside it you run
+`npx flare …` (or `pnpm flare …`) and each project keeps its own CLI version.
+
+## Install the `flare` command globally
+
+If you'd rather have `flare` on your PATH:
 
 ```bash
-npx flare gen resource Contact --fields "name:string, email:string"
-# or, with pnpm
-pnpm flare gen resource Contact --fields "name:string, email:string"
-```
-
-For the very first command — scaffolding the app itself — run the CLI
-directly with your package manager's one-off runner:
-
-```bash
-npx @flare/cli create myapp
+npm install -g @flaredev/cli
 # or
-pnpm dlx @flare/cli create myapp
+pnpm add -g @flaredev/cli
+```
+
+### Install script: macOS and Linux
+
+```bash
+curl -fsSL https://flare-docs.codetotech.com/install.sh | bash
+```
+
+### Install script: Windows (PowerShell)
+
+```powershell
+irm https://flare-docs.codetotech.com/install.ps1 | iex
+```
+
+Both scripts check for Node.js 22+ and then install `@flaredev/cli` with npm.
+They explain what to do if Node is missing or npm can't write to its global
+directory. Two environment variables change what they install:
+
+| Variable | Effect |
+| --- | --- |
+| `FLARE_VERSION` | Install a specific version, e.g. `0.1.0` (default: `latest`) |
+| `FLARE_PM` | `pnpm` to install with pnpm instead of npm |
+
+```bash
+curl -fsSL https://flare-docs.codetotech.com/install.sh | FLARE_PM=pnpm bash
+```
+
+```powershell
+$env:FLARE_VERSION = "0.1.0"; irm https://flare-docs.codetotech.com/install.ps1 | iex
+```
+
+Then:
+
+```bash
+flare --version
+flare create myapp
 ```
 
 ## Verify it worked
@@ -69,8 +87,30 @@ cd myapp
 npm run dev
 ```
 
-This starts `vinext dev`. Open the printed local URL — you should see the
-scaffolded app's home page, with sign-up and sign-in already wired to
-Better Auth over a local D1 database. No Cloudflare login, no configuration.
+This starts `vinext dev`. Open the printed local URL. You should see the
+app's home page, with sign-up and sign-in already wired to Better Auth over a
+local D1 database, and no Cloudflare login or configuration needed.
+
+## Upgrading
+
+Upgrade an app by bumping `@flaredev/core` and `@flaredev/cli` together in its
+`package.json` (they share a version), then reinstall. Upgrade the global
+command by rerunning the install command or script.
+
+## Working on Flare itself
+
+To run the CLI from a checkout of the repo:
+
+```bash
+git clone https://github.com/MUKE-coder/flare-framework.git
+cd flare-framework
+pnpm install
+pnpm build                                   # builds @flaredev/core and @flaredev/cli
+node packages/cli/bin/flare.js create ../myapp
+```
+
+When it runs from a checkout, `flare create` points the app at the local
+packages (a `link:`/`file:` path, or `workspace:*` inside the repo's
+workspace) instead of the published ones.
 
 Next: [the five-minute quickstart](/start/quickstart/).

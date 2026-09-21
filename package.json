@@ -9,7 +9,9 @@
   "scripts": {
     "build": "pnpm -r --filter ./packages/** run build",
     "test": "pnpm build && vitest run",
-    "typecheck": "pnpm -r --filter ./packages/** run typecheck"
+    "typecheck": "pnpm -r --filter ./packages/** run typecheck",
+    "release:check": "pnpm test && pnpm -r --filter ./packages/** publish --dry-run --no-git-checks",
+    "release": "pnpm test && pnpm -r --filter ./packages/** publish"
   },
   "devDependencies": {
     "@types/node": "^22.20.3",

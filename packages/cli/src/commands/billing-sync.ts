@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { kebabCase } from "@flare/core";
+import { kebabCase } from "@flaredev/core";
 import pc from "picocolors";
 import { extractJson, readD1Databases, runWrangler } from "../utils/wrangler.js";
 import { findAppRoot, resolveBin } from "./run.js";

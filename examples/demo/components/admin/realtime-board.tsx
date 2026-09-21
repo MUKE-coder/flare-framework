@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { RadioIcon, SendIcon, UsersIcon } from "lucide-react";
-import { useRealtime } from "@flare/core/react";
+import { useRealtime } from "@flaredev/core/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

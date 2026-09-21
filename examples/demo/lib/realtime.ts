@@ -3,7 +3,7 @@ import {
   type RealtimeAuthorize,
   type RealtimeChannel,
   type RealtimeChannelNamespace,
-} from "@flare/core/realtime/server";
+} from "@flaredev/core/realtime/server";
 import { env } from "cloudflare:workers";
 import { auth } from "./auth";
 

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { formatValue, storedFields, type Resource } from "@flare/core";
+import { formatValue, storedFields, type Resource } from "@flaredev/core";
 import { adminPath, adminResources, adminStore, requireAccess } from "@/lib/admin";
 import type { RelationMeta } from "./fields/field-widget";
 import { ResourceForm } from "./resource-form";

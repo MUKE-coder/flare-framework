@@ -1,6 +1,6 @@
 /**
  * Minimal ambient types for `cloudflare:workers`: the subset the realtime and security
- * primitive uses, so @flare/core typechecks (and emits d.ts) without pulling
+ * primitive uses, so @flaredev/core typechecks (and emits d.ts) without pulling
  * in @cloudflare/workers-types globally (whose DOM types would clash with the
  * DOM lib the rest of core uses).
  *

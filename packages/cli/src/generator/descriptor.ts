@@ -1,4 +1,4 @@
-import { defineResource, field as builders, kebabCase, pascalCase, type Field } from "@flare/core";
+import { defineResource, field as builders, kebabCase, pascalCase, type Field } from "@flaredev/core";
 import type { ParsedField } from "./grammar.js";
 import { hashBlock, joinMarkers } from "./markers.js";
 
@@ -79,7 +79,7 @@ export function renderDescriptor(name: string, fields: ParsedField[]): string {
   const block = renderFieldsBlock(fields);
 
   return joinMarkers({
-    before: `import { defineResource, field } from "@flare/core";
+    before: `import { defineResource, field } from "@flaredev/core";
 
 export default defineResource({
   name: ${literal(name)},

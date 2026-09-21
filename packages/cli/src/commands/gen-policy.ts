@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { definePolicy } from "@flare/core";
+import { definePolicy } from "@flaredev/core";
 import pc from "picocolors";
 import { resourceName } from "../generator/descriptor.js";
 import { loadResources } from "../generator/load.js";

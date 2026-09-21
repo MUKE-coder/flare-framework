@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { defineResource, field } from "@flare/core";
+import { defineResource, field } from "@flaredev/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { renderSeed, seedFiles } from "../src/commands/seed.js";
 

@@ -21,7 +21,7 @@ export const securityHeader = () =>
   `// rewritten on regeneration; add your own code outside it.\n`;
 
 /** `security.config.ts`: the app's own file, written once and never overwritten. */
-export const renderSecurityConfig = (): string => `import { DEFAULT_DETECTORS, defineSecurity } from "@flare/core/security";
+export const renderSecurityConfig = (): string => `import { DEFAULT_DETECTORS, defineSecurity } from "@flaredev/core/security";
 
 /**
  * What Flare watches for and blocks. The Worker layer applies this on every request
@@ -65,8 +65,8 @@ export default defineSecurity({
 
 /** `lib/security.ts`: the Worker-layer guard, built from the app's bindings and config. */
 export const renderLibSecurity = (app: string): string => `import { env as runtimeEnv } from "cloudflare:workers";
-import { createZoneClient } from "@flare/core/security";
-import { createSecurity, type BanStore, type MonitorNamespace, type RateLimiter, type Security } from "@flare/core/security/server";
+import { createZoneClient } from "@flaredev/core/security";
+import { createSecurity, type BanStore, type MonitorNamespace, type RateLimiter, type Security } from "@flaredev/core/security/server";
 import { getDb } from "../db";
 import { securityEvents } from "../db/schema";
 import config from "../security.config";
@@ -138,8 +138,8 @@ export function protect(request: Request, _env: unknown, ctx: SecurityContext, n
 export const renderSecurityActions = (): string => `"use server";
 
 import { revalidatePath } from "next/cache";
-import { can } from "@flare/core";
-import { isIp } from "@flare/core/security";
+import { can } from "@flaredev/core";
+import { isIp } from "@flaredev/core/security";
 import { adminSession, policyFor } from "@/lib/admin";
 import { logSecurityEvent, security } from "@/lib/security";
 
@@ -275,7 +275,7 @@ export function UnbanButton({ ip }: { ip: string }) {
 
 /** `app/admin/security/page.tsx`: bans, recent events, and the zone's firewall activity. */
 export const renderSecurityPage = (): string => `import Link from "next/link";
-import { can } from "@flare/core";
+import { can } from "@flaredev/core";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

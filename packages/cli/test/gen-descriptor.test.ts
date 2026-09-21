@@ -1,14 +1,14 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { defineResource } from "@flare/core";
+import { defineResource } from "@flaredev/core";
 import { afterAll, describe, expect, it } from "vitest";
 import { genResource } from "../src/commands/gen.js";
 import { renderDescriptor, resourceName, toField } from "../src/generator/descriptor.js";
 import { parseFields } from "../src/generator/grammar.js";
 import { hashBlock } from "../src/generator/markers.js";
 
-// Inside the package so generated files can resolve @flare/core.
+// Inside the package so generated files can resolve @flaredev/core.
 const scratch = mkdtempSync(join(import.meta.dirname, ".tmp-gen-"));
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 
@@ -33,7 +33,7 @@ describe("renderDescriptor", () => {
 
   it("wraps fields in generated markers and keeps output readable", () => {
     const block = 'name: field.string(),\nemail: field.string({ format: "email" }),\n';
-    expect(renderDescriptor("Contact", parseFields("name:string, email:string"))).toBe(`import { defineResource, field } from "@flare/core";
+    expect(renderDescriptor("Contact", parseFields("name:string, email:string"))).toBe(`import { defineResource, field } from "@flaredev/core";
 
 export default defineResource({
   name: "Contact",

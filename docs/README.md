@@ -1,8 +1,9 @@
 # Flare docs
 
 The documentation site for Flare, built with [Astro](https://astro.build) +
-[Starlight](https://starlight.astro.build). It is a fully static site; it is
-not published anywhere yet.
+[Starlight](https://starlight.astro.build). It is a fully static site, published
+at [flare-docs.codetotech.com](https://flare-docs.codetotech.com). `public/` also
+serves the CLI install scripts (`install.sh`, `install.ps1`).
 
 ## Run it
 

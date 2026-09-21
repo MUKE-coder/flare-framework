@@ -10,25 +10,12 @@ Workers — no hand-written boilerplate at any step.
 ## 1. Scaffold the app
 
 ```bash
-npx @flare/cli create myapp
+npm create flare-framework@latest myapp
 cd myapp
 ```
 
-:::note
-Flare's packages are not published to npm yet, so `npx @flare/cli` won't
-resolve today. Until they are, build the CLI from a checkout and run it
-directly — see
-[Run the CLI from this repo](/start/installation/#run-the-cli-from-this-repo-for-now):
-
-```bash
-git clone https://github.com/MUKE-coder/flare-framework.git
-cd flare-framework && pnpm install && pnpm build
-node packages/cli/bin/flare.js create ../myapp
-cd ../myapp
-```
-
-Every `npx flare ...` command below then works inside the app.
-:::
+(`pnpm create flare-framework myapp` works too. For a global `flare` command
+or the install scripts, see [Installation](/start/installation/).)
 
 `flare create` writes a vinext app with TypeScript and Tailwind already
 configured, and wires up:

@@ -25,7 +25,7 @@ writes or updates:
 | `app/admin/<slug>/page.tsx`, `new/page.tsx`, `[id]/edit/page.tsx` | Thin wrappers over `<ResourceTable>` / `<ResourceFormPage>` |
 
 Route files are thin: they call `createResourceHandlers()` from
-`@flare/core/server`, which reads the descriptor at runtime. There's no
+`@flaredev/core/server`, which reads the descriptor at runtime. There's no
 separate build step to keep the API and the descriptor in sync.
 
 ## The REST API, briefly

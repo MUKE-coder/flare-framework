@@ -1,5 +1,5 @@
 import { revalidateTag, unstable_cache } from "next/cache";
-import type { ChangeEvent } from "@flare/core/server";
+import type { ChangeEvent } from "@flaredev/core/server";
 
 /**
  * Caching for data you read far more often than you write.

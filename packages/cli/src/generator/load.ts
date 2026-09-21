@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
-import type { Resource } from "@flare/core";
+import type { Resource } from "@flaredev/core";
 import { createJiti } from "jiti";
 
 export interface LoadedResource {

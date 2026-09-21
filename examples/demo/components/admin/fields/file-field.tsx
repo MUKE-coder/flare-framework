@@ -10,7 +10,7 @@ import {
   SNIFF_BYTES,
   sniffMatches,
   type FileField as FileFieldDef,
-} from "@flare/core";
+} from "@flaredev/core";
 import { createReadUrlAction, createUploadUrlAction } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";

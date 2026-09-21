@@ -1,8 +1,29 @@
 {
-  "name": "@flare/core",
-  "version": "0.0.0",
+  "name": "@flaredev/core",
+  "version": "0.1.0",
   "description": "Flare runtime: resource descriptors, field grammar, and Cloudflare-native helpers",
   "license": "MIT",
+  "author": "Muke Johnbaptist",
+  "homepage": "https://flare-docs.codetotech.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MUKE-coder/flare-framework.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/MUKE-coder/flare-framework/issues"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "vinext",
+    "fullstack",
+    "framework",
+    "d1",
+    "drizzle",
+    "generator",
+    "admin"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -41,7 +62,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
     "build": "tsup",
@@ -68,5 +90,11 @@
     "react": {
       "optional": true
     }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

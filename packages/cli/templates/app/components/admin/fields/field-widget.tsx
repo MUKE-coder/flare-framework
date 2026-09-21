@@ -1,6 +1,6 @@
 "use client";
 
-import { optionLabel, type FileField as FileFieldDef, type StoredField } from "@flare/core";
+import { optionLabel, type FileField as FileFieldDef, type StoredField } from "@flaredev/core";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";

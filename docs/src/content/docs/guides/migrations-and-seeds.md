@@ -63,7 +63,7 @@ fill in.
 
 ```ts
 // seeds/contacts.seed.ts
-import { defineSeed } from "@flare/core";
+import { defineSeed } from "@flaredev/core";
 import { contacts } from "@/db/schema";
 
 export default defineSeed(async ({ db, log }) => {

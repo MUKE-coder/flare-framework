@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { createObjectKey, createStorage } from "@flare/core";
+import { createObjectKey, createStorage } from "@flaredev/core";
 
 /**
  * File storage on the `STORAGE` R2 bucket.

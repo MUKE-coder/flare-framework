@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { camelCase, kebabCase, type Policy } from "@flare/core";
+import { camelCase, kebabCase, type Policy } from "@flaredev/core";
 import { createJiti } from "jiti";
 import { hashBlock, joinMarkers } from "./markers.js";
 
@@ -44,7 +44,7 @@ export function renderPolicyBlock(roles: { read: string[]; create: string[]; upd
 export function renderPolicy(resource: string, roles: { read: string[]; create: string[]; update: string[]; delete: string[] }): string {
   const block = renderPolicyBlock(roles);
   return joinMarkers({
-    before: `import { definePolicy } from "@flare/core";
+    before: `import { definePolicy } from "@flaredev/core";
 
 /**
  * Who may do what with ${resource} records. Roles come from \`flare role:add\`;

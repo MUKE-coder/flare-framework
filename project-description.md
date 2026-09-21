@@ -94,15 +94,17 @@ A pnpm workspace:
 
 | Path | Package | Role |
 | --- | --- | --- |
-| `packages/cli` | `@flare/cli` (bin: `flare`) | Every CLI verb, plus `templates/` for scaffolded apps and generated files |
-| `packages/core` | `@flare/core` | Runtime: descriptor types, field grammar parser, Cloudflare/auth/mail/storage helpers, policy checks |
-| *(app template)* | — | Admin UI: shadcn/ui primitives (`components/ui`) and admin components (`components/admin`) are copied into each app as editable source, per `style-guide.md`. The earlier `@flare/admin` package plan was dropped for this reason; the admin's non-visual logic lives in `@flare/core`. |
+| `packages/cli` | `@flaredev/cli` (bin: `flare`) | Every CLI verb, plus `templates/` for scaffolded apps and generated files |
+| `packages/core` | `@flaredev/core` | Runtime: descriptor types, field grammar parser, Cloudflare/auth/mail/storage helpers, policy checks |
+| *(app template)* | — | Admin UI: shadcn/ui primitives (`components/ui`) and admin components (`components/admin`) are copied into each app as editable source, per `style-guide.md`. The earlier `@flaredev/admin` package plan was dropped for this reason; the admin's non-visual logic lives in `@flaredev/core`. |
 | `examples/*` | — | Apps produced by `flare create`, used to verify each phase's exit criteria |
 
 Helpers that a developer is expected to edit (`lib/storage.ts`, `lib/mail.ts`,
 auth config) are copied into the app as source and import shared logic from
-`@flare/core`, rather than hidden inside a package. The unscoped `flare` npm
-name is taken, so the publish name for the CLI is still open.
+`@flaredev/core`, rather than hidden inside a package. The packages publish to
+npm under the `@flaredev` scope (`@flare`, `@flarejs` and the unscoped `flare`
+belong to other npm users). New apps can also start with
+`npm create flare-framework@latest`.
 
 Framework packages pin TypeScript 5.9: TypeScript 7 (the native port) has no
 stable compiler API yet, which tsup's declaration build needs.
@@ -179,7 +181,7 @@ stable compiler API yet, which tsup's declaration build needs.
   the same `getDb()` client. `lib/auth.ts` is a module-level instance reading
   bindings from `cloudflare:workers`; `app/api/auth/[...all]/route.ts` mounts it.
 - **Password hashing is PBKDF2-SHA256 (100k iterations, WebCrypto) from
-  `@flare/core`, not Better Auth's default scrypt.** Measured: scrypt ≈ 250–300ms
+  `@flaredev/core`, not Better Auth's default scrypt.** Measured: scrypt ≈ 250–300ms
   CPU per hash in pure JS vs ≈ 45ms for PBKDF2. The scrypt figure is far over the
   Workers free-plan CPU budget. 100k is the maximum PBKDF2 iteration count
   Workers' WebCrypto accepts. The iteration count is stored in each hash.
@@ -212,7 +214,7 @@ stable compiler API yet, which tsup's declaration build needs.
 ### Storage wiring (as built)
 
 - `STORAGE` R2 binding (`bucket_name: <app>-storage`). `lib/storage.ts` wraps
-  `createStorage()` from `@flare/core`, and `app/api/storage/route.ts` redeems URLs.
+  `createStorage()` from `@flaredev/core`, and `app/api/storage/route.ts` redeems URLs.
 - **Signed URLs are Flare-signed, not S3-presigned.** R2 bindings can't
   presign. S3 presigning needs R2 API tokens and bucket CORS, and doesn't work
   against the local simulator. Instead each URL carries an HMAC-SHA256 token
@@ -232,7 +234,7 @@ stable compiler API yet, which tsup's declaration build needs.
 - **Uploads are checked by content, not just by label** (Phase M3). The
   Content-Type is whatever the sender chose, so the upload route reads the first
   32 bytes and compares them with the declared type's signature (`sniffMatches`
-  in `@flare/core`: PNG, JPEG, GIF, WebP, AVIF, PDF, zip-based Office and
+  in `@flaredev/core`: PNG, JPEG, GIF, WebP, AVIF, PDF, zip-based Office and
   OpenDocument files, legacy Office, common audio/video containers; text must
   not contain control bytes). A mismatch is a 415. The body then streams on to
   R2 through a `FixedLengthStream`, since R2 only accepts streams of known
@@ -264,7 +266,7 @@ stable compiler API yet, which tsup's declaration build needs.
 ### Mail wiring (as built)
 
 - `lib/mail.ts` exposes `mailer` and `sendTransactionalEmail()`, built on
-  `createMailer()` / `renderTransactionalEmail()` from `@flare/core`, which call
+  `createMailer()` / `renderTransactionalEmail()` from `@flaredev/core`, which call
   Resend's REST API with `fetch` (no SDK).
 - `send` resolves to `{ data, error }` and never throws for API errors (the
   official SDK's contract). 429/5xx and concurrent-idempotency conflicts are
@@ -308,7 +310,7 @@ resolves the database by name and auto-confirms without a TTY, and
 `secret put` accepts the value on stdin.
 
 Bins are executed as `node <bin.js>` rather than through a shell, so arguments
-survive Windows `.cmd` shims. Scaffolded apps depend on `@flare/cli` and their
+survive Windows `.cmd` shims. Scaffolded apps depend on `@flaredev/cli` and their
 `dev`/`build`/`start`/`deploy` scripts call these commands.
 
 All bindings are accessed the vinext-native way —
@@ -328,11 +330,11 @@ classes, and it's the single most important design decision in the project:
 get this wrong and every other feature (admin UI, policies, generator) has
 to be rebuilt around it later.
 
-#### Descriptor format (as built, `@flare/core`)
+#### Descriptor format (as built, `@flaredev/core`)
 
 ```ts
 // resources/contact.resource.ts
-import { defineResource, field } from "@flare/core";
+import { defineResource, field } from "@flaredev/core";
 
 export default defineResource({
   name: "Contact",                 // PascalCase singular
@@ -426,7 +428,7 @@ with `defineResource` before it's written.
 | `db/relations.ts` | Drizzle `relations()` for every resource, regenerated from all descriptors on each gen |
 
 Relations (as built):
-- **Relation map.** `relationGraph(resources)` in `@flare/core` resolves
+- **Relation map.** `relationGraph(resources)` in `@flaredev/core` resolves
   `belongsTo` (accessor = key without `Id`) and each declared `hasMany` to the
   target's matching `belongsTo` (`foreignKey` option, default
   `<thisResource>Id`). It's the runtime relation metadata the admin reads.
@@ -446,7 +448,7 @@ Relations (as built):
   reported as identical), plus the relations file, registry and schema index.
 
 Generated files are thin: route files call `createResourceHandlers()` from
-`@flare/core/server`, which reads the descriptor at runtime. `@flare/core` ships
+`@flaredev/core/server`, which reads the descriptor at runtime. `@flaredev/core` ships
 three entry points: `.` (descriptors, validators, helpers), `./server` (handlers,
 needs drizzle-orm) and `./client` (typed fetch client, no zod or drizzle).
 
@@ -478,7 +480,7 @@ API behavior:
   `flare user:role <email> <role> [--remote]` (a new verb: a guarded
   `UPDATE … RETURNING`, with email and role validated and case-insensitive
   email matching). M3 policies build on this role.
-- **Data layer.** `createResourceStore()` in `@flare/core/server` holds list /
+- **Data layer.** `createResourceStore()` in `@flaredev/core/server` holds list /
   get / titles / create / update / replace / delete as result objects
   (`{ ok, data }` or `{ ok: false, status, error, issues, field }`). The REST
   handlers and the admin's server actions both wrap it, so validation,
@@ -507,7 +509,7 @@ API behavior:
   invalid field, then calls a server action that validates again through the same
   store; server issues (including unique conflicts) map back onto their fields.
   `ResourceFormPage` (server) loads the record and relation titles.
-  Form state helpers live in `@flare/core`: `initialFormValues()`,
+  Form state helpers live in `@flaredev/core`: `initialFormValues()`,
   `formValuesToInput()` (empty optional → null, empty with a default → omitted on
   create, numbers parsed), `issuesByField()`. Validator messages are written for
   people ("Required", "Enter a valid email address", "At most 120 characters") and
@@ -523,7 +525,7 @@ API behavior:
   from `app/admin/actions.ts` broke loading the whole module at runtime
   ("Object.defineProperties called on non-object"), so shared constants live in
   `lib/admin.ts`.
-- **Display helpers** in `@flare/core`: `formatValue()` (per kind; dates are
+- **Display helpers** in `@flaredev/core`: `formatValue()` (per kind; dates are
   formatted in UTC so date-only values never shift a day), `optionLabel()`,
   `statusTone()`.
 - **Migration repair.** drizzle-kit's SQLite table-rebuild migrations (e.g.
@@ -692,9 +694,9 @@ Presence lives in each socket's attachment, so it survives hibernation. After a
 real drop or restart, clients reconnect with a new connection id and presence is
 rebuilt.
 
-- **Entry points.** `@flare/core/realtime/server` (DO, `handleRealtimeUpgrade`,
-  `realtimeHub`) and `@flare/core/react` (`useRealtime`). They are deliberately not
-  in `@flare/core/server`, which must stay importable outside workerd.
+- **Entry points.** `@flaredev/core/realtime/server` (DO, `handleRealtimeUpgrade`,
+  `realtimeHub`) and `@flaredev/core/react` (`useRealtime`). They are deliberately not
+  in `@flaredev/core/server`, which must stay importable outside workerd.
 - **Wiring.** The template's `worker/index.ts` is a custom Worker entry that sends
   `/realtime/<channel>/ws` upgrades to `handleRealtimeUpgrade` and everything else
   to vinext. `wrangler.jsonc` declares the `FLARE_REALTIME` binding and a
@@ -737,7 +739,7 @@ ones are merged into its tracked block.
   Plan writes admin-only, so subscription state changes only through the
   signed webhook.
 - **Decisions live in core.** The rules that decide subscription state live
-  in `@flare/core` (`billing.ts`) and are unit-tested: status mapping, which
+  in `@flaredev/core` (`billing.ts`) and are unit-tested: status mapping, which
   subscription may overwrite the stored one, period end (on subscription items
   since API 2025-03-31), `grantsAccess`/`isLiveSubscription`. Generated code
   is thin Stripe and database glue.

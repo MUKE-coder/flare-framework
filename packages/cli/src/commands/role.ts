@@ -1,4 +1,4 @@
-import { humanize } from "@flare/core";
+import { humanize } from "@flaredev/core";
 import pc from "picocolors";
 import { extractJson, readD1Databases, runWrangler } from "../utils/wrangler.js";
 import { findAppRoot, resolveBin } from "./run.js";

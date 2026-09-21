@@ -134,9 +134,9 @@ layers earlier in M3. **Phase M3 is complete.**
 **Exit criteria:** one realtime example works reliably under connection drops
 and DO cold starts.
 
-✅ **Met (2026-09-21).** `@flare/core/realtime/server` ships `RealtimeChannel`
+✅ **Met (2026-09-21).** `@flaredev/core/realtime/server` ships `RealtimeChannel`
 (a WebSocket-hibernation Durable Object with broadcast and presence),
-`handleRealtimeUpgrade` and `realtimeHub`; `@flare/core/react` ships
+`handleRealtimeUpgrade` and `realtimeHub`; `@flaredev/core/react` ships
 `useRealtime(channel)`. Connections are authorized by the app: the upgrade
 requires an `authorize(request, channel)` hook (no default), cross-site
 Origins are refused, and browser broadcasts need an explicit `send` grant.
@@ -165,7 +165,7 @@ are now refused there too.
 ## Phase M5 — Billing
 
 - [x] `flare gen billing --provider stripe --mode subscriptions` scaffolds a `Plan` resource, `Subscription` fields on `Customer`, and the Stripe webhook route
-  - Scaffolds Plan, Customer (merging the subscription fields into an existing Customer, keeping its own) and Purchase, with policies that keep billing records admin-only for writes, plus the routes, the billing page and a migration. Subscription rules live in `@flare/core` (`billing.ts`, unit-tested). Verified on the demo with `scripts/e2e-billing-offline.mjs` (16/16 on workerd): roleless users get 403 on customers, purchases and plan writes; the webhook refuses unsigned, forged, tampered and stale events and accepts a correctly signed one; the billing page renders plans and one-time products and shows Stripe errors inline.
+  - Scaffolds Plan, Customer (merging the subscription fields into an existing Customer, keeping its own) and Purchase, with policies that keep billing records admin-only for writes, plus the routes, the billing page and a migration. Subscription rules live in `@flaredev/core` (`billing.ts`, unit-tested). Verified on the demo with `scripts/e2e-billing-offline.mjs` (16/16 on workerd): roleless users get 403 on customers, purchases and plan writes; the webhook refuses unsigned, forged, tampered and stale events and accepts a correctly signed one; the billing page renders plans and one-time products and shows Stripe errors inline.
 - [x] `flare billing:sync-plans` pulls Stripe Products/Prices into the local `Plan` table
   - Imports only Products tagged `flare_app=<app>` (the test account used holds 210 other products), all pages, monthly/yearly/one-time prices; retires gone prices; `--remote`; keeps a per-app portal configuration for plan switching. Synced the demo's 3 products locally and to production.
 - [x] `<BillingPortalButton>` opens a Stripe-hosted billing portal session

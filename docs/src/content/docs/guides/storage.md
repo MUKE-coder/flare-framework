@@ -4,7 +4,7 @@ description: Signed uploads and reads, content sniffing, and per-field scoping.
 ---
 
 Every app gets a `STORAGE` R2 binding (`bucket_name: <app>-storage`).
-`lib/storage.ts` wraps `createStorage()` from `@flare/core`, and
+`lib/storage.ts` wraps `createStorage()` from `@flaredev/core`, and
 `app/api/storage/route.ts` redeems the signed URLs it issues.
 
 ## Flare-signed, not S3-presigned

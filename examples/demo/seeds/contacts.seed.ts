@@ -1,4 +1,4 @@
-import { defineSeed } from "@flare/core";
+import { defineSeed } from "@flaredev/core";
 import { contacts } from "@/db/schema";
 
 const FIRST = ["Ada", "Grace", "Alan", "Katherine", "Linus", "Margaret", "Dennis", "Barbara", "Ken", "Radia"];

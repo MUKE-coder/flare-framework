@@ -1,4 +1,4 @@
-import { defineResource, field } from "@flare/core";
+import { defineResource, field } from "@flaredev/core";
 
 export default defineResource({
   name: "Plan",

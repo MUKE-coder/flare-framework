@@ -14,7 +14,7 @@ import type { ParsedField } from "./grammar.js";
  *              row's subscription state in sync ("Subscription fields on Customer").
  *   Purchase – one row per paid one-time Checkout.
  *
- * The rules that decide subscription state live in `@flare/core` (billing.ts) and
+ * The rules that decide subscription state live in `@flaredev/core` (billing.ts) and
  * are unit-tested there; the files generated here are the Stripe and database glue.
  */
 
@@ -90,7 +90,7 @@ const STRIPE_API_VERSION = "2026-08-26.dahlia";
 export const renderLibStripe = (appName: string): string => `import Stripe from "stripe";
 import { env } from "cloudflare:workers";
 import { and, eq, isNull } from "drizzle-orm";
-import { checkoutPaid, shouldApplySubscription, subscriptionState } from "@flare/core";
+import { checkoutPaid, shouldApplySubscription, subscriptionState } from "@flaredev/core";
 import { getDb } from "@/db";
 import { customers, plans, purchases } from "@/db/schema";
 
@@ -255,7 +255,7 @@ export function invoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
 
 /** `lib/billing.ts`: read helpers for the billing page. */
 export const renderLibBilling = (): string => `import { asc, desc, eq } from "drizzle-orm";
-import { grantsAccess, isLiveSubscription, type SubscriptionStatus } from "@flare/core";
+import { grantsAccess, isLiveSubscription, type SubscriptionStatus } from "@flaredev/core";
 import { getDb } from "@/db";
 import { customers, plans, purchases } from "@/db/schema";
 
@@ -310,7 +310,7 @@ export async function userPurchases(userId: string) {
 /** `app/api/billing/checkout/route.ts`: start Checkout for a new subscription or a one-time purchase. */
 export const renderCheckoutRoute = (): string => `import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { isLiveSubscription, randomLetters } from "@flare/core";
+import { isLiveSubscription, randomLetters } from "@flaredev/core";
 import { getDb } from "@/db";
 import { plans } from "@/db/schema";
 import { getSession } from "@/lib/session";
@@ -360,7 +360,7 @@ export async function POST(request: NextRequest) {
 /** `app/api/billing/portal/route.ts`: the Stripe Customer Portal, optionally straight to a plan change. */
 export const renderPortalRoute = (): string => `import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { isLiveSubscription } from "@flare/core";
+import { isLiveSubscription } from "@flaredev/core";
 import { getDb } from "@/db";
 import { plans } from "@/db/schema";
 import { getSession } from "@/lib/session";

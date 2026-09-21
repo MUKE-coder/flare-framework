@@ -1,7 +1,7 @@
 /**
  * Seed files: `seeds/<name>.seed.ts`, run by `flare seed` against the local D1 database.
  *
- *   import { defineSeed } from "@flare/core";
+ *   import { defineSeed } from "@flaredev/core";
  *   import { contacts } from "@/db/schema";
  *
  *   export default defineSeed(async ({ db }) => {

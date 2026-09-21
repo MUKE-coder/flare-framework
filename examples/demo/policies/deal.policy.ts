@@ -1,4 +1,4 @@
-import { definePolicy } from "@flare/core";
+import { definePolicy } from "@flaredev/core";
 
 /**
  * Who may do what with Deal records. Roles come from `flare role:add`;

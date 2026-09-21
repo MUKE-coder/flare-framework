@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, rmdirSync, unlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { relationGraph } from "@flare/core";
+import { relationGraph } from "@flaredev/core";
 import pc from "picocolors";
 import { descriptorPath, renderDescriptor, resourceName } from "../generator/descriptor.js";
 import { loadResources } from "../generator/load.js";

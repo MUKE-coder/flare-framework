@@ -55,7 +55,7 @@ npx flare seed
 git clone https://github.com/MUKE-coder/flare-framework.git
 cd flare-framework
 pnpm install
-pnpm build           # builds @flare/core and @flare/cli, which the demo uses
+pnpm build           # builds @flaredev/core and @flaredev/cli, which the demo uses
 cd examples/demo
 npx flare migrate    # apply migrations to local D1
 npx flare seed       # seeds/companies, contacts, deals, in that order

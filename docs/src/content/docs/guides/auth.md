@@ -61,7 +61,7 @@ value.
 ## OAuth providers
 
 ```bash
-npx @flare/cli create myapp --auth-providers google,github
+npx @flaredev/cli create myapp --auth-providers google,github
 ```
 
 Adds a `socialProviders` entry per provider, but each one only activates

@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { SearchIcon, XIcon } from "lucide-react";
-import { optionLabel, storedFields, type Resource } from "@flare/core";
+import { optionLabel, storedFields, type Resource } from "@flaredev/core";
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

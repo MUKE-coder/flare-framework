@@ -90,12 +90,12 @@ has no synchronous HMAC), so forged, tampered and stale events are refused.
 Each event re-fetches the subscription or session from Stripe instead of
 trusting the payload, so duplicate and out-of-order deliveries all end at
 the same, current state. A late event about an old, ended subscription can't
-replace a newer live one. These rules live in `@flare/core` (`billing.ts`)
+replace a newer live one. These rules live in `@flaredev/core` (`billing.ts`)
 and are unit-tested.
 
 **Statuses.** `subscriptionStatus` is one of `none`, `incomplete`,
 `trialing`, `active`, `past_due`, `paused`, `canceled` or `unpaid`. Use
-`grantsAccess(status)` from `@flare/core` to decide whether paid features are
+`grantsAccess(status)` from `@flaredev/core` to decide whether paid features are
 on (active, trialing, and past_due while Stripe retries).
 `isLiveSubscription(status)` tells you whether the customer still has a
 subscription to manage rather than buy again.

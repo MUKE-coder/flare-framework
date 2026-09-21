@@ -1,6 +1,6 @@
 import app from "vinext/server/app-router-entry";
-import { RealtimeChannel, handleRealtimeUpgrade } from "@flare/core/realtime/server";
-import { SecurityMonitor } from "@flare/core/security/server";
+import { RealtimeChannel, handleRealtimeUpgrade } from "@flaredev/core/realtime/server";
+import { SecurityMonitor } from "@flaredev/core/security/server";
 import { authorizeRealtime } from "../lib/realtime";
 import { protect } from "../lib/security";
 

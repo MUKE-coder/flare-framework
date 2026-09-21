@@ -53,7 +53,7 @@ and if the detector has `ban`, the IP is banned for that long.
 
 ```ts
 // security.config.ts
-import { DEFAULT_DETECTORS, defineSecurity } from "@flare/core/security";
+import { DEFAULT_DETECTORS, defineSecurity } from "@flaredev/core/security";
 
 export default defineSecurity({
   allow: ["198.51.100.10"], // never banned or rate-limited
