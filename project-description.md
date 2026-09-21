@@ -684,6 +684,46 @@ Pages stay CDN-ready anyway: the root layout applies the saved theme with an
 inline script rather than reading `cookies()`, since a layout that reads cookies
 makes every page under it dynamic.
 
+### Realtime (as built, Phase M4)
+
+One primitive: a channel is a `RealtimeChannel` Durable Object (one instance per
+channel name) using the WebSocket Hibernation API, with broadcast and presence.
+Presence lives in each socket's attachment, so it survives hibernation. After a
+real drop or restart, clients reconnect with a new connection id and presence is
+rebuilt.
+
+- **Entry points.** `@flare/core/realtime/server` (DO, `handleRealtimeUpgrade`,
+  `realtimeHub`) and `@flare/core/react` (`useRealtime`). They are deliberately not
+  in `@flare/core/server`, which must stay importable outside workerd.
+- **Wiring.** The template's `worker/index.ts` is a custom Worker entry that sends
+  `/realtime/<channel>/ws` upgrades to `handleRealtimeUpgrade` and everything else
+  to vinext. `wrangler.jsonc` declares the `FLARE_REALTIME` binding and a
+  `new_sqlite_classes` migration.
+- **Authorization is required.** `handleRealtimeUpgrade` takes an
+  `authorize(request, channel)` hook with no default. It returns a grant
+  (`{ send?: boolean }`), or false to refuse with 401. Cross-site Origins are
+  refused with 403 before it runs. The worker strips any client-sent grant header
+  and sets its own, and a socket without `send` can only listen. The template's
+  `authorizeRealtime` (`lib/realtime.ts`) lets any signed-in user listen on any
+  channel and nobody broadcast from the browser; server code publishes with
+  `realtimeChannel(name).publish(...)`. It reads the session with
+  `disableRefresh`, since there is no Next request to write a refreshed cookie to.
+- **Limits.** 1 MiB frames, 64 KiB client broadcasts, 1024-character presence,
+  1000 connections per channel (503 past that). Client events carry `from`;
+  server publishes don't, so UIs decide trust by `from`, never by event name.
+- **Client.** Exponential backoff (1s→30s, jitter inside the cap). The backoff
+  resets only after `stableMs` (10s) of uptime, so accept-then-close loops keep
+  backing off. 1012 retries at once; 1013 backs off. A 30s heartbeat reconnects
+  a silent socket, and status goes "dead" after 120s down. The hook shares one
+  socket per channel across components, acquires it in an effect (so nothing
+  connects during SSR), and re-sends presence only when its value changes.
+- **Verified by** unit tests for the client and the DO,
+  `scripts/e2e-realtime.mjs` (access rules and protocol), and
+  `scripts/e2e-realtime-resilience.mjs` (the server process tree is killed and
+  restarted; open tabs reconnect on their own and receive events again).
+
+Full guide: `docs/src/content/docs/guides/realtime.md`.
+
 ### Roles & permissions (medium tier for v1)
 
 Resource-level (not field-level) policies: `gen policy Order --roles admin,staff`

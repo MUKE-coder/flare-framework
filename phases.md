@@ -126,13 +126,39 @@ layers earlier in M3. **Phase M3 is complete.**
 
 ## Phase M4 — Realtime primitive
 
-- [ ] Design one Durable Object–backed broadcast/channel primitive (rooms, presence)
-- [ ] Ship `useRealtime(channel)` client hook wired to a WebSocket-hibernation-backed DO
-- [ ] Build one worked example end-to-end (e.g. live comments or live order status updates)
-- [ ] Document reconnect/backoff behavior clearly — do not attempt a general CRDT sync engine
+- [x] Design one Durable Object–backed broadcast/channel primitive (rooms, presence)
+- [x] Ship `useRealtime(channel)` client hook wired to a WebSocket-hibernation-backed DO
+- [x] Build one worked example end-to-end (e.g. live comments or live order status updates)
+- [x] Document reconnect/backoff behavior clearly — do not attempt a general CRDT sync engine
 
 **Exit criteria:** one realtime example works reliably under connection drops
 and DO cold starts.
+
+✅ **Met (2026-09-21).** `@flare/core/realtime/server` ships `RealtimeChannel`
+(a WebSocket-hibernation Durable Object with broadcast and presence),
+`handleRealtimeUpgrade` and `realtimeHub`; `@flare/core/react` ships
+`useRealtime(channel)`. Connections are authorized by the app: the upgrade
+requires an `authorize(request, channel)` hook (no default), cross-site
+Origins are refused, and browser broadcasts need an explicit `send` grant.
+Frames, presence and connections per channel are size-capped. Every template
+scaffolds the `FLARE_REALTIME` binding, `worker/index.ts` and
+`lib/realtime.ts` (any signed-in user may listen; only server code publishes).
+The demo's live deal board (`/admin/realtime`) is limited to admin and staff.
+
+Verified: 28 realtime unit tests (client backoff, stable-connection reset,
+1012/1013 handling, heartbeat, shared subscribers; server grants, limits,
+presence, the Origin check and grant stripping). `scripts/e2e-realtime.mjs`
+passes 10/10 against a running build (anonymous, cross-site and roleless
+upgrades refused; presence, broadcast, leave; server publish 401/403/200).
+`scripts/e2e-realtime-resilience.mjs` kills the whole server process tree
+with two admin tabs open and restarts it: both tabs showed "reconnecting",
+came back on their own 9s after the restart, rebuilt presence, and received a
+server publish from the fresh Durable Object. Reconnect and backoff behaviour
+is documented in `docs/src/content/docs/guides/realtime.md`.
+
+A first version shipped to the live demo without connection authorization. It
+was fixed and redeployed on 2026-09-21, and anonymous and cross-site upgrades
+are now refused there too.
 
 ---
 
