@@ -23,7 +23,7 @@ npx astro preview   # serve the built dist/ locally
 | `src/styles/flare-theme.css` | Theme overrides. |
 | `src/assets/` | Logo and images referenced from pages. |
 | `public/` | Static files copied as-is (favicon). |
-| `wrangler.jsonc` | Serves `dist/` as Workers Static Assets, for a future `wrangler deploy`. |
+| `wrangler.jsonc` | Serves `dist/` as Workers Static Assets on the custom domain `flare-docs.codetotech.com`. Publish with `pnpm run deploy`. |
 
 Frontmatter `description:` values that contain a colon must be quoted, or
 the build fails.

@@ -8,7 +8,7 @@ import starlight from "@astrojs/starlight";
 // framework adapter in the loop.
 // https://astro.build/config
 export default defineConfig({
-  site: "https://docs.flare.dev",
+  site: "https://flare-docs.codetotech.com",
   integrations: [
     starlight({
       title: "Flare",

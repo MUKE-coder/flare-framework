@@ -4,6 +4,8 @@
   "compatibility_date": "2026-09-18",
   // A fully static Starlight build served as Workers Static Assets — no
   // Worker code, no adapter. See https://developers.cloudflare.com/workers/static-assets/
+  // Served on a custom domain; wrangler creates the DNS record and certificate.
+  "routes": [{ "pattern": "flare-docs.codetotech.com", "custom_domain": true }],
   "assets": {
     "directory": "./dist"
   }

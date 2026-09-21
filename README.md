@@ -11,9 +11,9 @@ CRUD app on Cloudflare Workers with a working admin dashboard. No
 hand-wired D1 bindings, no auth library to pick, no admin UI to build by
 hand.
 
-**Docs:** the documentation site is not published yet. Read the source in
-[`docs/src/content/docs/`](./docs/src/content/docs/), or run it locally with
-`cd docs && npx astro dev`.
+**Docs:** [flare-docs.codetotech.com](https://flare-docs.codetotech.com). The
+source is in [`docs/src/content/docs/`](./docs/src/content/docs/); run it locally
+with `cd docs && npx astro dev`.
 
 ## This repository
 
@@ -24,7 +24,7 @@ A pnpm workspace:
 | `packages/cli` | `@flare/cli` (bin: `flare`) | Every CLI verb (including the field grammar parser, `src/generator/grammar.ts`), plus the app template scaffolded by `flare create` |
 | `packages/core` | `@flare/core` | Runtime: descriptor types, resource store and validators, Cloudflare/auth/mail/storage helpers, policy checks, realtime |
 | `examples/demo` | — | A small CRM, generated entirely through the CLI, used to verify every phase's exit criteria |
-| `docs/` | `@flare/docs` | This repo's documentation site (Astro + Starlight), set up to deploy to Cloudflare (not published yet) |
+| `docs/` | `@flare/docs` | This repo's documentation site (Astro + Starlight), published at [flare-docs.codetotech.com](https://flare-docs.codetotech.com) |
 
 ## Working on Flare itself
 
