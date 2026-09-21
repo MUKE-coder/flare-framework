@@ -30,6 +30,7 @@ needs and almost always forgets the first time:
 | --- | --- |
 | `--skip-migrations` | Don't touch D1 at all this deploy |
 | `--skip-secrets` | Don't check or generate secrets this deploy |
+| `--skip-security` | Don't push `security.config.ts` zone rules this deploy (see [Security](/guides/security/)) |
 | `--env <name>` | Forwarded to every Wrangler call (migrations, secrets, deploy) |
 | `--preview` | Shorthand for `--env preview` |
 | `--dry-run` / `--help` | Delegate straight through — nothing remote is touched |

@@ -56,6 +56,7 @@ export default defineConfig({
             { label: "Caching", slug: "guides/caching" },
             { label: "Realtime", slug: "guides/realtime" },
             { label: "Billing (Stripe)", slug: "guides/billing" },
+            { label: "Security", slug: "guides/security" },
             { label: "Migrations & seeds", slug: "guides/migrations-and-seeds" },
             { label: "Deploying to Cloudflare", slug: "guides/deployment" },
           ],

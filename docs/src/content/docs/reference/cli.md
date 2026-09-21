@@ -79,6 +79,22 @@ resources, their policies, Checkout, the Customer Portal, the webhook, and
 npx flare gen billing --provider stripe --mode subscriptions
 ```
 
+## `flare gen security`
+
+Add [security](/guides/security/): `security.config.ts`, the SecurityEvent
+resource and policy, the request guard in `lib/security.ts`, the
+`/admin/security` dashboard, and the KV, Durable Object and rate-limit
+bindings in `wrangler.jsonc`.
+
+| Flag | |
+| --- | --- |
+| `--force` | Overwrite hand-edited generated blocks |
+| `--skip-migration` | Skip generating the migration |
+
+```bash
+npx flare gen security
+```
+
 ## `flare billing:sync-plans`
 
 Mirror this app's Stripe Products (those with metadata
@@ -202,7 +218,8 @@ top.
 | `flare dev` | `vinext dev` |
 | `flare build` | `vinext build` |
 | `flare start` | `wrangler dev --config dist/server/wrangler.json --persist-to .wrangler/state` (runs `flare build` first if there's no build yet) |
-| `flare deploy` | Migrations → `vinext-cloudflare deploy` → secrets |
+| `flare deploy` | Migrations → `vinext-cloudflare deploy` → secrets → zone security rules |
 
 `flare deploy` additionally accepts `--skip-migrations`, `--skip-secrets`,
+`--skip-security`,
 `--env <name>`, and `--preview` (shorthand for `--env preview`).

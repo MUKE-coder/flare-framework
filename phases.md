@@ -185,15 +185,24 @@ every webhook event.
 
 ## Phase M6 — Security dashboard
 
+Design (agreed 2026-09-21): **hybrid**. The Worker layer (KV ban list, the Workers rate-limit binding, per-IP `SecurityMonitor` Durable Object counters) is always on and works on any plan. The zone layer (IP Access Rules, rate-limiting and custom WAF rules through the Cloudflare API) switches on when the app has a zone and a token scoped to it. Flare only ever touches zone rules tagged `flare:<app>:`, and never creates account-level rules.
+
 - [ ] `security.config.ts` provisions Cloudflare Rate Limiting + WAF/IP Access rules at deploy time via the Cloudflare API
+  - Built: `flare deploy` loads `security.config.ts`, then pushes `zone.rateLimits` and `zone.customRules` to the zone's `http_ratelimit` and `http_request_firewall_custom` phases. It keeps the zone's other rules and replaces only this app's tagged ones, and uploads the zone id and token as secrets. `--skip-security` skips this step. Unit-tested against a fake Cloudflare API. **Pending:** a live run on flare-demo.codetotech.com, which needs the zone-scoped API token.
 - [ ] `/admin/security` dashboard reads rule hits, blocked-request counts, and active bans back from the same API
+  - Built and verified at the Worker layer: active bans with blocked-request counts, recent SecurityEvents, and the Security link in the admin sidebar (`scripts/e2e-security.mjs`, 19/19 on workerd). Zone firewall events (GraphQL `firewallEventsAdaptiveGroups`) and zone-ban badges are built. **Pending:** the same zone verification as above.
 - [ ] Manual ban/unban from the dashboard calls the IP Access Rules API directly
-- [ ] `SecurityEvent` resource (generated like any other resource) logs app-layer signals: failed-login bursts, checkout abuse, API scraping patterns
-- [ ] App-layer counters (KV or Durable Objects) detect abuse patterns and can push an IP into the edge-layer ban list
+  - Built: ban (IPv4 or IPv6, 1h/24h/7d/permanent, with a reason) and unban, for admins only. Each is logged as a SecurityEvent naming the admin, and each writes to KV and, with a zone configured, to the IP Access Rules API. Verified at the Worker layer by the e2e (a banned IP gets 403; after unban it gets through; invalid input is rejected and kept in the field). **Pending:** the IP Access Rules half, live.
+- [x] `SecurityEvent` resource (generated like any other resource) logs app-layer signals: failed-login bursts, checkout abuse, API scraping patterns
+  - `flare gen security` generates it like any resource (table, REST, admin CRUD) with a policy of admin and staff read, admin write; a roleless user gets 403. Default detectors: `login-brute-force`, `checkout-abuse`, `api-scraping`. Verified locally and on the deployed demo: a brute force wrote a `login-brute-force` row (high severity, count 5, banned).
+- [x] App-layer counters (KV or Durable Objects) detect abuse patterns and can push an IP into the edge-layer ban list
+  - One `SecurityMonitor` Durable Object per IP keeps exact sliding-window counts, and the hit that reaches a threshold trips once. The ban goes into the KV list the Worker checks before any app code, and into zone IP Access Rules when configured. Detection runs in `waitUntil`, and the client IP comes only from `CF-Connecting-IP`. Verified live on demo.gmukejohnbaptist.workers.dev: five failed sign-ins banned this machine's IP (the isolate that set the ban refused at once; other isolates followed once KV propagated, within about 10 seconds). The test ban was removed afterwards.
 
 **Exit criteria:** a simulated login-brute-force attempt is detected, logged
 as a `SecurityEvent`, and results in an automatic edge-layer ban, visible in
 the dashboard.
+
+Status (2026-09-21): **met at the Worker layer.** The simulated brute force is detected, logged as a SecurityEvent, banned, and shown on `/admin/security`, locally (e2e 19/19) and on the deployed demo. The phase stays open until the zone layer is verified on flare-demo.codetotech.com with a zone-scoped token.
 
 ---
 
