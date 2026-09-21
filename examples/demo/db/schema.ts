@@ -8,12 +8,13 @@
 export * from "./auth-schema";
 export * from "./flare-schema";
 
-// generated:start hash=5de97fe3f47b
+// generated:start hash=4ac1d8f824ef
 export * from "./schema/companies";
 export * from "./schema/contacts";
 export * from "./schema/customers";
 export * from "./schema/deals";
 export * from "./schema/plans";
 export * from "./schema/purchases";
+export * from "./schema/security_events";
 export * from "./relations";
 // generated:end

@@ -3,6 +3,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { AdminHeader, type Theme } from "@/components/admin/admin-header";
 import { ResourceNav } from "@/components/admin/resource-nav";
+import { adminLinks } from "@/lib/admin-nav";
 import { requireAdmin, visibleResources } from "@/lib/admin";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -20,7 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <SidebarProvider defaultOpen={!collapsed}>
-      <ResourceNav appName="demo" resources={resources} />
+      <ResourceNav appName="demo" resources={resources} links={adminLinks} />
       <SidebarInset>
         <AdminHeader user={{ name: session.user.name, email: session.user.email }} initialTheme={theme} />
         <main className="flex-1 p-6 md:p-8">{children}</main>

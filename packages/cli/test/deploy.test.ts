@@ -10,6 +10,7 @@ describe("parseDeployArgs", () => {
       forwarded: ["--env", "staging", "--name", "x"],
       skipMigrations: false,
       skipSecrets: true,
+      skipSecurity: false,
       env: "staging",
       passthroughOnly: false,
     });

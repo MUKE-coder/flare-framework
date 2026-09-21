@@ -14,6 +14,10 @@
       {
         "name": "FLARE_REALTIME",
         "class_name": "RealtimeChannel"
+      },
+      {
+        "name": "FLARE_SECURITY_MONITOR",
+        "class_name": "SecurityMonitor"
       }
     ]
   },
@@ -21,6 +25,12 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["RealtimeChannel"]
+    },
+    {
+      "tag": "flare-security-v1",
+      "new_sqlite_classes": [
+        "SecurityMonitor"
+      ]
     }
   ],
   "d1_databases": [
@@ -37,6 +47,9 @@
       // Data cache (see `cache.data` in vite.config.ts). No id: wrangler creates
       // the namespace on first deploy; locally it's simulated on disk.
       "binding": "VINEXT_KV_CACHE"
+    },
+    {
+      "binding": "FLARE_SECURITY"
     }
   ],
   "r2_buckets": [
@@ -45,6 +58,16 @@
       // missing resources on deploy.
       "binding": "STORAGE",
       "bucket_name": "demo-storage"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "FLARE_RATE_LIMIT",
+      "namespace_id": "5923",
+      "simple": {
+        "limit": 120,
+        "period": 60
+      }
     }
   ]
 }

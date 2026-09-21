@@ -1,7 +1,7 @@
 // Server-only: resource name → descriptor and table (maintained by flare gen).
-// generated:start hash=2decf729c9b6
-import { companies, contacts, customers, deals, plans, purchases } from "@/db/schema";
-import { companyResource, contactResource, customerResource, dealResource, planResource, purchaseResource } from "./index";
+// generated:start hash=8f158e2f8a97
+import { companies, contacts, customers, deals, plans, purchases, securityEvents } from "@/db/schema";
+import { companyResource, contactResource, customerResource, dealResource, planResource, purchaseResource, securityEventResource } from "./index";
 
 export const resourceTables = {
   Company: { resource: companyResource, table: companies },
@@ -10,6 +10,7 @@ export const resourceTables = {
   Deal: { resource: dealResource, table: deals },
   Plan: { resource: planResource, table: plans },
   Purchase: { resource: purchaseResource, table: purchases },
+  SecurityEvent: { resource: securityEventResource, table: securityEvents },
 } as const;
 
 export type ResourceName = keyof typeof resourceTables;

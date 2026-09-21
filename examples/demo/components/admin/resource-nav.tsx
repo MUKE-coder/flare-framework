@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboardIcon, RadioIcon } from "lucide-react";
+import { LayoutDashboardIcon } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -30,7 +30,16 @@ export interface NavResource {
  * descriptor's `icon`, the label from its plural label, and the active item from the
  * current path.
  */
-export function ResourceNav({ appName, resources }: { appName: string; resources: NavResource[] }) {
+export function ResourceNav({
+  appName,
+  resources,
+  links = [],
+}: {
+  appName: string;
+  resources: NavResource[];
+  /** Extra pages (see lib/admin-nav.ts), shown under "Platform". */
+  links?: Array<{ label: string; href: string; icon: string }>;
+}) {
   const pathname = usePathname();
 
   return (
@@ -72,22 +81,28 @@ export function ResourceNav({ appName, resources }: { appName: string; resources
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Platform</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/admin/realtime"} tooltip="Realtime">
-                  <Link href="/admin/realtime">
-                    <RadioIcon />
-                    <span>Realtime</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {links.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {links.map((link) => {
+                  const Icon = resourceIcon(link.icon);
+                  return (
+                    <SidebarMenuItem key={link.href}>
+                      <SidebarMenuButton asChild isActive={pathname === link.href || pathname.startsWith(`${link.href}/`)} tooltip={link.label}>
+                        <Link href={link.href}>
+                          <Icon />
+                          <span>{link.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );

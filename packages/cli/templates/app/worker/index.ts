@@ -1,12 +1,15 @@
 import app from "vinext/server/app-router-entry";
 import { RealtimeChannel, handleRealtimeUpgrade } from "@flare/core/realtime/server";
+import { SecurityMonitor } from "@flare/core/security/server";
 import { authorizeRealtime } from "../lib/realtime";
+import { protect } from "../lib/security";
 
 // `DurableObjectNamespace` and `ExecutionContext` are ambient globals injected
 // by the generated worker-configuration.d.ts (wrangler types), not exports of
 // the `cloudflare:workers` module.
 
-export { RealtimeChannel };
+// Durable Object classes must be exported from the Worker's main module.
+export { RealtimeChannel, SecurityMonitor };
 
 export interface AppEnv {
   ASSETS: Fetcher;
@@ -19,16 +22,19 @@ export interface AppContext {
 }
 
 /**
- * Custom entrypoint. Holds the realtime upgrade seam; everything else is
- * delegated to the vinext app handler (fetch handler + assets).
+ * Custom entrypoint. Every request passes lib/security.ts first (bans, rate
+ * limits, abuse detection; a pass-through until `flare gen security`), then the
+ * realtime upgrade seam, then the vinext app.
  */
 export default {
   async fetch(request: Request, env: AppEnv, ctx: AppContext): Promise<Response> {
-    if (new URL(request.url).pathname.startsWith("/realtime/")) {
-      // Who may join which channel lives in lib/realtime.ts (authorizeRealtime).
-      const realtime = await handleRealtimeUpgrade(request, env.FLARE_REALTIME, { authorize: authorizeRealtime });
-      if (realtime) return realtime;
-    }
-    return app.fetch(request, env, ctx);
+    return protect(request, env, ctx, async () => {
+      if (new URL(request.url).pathname.startsWith("/realtime/")) {
+        // Who may join which channel lives in lib/realtime.ts (authorizeRealtime).
+        const realtime = await handleRealtimeUpgrade(request, env.FLARE_REALTIME, { authorize: authorizeRealtime });
+        if (realtime) return realtime;
+      }
+      return app.fetch(request, env, ctx);
+    });
   },
 };

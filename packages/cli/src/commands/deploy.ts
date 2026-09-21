@@ -1,6 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { createZoneClient, type SecurityConfig } from "@flare/core/security";
+import { createJiti } from "jiti";
 import pc from "picocolors";
 import { readD1Databases, runWrangler, type D1Database } from "../utils/wrangler.js";
 
@@ -13,6 +15,9 @@ import { readD1Databases, runWrangler, type D1Database } from "../utils/wrangler
  *   migrations run right after.
  * - A missing BETTER_AUTH_SECRET is generated and uploaded (never the local dev value).
  *   Optional secrets that are still unset are listed with the command to set them.
+ * - With a security.config.ts and FLARE_SECURITY_ZONE_ID / FLARE_SECURITY_API_TOKEN in
+ *   the shell, the config's zone rules are pushed to the zone and both values are
+ *   uploaded as secrets, so the app can ban at the zone edge too.
  */
 
 export const REQUIRED_SECRET = "BETTER_AUTH_SECRET";
@@ -23,6 +28,7 @@ export interface DeployArgs {
   forwarded: string[];
   skipMigrations: boolean;
   skipSecrets: boolean;
+  skipSecurity: boolean;
   /** Wrangler environment, forwarded to wrangler commands too. */
   env?: string;
   /** --dry-run / --help: only delegate, touch nothing remote. */
@@ -33,11 +39,13 @@ export function parseDeployArgs(args: string[]): DeployArgs {
   const forwarded: string[] = [];
   let skipMigrations = false;
   let skipSecrets = false;
+  let skipSecurity = false;
   let env: string | undefined;
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]!;
     if (arg === "--skip-migrations") skipMigrations = true;
     else if (arg === "--skip-secrets") skipSecrets = true;
+    else if (arg === "--skip-security") skipSecurity = true;
     else {
       forwarded.push(arg);
       if (arg === "--env" && args[i + 1]) env = args[i + 1];
@@ -46,7 +54,7 @@ export function parseDeployArgs(args: string[]): DeployArgs {
     }
   }
   const passthroughOnly = forwarded.some((arg) => ["--dry-run", "--help", "-h"].includes(arg));
-  return { forwarded, skipMigrations, skipSecrets, env, passthroughOnly };
+  return { forwarded, skipMigrations, skipSecrets, skipSecurity, env, passthroughOnly };
 }
 
 /** Secret names from `wrangler secret list` output (a JSON array, possibly after a banner). */
@@ -71,6 +79,44 @@ export interface DeployContext {
   /** Runs vinext-cloudflare deploy with the given args; resolves to its exit code. */
   deploy: (forwarded: string[]) => Promise<number>;
   log?: (message: string) => void;
+  /** Where zone credentials come from (default: process.env). */
+  env?: Record<string, string | undefined>;
+  /** Cloudflare API fetch (tests). */
+  fetch?: typeof fetch;
+}
+
+export const ZONE_SECRETS = ["FLARE_SECURITY_ZONE_ID", "FLARE_SECURITY_API_TOKEN"] as const;
+
+/** Load the app's security.config.ts, or null when the app has no security layer. */
+export async function loadSecurityConfig(appRoot: string): Promise<SecurityConfig | null> {
+  const path = join(appRoot, "security.config.ts");
+  if (!existsSync(path)) return null;
+  const jiti = createJiti(join(appRoot, "package.json"), { moduleCache: false, fsCache: false });
+  const mod = (await jiti.import(path)) as { default?: SecurityConfig };
+  if (!mod.default) throw new Error("security.config.ts must `export default defineSecurity({ ... })`.");
+  return mod.default;
+}
+
+/**
+ * Push the config's zone rules to the zone. Only rules tagged for this app are
+ * replaced; the zone's other rules stay as they are.
+ */
+export async function provisionZoneSecurity(
+  appRoot: string,
+  config: SecurityConfig,
+  credentials: { zoneId: string; apiToken: string },
+  options: { log: (message: string) => void; fetch?: typeof fetch },
+): Promise<void> {
+  const app = (JSON.parse(readFileSync(join(appRoot, "package.json"), "utf8")) as { name?: string }).name ?? "app";
+  const zone = createZoneClient({ ...credentials, app, fetch: options.fetch });
+  if (config.zone?.rateLimits) {
+    const result = await zone.syncRateLimits(config.zone.rateLimits);
+    options.log(`  rate limiting: ${result.written} Flare rule(s), ${result.kept} other rule(s) kept`);
+  }
+  if (config.zone?.customRules) {
+    const result = await zone.syncCustomRules(config.zone.customRules);
+    options.log(`  custom rules: ${result.written} Flare rule(s), ${result.kept} other rule(s) kept`);
+  }
 }
 
 export async function runDeploy(args: string[], context: DeployContext): Promise<number> {
@@ -78,6 +124,7 @@ export async function runDeploy(args: string[], context: DeployContext): Promise
   if (plan.passthroughOnly) return context.deploy(plan.forwarded);
 
   const { appRoot, wranglerBin } = context;
+  const shellEnv = context.env ?? process.env;
   const log = context.log ?? ((message: string) => console.log(message));
   const envArgs = plan.env ? ["--env", plan.env] : [];
   const step = (message: string) => log(`\n${pc.bold(pc.cyan("flare"))} ${message}`);
@@ -113,6 +160,16 @@ export async function runDeploy(args: string[], context: DeployContext): Promise
 
   for (const db of migrateAfterDeploy) await migrate(db);
 
+  const security = plan.skipSecurity ? null : await loadSecurityConfig(appRoot);
+  const zoneId = shellEnv.FLARE_SECURITY_ZONE_ID;
+  const apiToken = shellEnv.FLARE_SECURITY_API_TOKEN;
+  if (security && zoneId && apiToken) {
+    step("Provisioning zone security rules");
+    await provisionZoneSecurity(appRoot, security, { zoneId, apiToken }, { log, fetch: context.fetch });
+  } else if (security) {
+    step("Zone security rules skipped (Worker-layer protection is on). To add them, deploy with FLARE_SECURITY_ZONE_ID and FLARE_SECURITY_API_TOKEN set.");
+  }
+
   if (!plan.skipSecrets) {
     const listed = await runWrangler(wranglerBin, ["secret", "list", ...envArgs], appRoot, { capture: true });
     if (listed.code !== 0) throw new Error(`wrangler secret list failed:\n${listed.output.trim()}`);
@@ -126,6 +183,18 @@ export async function runDeploy(args: string[], context: DeployContext): Promise
       });
       if (put.code !== 0) throw new Error(`Uploading ${REQUIRED_SECRET} failed:\n${put.output.trim()}`);
       existing.add(REQUIRED_SECRET);
+    }
+
+    // Hand the zone credentials to the app so its bans reach the zone edge.
+    if (security && zoneId && apiToken) {
+      for (const [name, value] of [["FLARE_SECURITY_ZONE_ID", zoneId], ["FLARE_SECURITY_API_TOKEN", apiToken]] as const) {
+        if (existing.has(name)) continue;
+        step(`Uploading ${name}`);
+        const put = await runWrangler(wranglerBin, ["secret", "put", name, ...envArgs], appRoot, { capture: true, stdin: value });
+        if (put.code !== 0) throw new Error(`Uploading ${name} failed:
+${put.output.trim()}`);
+        existing.add(name);
+      }
     }
 
     const examplePath = join(appRoot, ".dev.vars.example");

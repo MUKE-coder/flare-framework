@@ -20,7 +20,7 @@ export const DELEGATED_COMMANDS = {
   },
   deploy: {
     description:
-      "Migrate D1, build and deploy to Cloudflare Workers (vinext-cloudflare deploy), then ensure secrets. Flags: --skip-migrations, --skip-secrets",
+      "Migrate D1, build and deploy to Cloudflare Workers (vinext-cloudflare deploy), then ensure secrets and push security.config.ts zone rules. Flags: --skip-migrations, --skip-secrets, --skip-security",
     pkg: "@vinext/cloudflare",
     bin: "vinext-cloudflare",
     args: ["deploy", "--config", "dist/server/wrangler.json"],
