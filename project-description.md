@@ -724,6 +724,45 @@ rebuilt.
 
 Full guide: `docs/src/content/docs/guides/realtime.md`.
 
+### Billing (as built, Phase M5)
+
+`flare gen billing --provider stripe --mode subscriptions` generates three
+resources: Plan (one row per Stripe price, recurring or one-time), Customer
+(subscription status and Stripe ids) and Purchase (one-time checkouts). It
+also writes the Checkout, portal and webhook routes, `<BillingPortalButton>`
+and `/dashboard/billing`. An existing Customer keeps its fields; the billing
+ones are merged into its tracked block.
+
+- **Writes are admin-only.** Generated policies keep Customer, Purchase and
+  Plan writes admin-only, so subscription state changes only through the
+  signed webhook.
+- **Decisions live in core.** The rules that decide subscription state live
+  in `@flare/core` (`billing.ts`) and are unit-tested: status mapping, which
+  subscription may overwrite the stored one, period end (on subscription items
+  since API 2025-03-31), `grantsAccess`/`isLiveSubscription`. Generated code
+  is thin Stripe and database glue.
+- **Webhook.** It verifies with `constructEventAsync` and the SubtleCrypto
+  provider (Workers has no synchronous HMAC). Every event re-fetches its object
+  from Stripe, so duplicates and out-of-order deliveries converge on current
+  state.
+- **Checkout** takes a plan slug, never a price, and refuses a second
+  subscription. Plan changes use the portal's `subscription_update_confirm`
+  flow, so switching never creates a second subscription. Return URLs come
+  from `BETTER_AUTH_URL` or the request URL, never forwarded headers.
+- **Plan sync.** `billing:sync-plans [--remote] [--all]` imports only Products
+  tagged `flare_app=<package name>`, since test accounts are often shared
+  across apps. It retires rows whose price is gone, freeing their slug for a
+  changed price while keeping the row for existing subscribers. It also keeps
+  a portal configuration (tagged per app) that allows switching between the
+  synced plans and cancelling at the end of the period.
+
+Verified against a Stripe test account on the deployed demo
+(`scripts/e2e-billing-stripe.mjs`), all through the generated page:
+subscribe, upgrade in the portal (still one subscription), cancel in the
+portal, the subscription ending, and a one-time purchase. Stripe's own
+records are cross-checked at each step. `scripts/stripe-demo-catalog.mjs`
+recreates the demo's catalog.
+
 ### Roles & permissions (medium tier for v1)
 
 Resource-level (not field-level) policies: `gen policy Order --roles admin,staff`

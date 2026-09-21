@@ -166,16 +166,20 @@ are now refused there too.
 
 - [x] `flare gen billing --provider stripe --mode subscriptions` scaffolds a `Plan` resource, `Subscription` fields on `Customer`, and the Stripe webhook route
   - Scaffolds Plan, Customer (merging the subscription fields into an existing Customer, keeping its own) and Purchase, with policies that keep billing records admin-only for writes, plus the routes, the billing page and a migration. Subscription rules live in `@flare/core` (`billing.ts`, unit-tested). Verified on the demo with `scripts/e2e-billing-offline.mjs` (16/16 on workerd): roleless users get 403 on customers, purchases and plan writes; the webhook refuses unsigned, forged, tampered and stale events and accepts a correctly signed one; the billing page renders plans and one-time products and shows Stripe errors inline.
-- [ ] `flare billing:sync-plans` pulls Stripe Products/Prices into the local `Plan` table
-- [ ] `<BillingPortalButton>` opens a Stripe-hosted billing portal session
-- [ ] Webhook handler verifies signatures and keeps `Customer.status` in sync on `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
-- [ ] One-time Checkout flow (for non-subscription purchases) ships as a separate, additive path alongside subscriptions
-
-> The remaining four tasks are implemented (portal plan changes, webhook sync by re-fetching from Stripe, one-time purchases, paginated plan sync with portal setup) but need a Stripe test account to verify against real Stripe objects.
+- [x] `flare billing:sync-plans` pulls Stripe Products/Prices into the local `Plan` table
+  - Imports only Products tagged `flare_app=<app>` (the test account used holds 210 other products), all pages, monthly/yearly/one-time prices; retires gone prices; `--remote`; keeps a per-app portal configuration for plan switching. Synced the demo's 3 products locally and to production.
+- [x] `<BillingPortalButton>` opens a Stripe-hosted billing portal session
+  - Verified live: "Manage billing" opened the portal and cancelled the subscription; "Switch to Pro" opened the portal's plan-change confirmation.
+- [x] Webhook handler verifies signatures and keeps `Customer.status` in sync on `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
+  - Verified live: the status followed purchase (Active), upgrade (Pro), cancellation (ends on …) and the subscription ending (Canceled), each from a real Stripe event; forged, tampered and stale events are refused on Workers.
+- [x] One-time Checkout flow (for non-subscription purchases) ships as a separate, additive path alongside subscriptions
+  - Verified live: buying the Credit pack recorded a Paid purchase and left the subscription status alone.
 
 **Exit criteria:** a subscription can be purchased, upgraded, and cancelled
 entirely through generated UI, with `Customer.status` staying correct through
 every webhook event.
+
+✅ **Met (2026-09-21).** On the deployed demo with a Stripe test account, `scripts/e2e-billing-stripe.mjs` passed 13/13, entirely through the generated `/dashboard/billing` page and Stripe's hosted pages. A subscription was purchased with the 4242 test card (Active on Starter) and upgraded in the portal (Pro, still exactly one subscription at $29). It was cancelled in the portal ("Pro ends on …"), then ended (Canceled, plans offered again), and a one-time Credit pack purchase was recorded as Paid. `Customer.status` changed only through real webhook events, and Stripe's records were cross-checked at each step. **Phase M5 is complete.**
 
 ---
 

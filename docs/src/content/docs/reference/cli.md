@@ -61,6 +61,41 @@ Write (or update) a [resource-level policy](/guides/roles-and-policies/).
 npx flare gen policy Invoice --roles admin,staff --delete-roles admin
 ```
 
+## `flare gen billing`
+
+Add [Stripe billing](/guides/billing/): the Plan, Customer and Purchase
+resources, their policies, Checkout, the Customer Portal, the webhook, and
+`/dashboard/billing`.
+
+| Flag | |
+| --- | --- |
+| `--provider <provider>` | Payment provider. Only `stripe` is supported. |
+| `--mode <mode>` | Only `subscriptions`, which also covers one-time checkout |
+| `--force` | Overwrite hand-edited generated blocks, including a hand-edited Customer fields block |
+| `--skip-install` | Write the files without installing the `stripe` dependency |
+| `--skip-migration` | Skip generating the migration |
+
+```bash
+npx flare gen billing --provider stripe --mode subscriptions
+```
+
+## `flare billing:sync-plans`
+
+Mirror this app's Stripe Products (those with metadata
+`flare_app=<package name>`) and their active prices into the Plan table.
+Deactivate plans whose price is gone. Configure the Customer Portal to allow
+switching between the synced plans.
+
+| Flag | |
+| --- | --- |
+| `--remote` | Write to the deployed database |
+| `--env <name>` | Wrangler environment |
+| `--all` | Import every active Product, not only this app's |
+
+```bash
+npx flare billing:sync-plans --remote
+```
+
 ## `flare rm resource <Name>`
 
 Remove a resource's generated files. Refuses on hand-written code outside

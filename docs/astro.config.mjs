@@ -55,6 +55,7 @@ export default defineConfig({
             { label: "The admin dashboard", slug: "guides/admin-dashboard" },
             { label: "Caching", slug: "guides/caching" },
             { label: "Realtime", slug: "guides/realtime" },
+            { label: "Billing (Stripe)", slug: "guides/billing" },
             { label: "Migrations & seeds", slug: "guides/migrations-and-seeds" },
             { label: "Deploying to Cloudflare", slug: "guides/deployment" },
           ],
