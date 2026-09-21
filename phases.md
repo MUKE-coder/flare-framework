@@ -110,11 +110,17 @@ redirected off `/admin/deals` and `/admin/deals/new`. 234 unit tests pass.
   - Workers Cache CDN adapter: moved to the Backlog (2026-09-18). vinext 1.0 beta's `cdnAdapter` breaks every redirecting page.
 - [x] `<FileField>` admin component fully wired to R2 with signed-URL upload flow, respecting the `file:[types]` MIME constraint
   - Verified against the production build in workerd: `scripts/e2e-file-field.mjs` 15/15 (type, size and content refused in the browser; HTML relabelled as a PNG refused by the server with the browser check bypassed; real upload with progress; stored image previewed and served; another field's key refused on save). axe WCAG 2.2 AA clean in light and dark; keyboard-only upload works.
-- [ ] Write the framework's own docs/examples
-- [ ] End-to-end test: `flare create app && flare gen resource Contact --fields "..." && flare deploy` completes in under 5 minutes for a fresh user
+- [x] Write the framework's own docs/examples
+  - Documentation site in `docs/` (Astro + Starlight, monochrome theme from `style-guide.md`): Getting Started, Concepts, Guides (including realtime), Reference and a demo walkthrough. `npx astro build` in `docs/` builds 21 pages with a Pagefind search index. Every page was checked against the source; see the review notes in the commit. `examples/demo/README.md` documents the CRM demo, and a root `README.md` describes the monorepo. The site isn't published yet.
+- [x] End-to-end test: `flare create app && flare gen resource Contact --fields "..." && flare deploy` completes in under 5 minutes for a fresh user
+  - `scripts/e2e-timing.sh` runs exactly the quickstart (a plain `flare deploy`, which provisions D1/KV/R2, applies the migration and generates `BETTER_AUTH_SECRET`), then proves the live app works: signs up a user, creates a Contact through the generated API and lists it back. It deletes the Worker, D1, KV and R2 afterwards unless `KEEP=1`. Run on 2026-09-21 from a fresh temp directory: create 33s, generate 4s, deploy 77s, **total 114s**, and all live checks passed.
 
 **Exit criteria:** the 5-minute create→generate→deploy loop holds, with roles
 enforced at both UI and API layers. **This is the v1 launch bar.**
+
+✅ **Met (2026-09-21).** The loop took 114s on a fresh app, including a working
+signed-in API call on the deployed Worker; roles enforcement was proven at both
+layers earlier in M3. **Phase M3 is complete.**
 
 ---
 
