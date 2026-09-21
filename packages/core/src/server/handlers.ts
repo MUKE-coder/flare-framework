@@ -62,6 +62,28 @@ export function createResourceHandlers(options: ResourceHandlerOptions) {
 
   const guard = async (context: AuthorizeContext) => (await authorize(context)) ?? undefined;
 
+  /**
+   * Read and drop a body the handler didn't consume (a 401/403/415 answered early).
+   * Answering with it unread breaks the next request through wrangler's local dev
+   * proxy ("Network connection lost"). Streams, so memory stays flat.
+   */
+  async function drain(request: Request) {
+    if (!request.body || request.bodyUsed) return;
+    try {
+      const reader = request.body.getReader();
+      while (!(await reader.read()).done);
+    } catch {
+      // The client went away.
+    }
+  }
+  const draining =
+    <Rest extends unknown[]>(handler: (request: Request, ...rest: Rest) => Promise<Response>) =>
+    async (request: Request, ...rest: Rest): Promise<Response> => {
+      const response = await handler(request, ...rest);
+      await drain(request);
+      return response;
+    };
+
   async function GET(request: Request): Promise<Response> {
     const denied = await guard({ request, resource, action: "list" });
     if (denied) return denied;
@@ -103,5 +125,14 @@ export function createResourceHandlers(options: ResourceHandlerOptions) {
       }),
   };
 
-  return { collection: { GET, POST }, item: itemHandlers, store };
+  return {
+    collection: { GET, POST: draining(POST) },
+    item: {
+      GET: itemHandlers.GET,
+      PATCH: draining(itemHandlers.PATCH),
+      PUT: draining(itemHandlers.PUT),
+      DELETE: draining(itemHandlers.DELETE),
+    },
+    store,
+  };
 }

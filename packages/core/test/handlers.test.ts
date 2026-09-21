@@ -217,6 +217,18 @@ describe("authorization", () => {
     expect((await h.item.DELETE(new Request(`${ORIGIN}/api/contacts/abc`, { method: "DELETE" }), params("abc"))).status).toBe(401);
     expect(calls.map(({ action, id }) => ({ action, id }))).toEqual([{ action: "list", id: undefined }, { action: "delete", id: "abc" }]);
   });
+
+  it("reads the body of a denied write before answering", async () => {
+    // An unread body breaks the next request through wrangler's local dev proxy.
+    deny = Response.json({ error: "nope" }, { status: 403 });
+    const h = handlers();
+    const post = jsonRequest("POST", "/api/contacts", { name: "Ada", email: "ada@example.com" });
+    expect((await h.collection.POST(post)).status).toBe(403);
+    expect(post.bodyUsed).toBe(true);
+    const patch = jsonRequest("PATCH", "/api/contacts/abc", { name: "Ada" });
+    expect((await h.item.PATCH(patch, params("abc"))).status).toBe(403);
+    expect(patch.bodyUsed).toBe(true);
+  });
 });
 
 describe("configuration", () => {
