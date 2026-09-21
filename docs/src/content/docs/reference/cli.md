@@ -207,6 +207,16 @@ Regenerate every derived file from the descriptors and report drift — see
 | `--check` | Change nothing; exit `1` if anything is out of sync (CI) |
 | `--force` | Overwrite generated blocks that were edited by hand |
 
+## `flare tunnel [port|url]`
+
+Share a local server on a public `https://*.trycloudflare.com` URL through a
+Cloudflare Quick Tunnel. No account is needed. The target defaults to
+`http://localhost:3000`. See [Sharing your local app](/guides/tunnels/).
+
+```bash
+npx flare tunnel 8787
+```
+
 ## Delegated commands
 
 These forward straight through to the app's own installs — see
@@ -219,6 +229,9 @@ top.
 | `flare build` | `vinext build` |
 | `flare start` | `wrangler dev --config dist/server/wrangler.json --persist-to .wrangler/state` (runs `flare build` first if there's no build yet) |
 | `flare deploy` | Migrations → `vinext-cloudflare deploy` → secrets → zone security rules |
+
+`flare dev` and `flare start` also accept `--tunnel`, which shares the running
+server on a public URL ([Sharing your local app](/guides/tunnels/)).
 
 `flare deploy` additionally accepts `--skip-migrations`, `--skip-secrets`,
 `--skip-security`,

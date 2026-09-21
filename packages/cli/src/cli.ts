@@ -14,6 +14,7 @@ import { syncPlans } from "./commands/billing-sync.js";
 import { syncTypes } from "./commands/sync.js";
 import { setUserRole } from "./commands/user-role.js";
 import { DELEGATED_COMMANDS } from "./commands/run.js";
+import { openTunnel, toLocalUrl, tunnelBanner } from "./tunnel.js";
 
 export function createCli() {
   const cli = cac("flare");
@@ -156,6 +157,25 @@ export function createCli() {
     .option("--force", "Overwrite generated blocks that were edited by hand")
     .action(async (options: { check?: boolean; force?: boolean }) => {
       process.exitCode = await syncTypes(options);
+    });
+
+  cli
+    .command("tunnel [target]", "Share a local server on a public https://*.trycloudflare.com URL (Cloudflare Quick Tunnel; no account needed)")
+    .example("flare tunnel          # http://localhost:3000")
+    .example("flare tunnel 8787")
+    .example("flare tunnel http://localhost:5173")
+    .action(async (target: string | undefined) => {
+      const local = toLocalUrl(target);
+      const tunnel = await openTunnel(local);
+      console.log(tunnelBanner(tunnel.url, local));
+      // Stay up until Ctrl+C or until cloudflared stops.
+      process.exitCode = await new Promise<number>((resolve) => {
+        process.once("SIGINT", () => {
+          tunnel.close();
+          resolve(0);
+        });
+        tunnel.process.once("exit", (code) => resolve(code ?? 0));
+      });
     });
 
   // Handled before parsing in index.ts (arguments are forwarded verbatim); registered here for --help.

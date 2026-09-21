@@ -57,6 +57,7 @@ export default defineConfig({
             { label: "Realtime", slug: "guides/realtime" },
             { label: "Billing (Stripe)", slug: "guides/billing" },
             { label: "Security", slug: "guides/security" },
+            { label: "Sharing your local app", slug: "guides/tunnels" },
             { label: "Migrations & seeds", slug: "guides/migrations-and-seeds" },
             { label: "Deploying to Cloudflare", slug: "guides/deployment" },
           ],

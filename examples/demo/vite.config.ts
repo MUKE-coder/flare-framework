@@ -4,6 +4,8 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 import { kvDataAdapter } from "@vinext/cloudflare/cache/kv-data-adapter";
 
 export default defineConfig({
+  // `flare dev --tunnel` serves the dev server on a https://*.trycloudflare.com URL.
+  server: { allowedHosts: [".trycloudflare.com"] },
   plugins: [
     vinext({
       cache: {

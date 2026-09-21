@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import pc from "picocolors";
+import { openTunnel, parseLocalUrl, tunnelBanner, type Tunnel } from "../tunnel.js";
 import { findUp } from "../utils/fs.js";
 import { runDeploy } from "./deploy.js";
 
@@ -9,10 +11,10 @@ import { runDeploy } from "./deploy.js";
  * wrangler installs. Anything after the command name is forwarded unchanged.
  */
 export const DELEGATED_COMMANDS = {
-  dev: { description: "Start the vinext dev server", pkg: "vinext", bin: "vinext", args: ["dev"] },
+  dev: { description: "Start the vinext dev server (--tunnel: also share it on a public URL)", pkg: "vinext", bin: "vinext", args: ["dev"] },
   build: { description: "Build for production (vinext build)", pkg: "vinext", bin: "vinext", args: ["build"] },
   start: {
-    description: "Serve the production build locally in workerd (builds first if needed)",
+    description: "Serve the production build locally in workerd, building first if needed (--tunnel: also share it on a public URL)",
     pkg: "wrangler",
     bin: "wrangler",
     // --persist-to shares local D1/R2 state with `flare dev` and local migrations.
@@ -76,8 +78,59 @@ function runNode(argv: string[], cwd: string): Promise<number> {
   });
 }
 
+/**
+ * Run a dev server with its output mirrored, and share it on a Cloudflare quick tunnel
+ * once it prints the address it's listening on. With `opened`, the tunnel already exists
+ * (opened first so the server could be told its public origin) and only the banner waits.
+ * The tunnel closes with the server.
+ */
+function runNodeWithTunnel(argv: string[], cwd: string, opened?: Tunnel): Promise<number> {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(process.execPath, argv, { cwd, stdio: ["inherit", "pipe", "pipe"], env: { ...process.env, FORCE_COLOR: process.env.FORCE_COLOR ?? "1" } });
+    let tunnel: Tunnel | undefined = opened;
+    let seen = "";
+    let announced = false;
+    const watch = (chunk: Buffer, out: NodeJS.WriteStream) => {
+      out.write(chunk);
+      if (announced) return;
+      seen += chunk.toString();
+      const local = parseLocalUrl(seen);
+      if (!local) return;
+      announced = true;
+      if (opened) {
+        process.stdout.write(tunnelBanner(opened.url, local));
+        return;
+      }
+      openTunnel(local).then(
+        (fresh) => {
+          tunnel = fresh;
+          if (child.exitCode !== null) fresh.close();
+          else process.stdout.write(tunnelBanner(fresh.url, local));
+        },
+        (error: Error) => process.stderr.write(pc.red(`\nThe tunnel couldn't start: ${error.message}\nThe server is still running locally.\n`)),
+      );
+    };
+    child.stdout!.on("data", (chunk: Buffer) => watch(chunk, process.stdout));
+    child.stderr!.on("data", (chunk: Buffer) => watch(chunk, process.stderr));
+    child.on("error", reject);
+    child.on("exit", (code, signal) => {
+      tunnel?.close();
+      resolvePromise(code ?? (signal ? 1 : 0));
+    });
+  });
+}
+
+/** The value of `--port <n>` / `--port=<n>` in forwarded args, if any. */
+export function portArg(args: string[]): string | undefined {
+  const index = args.findIndex((arg) => arg === "--port" || arg === "-p");
+  if (index !== -1) return args[index + 1];
+  return args.find((arg) => arg.startsWith("--port="))?.slice("--port=".length);
+}
+
 export async function runDelegated(command: DelegatedCommand, forwarded: string[], cwd = process.cwd()): Promise<number> {
   const appRoot = findAppRoot(cwd);
+  const tunnel = (command === "dev" || command === "start") && forwarded.includes("--tunnel");
+  if (tunnel) forwarded = forwarded.filter((arg) => arg !== "--tunnel");
   const wantsHelp = forwarded.includes("--help") || forwarded.includes("-h");
 
   if (command === "start" && !wantsHelp && !existsSync(join(appRoot, "dist/server/wrangler.json"))) {
@@ -94,5 +147,13 @@ export async function runDelegated(command: DelegatedCommand, forwarded: string[
     });
   }
 
+  if (tunnel && !wantsHelp && command === "start") {
+    // wrangler dev rewrites request URLs to its own address, so auth would see a different
+    // origin than the browser's. Open the tunnel first and hand wrangler the public origin.
+    const opened = await openTunnel(`http://127.0.0.1:${portArg(forwarded) ?? "8787"}`);
+    const origin = ["--local-upstream", new URL(opened.url).host, "--upstream-protocol", "https"];
+    return runNodeWithTunnel(delegatedArgv(appRoot, command, [...forwarded, ...origin]), appRoot, opened);
+  }
+  if (tunnel && !wantsHelp) return runNodeWithTunnel(delegatedArgv(appRoot, command, forwarded), appRoot);
   return runNode(delegatedArgv(appRoot, command, forwarded), appRoot);
 }
