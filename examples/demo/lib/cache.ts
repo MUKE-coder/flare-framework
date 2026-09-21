@@ -4,13 +4,13 @@ import type { ChangeEvent } from "@flare/core/server";
 /**
  * Caching for data you read far more often than you write.
  *
- * Two layers are configured in `vite.config.ts` and both are Cloudflare-native:
+ * Only the **data cache** (Workers KV) is configured in `vite.config.ts`. It is
+ * what `cached()` below, `fetch()` and `"use cache"` write to. Shared by every
+ * colo and every isolate, so a value computed once is reused until it expires or
+ * its tag is revalidated.
  *
- * - **Data cache** (Workers KV) — what `cached()` below, `fetch()` and
- *   `"use cache"` write to. Shared by every colo and every isolate, so a value
- *   computed once is reused until it expires or its tag is revalidated.
- * - **CDN cache** (Workers Cache) — whole page responses, for routes that don't
- *   read cookies or headers. Pages behind auth opt out of it automatically.
+ * vinext's page-level CDN cache (the Workers Cache `cdn` adapter) is off until a
+ * vinext fix lands: in the current beta, pages that redirect break behind it.
  *
  * Nothing here caches per-user data: everything keyed by session belongs
  * outside the cache, since these entries are shared between visitors.

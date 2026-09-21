@@ -1,0 +1,22 @@
+{
+  "name": "@flare/docs",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "deploy": "astro build && wrangler deploy",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.42.2",
+    "astro": "^7.2.10",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "wrangler": "^4.132.0"
+  }
+}

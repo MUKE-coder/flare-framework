@@ -1,0 +1,113 @@
+/*
+ * Flare docs theme.
+ *
+ * Monochrome-first, matching style-guide.md at the repo root: color is
+ * reserved for status/semantic meaning (success/warning/danger asides,
+ * badges). Nav, chrome, and the primary accent stay black/white, inverted
+ * per theme. No gradients, no glassmorphism, no heavy shadows.
+ *
+ * Deliberately NOT wrapped in `@layer starlight.base`: unlayered CSS always
+ * wins over cascade-layered CSS of equal specificity regardless of source
+ * order, which is what makes a plain :root override here reliable. (Using
+ * the same layer name as Starlight's own props.css instead triggers a
+ * cross-file layer-merge bug in the build that silently drops the
+ * duplicate declarations.)
+ */
+
+:root {
+  /* Dark mode (default) */
+  --sl-color-white: hsl(0, 0%, 100%);
+  --sl-color-black: hsl(0, 0%, 4%);
+
+  --sl-color-gray-1: hsl(0, 0%, 94%);
+  --sl-color-gray-2: hsl(220, 9%, 65%);
+  --sl-color-gray-3: hsl(220, 9%, 46%);
+  --sl-color-gray-4: hsl(220, 6%, 32%);
+  --sl-color-gray-5: hsl(240, 4%, 16%);
+  --sl-color-gray-6: hsl(240, 4%, 10%);
+
+  /* Accent = foreground tone, inverted per theme (style-guide.md --accent) */
+  --sl-color-accent-low: hsl(240, 4%, 20%);
+  --sl-color-accent: hsl(0, 0%, 98%);
+  --sl-color-accent-high: hsl(0, 0%, 100%);
+
+  --sl-hue-green: 142;
+  --sl-color-green-low: hsl(var(--sl-hue-green), 30%, 16%);
+  --sl-color-green: hsl(var(--sl-hue-green), 71%, 55%);
+  --sl-color-green-high: hsl(var(--sl-hue-green), 60%, 80%);
+
+  --sl-hue-orange: 32;
+  --sl-color-orange-low: hsl(var(--sl-hue-orange), 40%, 18%);
+  --sl-color-orange: hsl(var(--sl-hue-orange), 95%, 55%);
+  --sl-color-orange-high: hsl(var(--sl-hue-orange), 80%, 82%);
+
+  --sl-hue-red: 0;
+  --sl-color-red-low: hsl(var(--sl-hue-red), 40%, 18%);
+  --sl-color-red: hsl(var(--sl-hue-red), 84%, 60%);
+  --sl-color-red-high: hsl(var(--sl-hue-red), 80%, 85%);
+
+  --sl-color-text: var(--sl-color-gray-1);
+  --sl-color-text-accent: var(--sl-color-white);
+  --sl-color-text-invert: var(--sl-color-black);
+  --sl-color-bg: var(--sl-color-black);
+  --sl-color-bg-nav: hsl(0, 0%, 6.5%);
+  --sl-color-bg-sidebar: hsl(0, 0%, 6.5%);
+  --sl-color-bg-inline-code: var(--sl-color-gray-5);
+  --sl-color-bg-accent: var(--sl-color-white);
+  --sl-color-hairline-light: var(--sl-color-gray-5);
+  --sl-color-hairline: hsl(240, 4%, 15%);
+  --sl-color-hairline-shade: var(--sl-color-black);
+
+  --sl-font: ui-sans-serif, -apple-system, "Inter", sans-serif;
+  --sl-shadow-sm: none;
+  --sl-shadow-md: 0px 4px 12px hsla(0, 0%, 0%, 0.2);
+  --sl-shadow-lg: 0px 8px 24px hsla(0, 0%, 0%, 0.28);
+}
+
+:root[data-theme="light"] {
+  --sl-color-white: hsl(0, 0%, 4%);
+  --sl-color-black: hsl(0, 0%, 100%);
+
+  --sl-color-gray-1: hsl(0, 0%, 4%);
+  --sl-color-gray-2: hsl(220, 9%, 30%);
+  --sl-color-gray-3: hsl(220, 4%, 46%);
+  --sl-color-gray-4: hsl(220, 9%, 65%);
+  --sl-color-gray-5: hsl(220, 14%, 90%);
+  --sl-color-gray-6: hsl(220, 20%, 97%);
+  --sl-color-gray-7: hsl(220, 20%, 97%);
+
+  --sl-color-accent-low: hsl(0, 0%, 90%);
+  --sl-color-accent: hsl(0, 0%, 4%);
+  --sl-color-accent-high: hsl(0, 0%, 20%);
+
+  --sl-color-green-high: hsl(var(--sl-hue-green), 60%, 30%);
+  --sl-color-green: hsl(var(--sl-hue-green), 65%, 38%);
+  --sl-color-green-low: hsl(var(--sl-hue-green), 70%, 92%);
+
+  --sl-color-orange-high: hsl(var(--sl-hue-orange), 70%, 32%);
+  --sl-color-orange: hsl(var(--sl-hue-orange), 86%, 44%);
+  --sl-color-orange-low: hsl(var(--sl-hue-orange), 90%, 92%);
+
+  --sl-color-red-high: hsl(var(--sl-hue-red), 70%, 40%);
+  --sl-color-red: hsl(var(--sl-hue-red), 72%, 50%);
+  --sl-color-red-low: hsl(var(--sl-hue-red), 86%, 94%);
+
+  --sl-color-text-accent: var(--sl-color-accent);
+  --sl-color-text-invert: var(--sl-color-black);
+  --sl-color-bg-nav: hsl(0, 0%, 100%);
+  --sl-color-bg-sidebar: hsl(220, 20%, 98.5%);
+  --sl-color-bg-inline-code: var(--sl-color-gray-6);
+  --sl-color-bg-accent: var(--sl-color-accent);
+  --sl-color-hairline-light: var(--sl-color-gray-6);
+  --sl-color-hairline-shade: var(--sl-color-gray-6);
+  --sl-color-hairline: hsl(220, 14%, 91%);
+
+  --sl-shadow-sm: none;
+  --sl-shadow-md: 0px 2px 8px hsla(220, 20%, 20%, 0.06);
+  --sl-shadow-lg: 0px 8px 24px hsla(220, 20%, 20%, 0.08);
+}
+
+/* Flat cards/borders per style-guide.md — no heavy shadows outside overlays. */
+.sidebar-content a[aria-current="page"] {
+  font-weight: 600;
+}

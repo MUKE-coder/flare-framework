@@ -59,7 +59,7 @@ export function createCli() {
     .option("--label <label>", "Display label (default: humanized name)")
     .option("--remote", "Target the deployed database")
     .option("--env <name>", "Wrangler environment")
-    .example("flare role:add staff")
+    .example("flare role:add support")
     .action(async (name: string, options: { label?: string; remote?: boolean; env?: string }) => {
       process.exitCode = await addRole(name, options);
     });

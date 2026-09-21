@@ -585,8 +585,10 @@ descriptors, which remain the source of truth:
   migration.
 - **`--check`.** Changes nothing and exits 1 if anything would change or needs
   attention (CI).
-- **Descriptors.** Their fields block is untracked by design: they're meant
-  to be edited, and `gen resource` refuses to overwrite an existing one.
+- **Descriptors.** They are the source `sync-types` reads, never a target it
+  rewrites. Their fields block is a tracked generated block for
+  `gen resource`: re-running it with `--fields` rewrites the block, refuses
+  only if the block was edited by hand, and `--force` overrides.
 - **Formatters.** Reformatting a generated block counts as drift; exclude the
   blocks from formatters or re-run with `--force`.
 

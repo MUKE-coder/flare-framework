@@ -1,0 +1,81 @@
+---
+title: Flare
+description: Laravel + Filament, for the Cloudflare edge.
+template: splash
+hero:
+  tagline: A batteries-included, generator-driven fullstack framework for Cloudflare Workers — auth, database, storage, mail, and an admin dashboard, wired together and ready in minutes.
+  actions:
+    - text: Quickstart
+      link: /start/quickstart/
+      icon: right-arrow
+    - text: Why Flare?
+      link: '#why-flare'
+      icon: down-arrow
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## The five-minute loop
+
+```bash
+npx @flare/cli create myapp
+cd myapp
+npx flare gen resource Contact --fields "name:string, email:string"
+npx flare deploy
+```
+
+That's a live, authenticated CRUD app on Cloudflare Workers with a working
+admin dashboard — no hand-wired D1 bindings, no auth library to pick, no
+admin UI to build by hand.
+
+Flare's packages aren't published to npm yet; until they are,
+[run the CLI from a checkout of the repo](/start/installation/#run-the-cli-from-this-repo-for-now).
+
+## Why Flare
+
+Building a fullstack CRUD app on Cloudflare today means hand-wiring D1
+bindings, picking an auth library, writing an admin UI from scratch, and
+gluing together R2, KV, and Durable Objects yourself — every time,
+for every project. Rails, Laravel, and Filament solved this decades ago for
+their ecosystems. Flare solves it for the Cloudflare edge.
+
+<CardGrid stagger>
+	<Card title="One resource, everything generated" icon="rocket">
+		A single `<resource>.resource.ts` descriptor drives the Drizzle schema,
+		migration, Zod validators, REST API, typed client, and the admin
+		list/create/edit pages — all regenerated in place as the descriptor
+		changes.
+	</Card>
+	<Card title="Batteries included" icon="setting">
+		D1 + Drizzle, Better Auth (email/password and OAuth), R2 file storage,
+		Resend email, a KV data cache, and realtime channels on Durable Objects — wired on `flare create`, not left
+		for you to assemble.
+	</Card>
+	<Card title="A real admin dashboard" icon="open-book">
+		Filament-style: `<ResourceTable>`, `<ResourceForm>`, and `<ResourceNav>`
+		read resource metadata at runtime. Editing a field's label or validation
+		doesn't require touching the UI.
+	</Card>
+	<Card title="Roles and policies enforced twice" icon="approve-check-circle">
+		`flare gen policy` writes a resource-level policy that the API and the
+		admin UI both enforce server-side — never UI-only.
+	</Card>
+</CardGrid>
+
+## Where to go next
+
+<CardGrid>
+	<Card title="Quickstart" icon="rocket">
+		[Scaffold, generate, and deploy an app in five minutes.](/start/quickstart/)
+	</Card>
+	<Card title="The resource descriptor" icon="document">
+		[The core abstraction every generated file is derived from.](/concepts/resource-descriptor/)
+	</Card>
+	<Card title="CLI reference" icon="list-format">
+		[Every `flare` command, flag by flag.](/reference/cli/)
+	</Card>
+	<Card title="The demo app" icon="puzzle">
+		[A worked example covering every guide in these docs.](/examples/demo/)
+	</Card>
+</CardGrid>
