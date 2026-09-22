@@ -1,5 +1,6 @@
 ---
 import { Code } from "@astrojs/starlight/components";
+import { FLARE_VERSION, RELEASE_URL } from "../version";
 /**
  * The docs home page. One idea carries it: describe a resource once, and Flare
  * writes the rest. The hero panel shows exactly that, with real generator output.
@@ -184,9 +185,9 @@ const faq = [
   <!-- Hero -->
   <section class="fl-hero" aria-labelledby="fl-hero-title">
     <div class="fl-hero-grid" aria-hidden="true"></div>
-    <a class="fl-pill" href="/guides/tunnels/">
-      <span class="fl-pill-tag">New</span>
-      <span class="fl-pill-text">Public URLs for your local app</span>
+    <a class="fl-pill" href={RELEASE_URL}>
+      <span class="fl-pill-tag">v{FLARE_VERSION}</span>
+      <span class="fl-pill-text">Passkeys, two-factor and six themes</span>
     </a>
     <h1 id="fl-hero-title" class="fl-hero-title">
       <span class="fl-line">The fullstack framework</span>

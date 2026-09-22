@@ -19,6 +19,8 @@ export default defineConfig({
       ],
       customCss: ["@fontsource-variable/geist", "@fontsource-variable/geist-mono", "/src/styles/flare-theme.css"],
       favicon: "/favicon.svg",
+      // The site title carries the Flare version these docs describe.
+      components: { SiteTitle: "./src/components/SiteTitle.astro" },
       logo: {
         src: "./src/assets/flare-mark.svg",
         replacesTitle: false,
