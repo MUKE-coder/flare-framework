@@ -172,9 +172,6 @@ importers:
 
   packages/core:
     dependencies:
-      react:
-        specifier: ^18.2 || ^19.0.0
-        version: 19.3.0
       zod:
         specifier: ^4.6.5
         version: 4.6.5

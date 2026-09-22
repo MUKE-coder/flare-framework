@@ -43,3 +43,22 @@ export function childEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEn
   }
   return next;
 }
+
+/** Like run(), but captures the output instead of printing it (shown only if something fails). */
+export function runQuiet(command: string, args: string[], cwd: string): { code: number; output: string } {
+  const env = childEnv();
+  const result =
+    process.platform === "win32"
+      ? spawnSync([command, ...args].join(" "), { cwd, env, shell: true, encoding: "utf8" })
+      : spawnSync(command, args, { cwd, env, encoding: "utf8" });
+  return { code: result.status ?? 1, output: `${result.stdout ?? ""}${result.stderr ?? ""}` };
+}
+
+/**
+ * `install` for each manager, without the noise that isn't about this install:
+ * npm's audit/funding summaries and warnings (errors still print).
+ */
+export function installArgs(pm: PackageManager): string[] {
+  if (pm === "npm") return ["install", "--no-audit", "--no-fund", "--loglevel=error"];
+  return ["install"];
+}

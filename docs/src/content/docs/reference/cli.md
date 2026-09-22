@@ -31,7 +31,7 @@ Generate (or update) a resource — see
 | `--force` | Overwrite a hand-edited generated block |
 
 ```bash
-npx flare gen resource Contact --fields "name:string, email:string!, company:belongsTo(Company)?"
+npx flare gen resource Contact --fields 'name:string, email:string!, company:belongsTo(Company)?'
 ```
 
 ## `flare gen migration <name>`

@@ -1,6 +1,6 @@
 {
   "name": "@flaredev/core",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Flare runtime: resource descriptors, field grammar, and Cloudflare-native helpers",
   "license": "MIT",
   "author": "Muke Johnbaptist",
@@ -78,18 +78,6 @@
     "@types/sql.js": "^1.4.11",
     "drizzle-orm": "^0.45.2",
     "sql.js": "^1.14.2"
-  },
-  "peerDependencies": {
-    "drizzle-orm": "^0.45.2",
-    "react": "^18.2 || ^19.0.0"
-  },
-  "peerDependenciesMeta": {
-    "drizzle-orm": {
-      "optional": true
-    },
-    "react": {
-      "optional": true
-    }
   },
   "engines": {
     "node": ">=22"

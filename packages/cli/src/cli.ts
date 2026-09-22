@@ -33,7 +33,7 @@ export function createCli() {
 
   cli
     .command("gen <generator> [name]", "Generate code. Generators: resource, migration, policy, billing, security")
-    .option("--fields <fields>", 'resource: fields, e.g. "name:string, email:string!, status:enum(lead,customer)"')
+    .option("--fields <fields>", "resource: fields, e.g. 'name:string, email:string!, status:enum(lead,customer)' (single quotes: bash treats ! in double quotes as history)")
     .option("--force", "resource/policy/billing/security: overwrite hand-edited generated blocks")
     .option("--from-schema", "migration: diff the current tables instead of a blank migration")
     .option("--roles <roles>", "policy: roles allowed to read, create and update, e.g. admin,staff")
@@ -42,7 +42,7 @@ export function createCli() {
     .option("--mode <mode>", "billing: subscriptions (the default; includes one-time checkout)")
     .option("--skip-install", "billing: write files without installing the stripe dependency")
     .option("--skip-migration", "billing/security: skip generating the schema migration")
-    .example('flare gen resource Contact --fields "name:string, email:string!, company:belongsTo(Company)?"')
+    .example("flare gen resource Contact --fields 'name:string, email:string!, company:belongsTo(Company)?'")
     .example("flare gen migration backfill_contact_status")
     .example("flare gen migration add_phone_to_contacts --from-schema")
     .example("flare gen policy Invoice --roles admin,staff --delete-roles admin")

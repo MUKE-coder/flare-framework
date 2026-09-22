@@ -38,7 +38,7 @@ It installs dependencies and runs `wrangler types` for you, so
 ## 2. Generate a resource
 
 ```bash
-npx flare gen resource Contact --fields "name:string, email:string!, status:enum(lead,customer)"
+npx flare gen resource Contact --fields 'name:string, email:string!, status:enum(lead,customer)'
 ```
 
 One command, one [resource descriptor](/concepts/resource-descriptor/),

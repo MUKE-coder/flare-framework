@@ -28,6 +28,10 @@ yarn create flare-framework myapp
 bun create flare-framework myapp
 ```
 
+The first install downloads the Workers runtime and the build toolchain (about
+300 packages), so it takes a few minutes. pnpm is the quickest: its shared store
+means your second Flare app installs in seconds.
+
 `flare create` flags pass straight through, e.g.
 `npm create flare-framework@latest myapp -- --auth-providers google,github`.
 

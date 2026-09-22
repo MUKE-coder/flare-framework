@@ -6,13 +6,15 @@ import { FLARE_VERSION } from "@flaredev/core";
 import { devVarsEntries, devVarsExampleEntries, parseAuthProviders, socialProvidersCode } from "../auth-providers.js";
 import { APP_DEPENDENCIES, APP_DEV_DEPENDENCIES } from "../versions.js";
 import { copyTemplate, findUp, templatesDir, writeJson } from "../utils/fs.js";
-import { detectPackageManager, isPackageManager, run, type PackageManager } from "../utils/pm.js";
+import { detectPackageManager, installArgs, isPackageManager, run, runQuiet, type PackageManager } from "../utils/pm.js";
 
 export interface CreateOptions {
   install?: boolean;
   pm?: string;
   /** Comma-separated OAuth providers, e.g. "google,github". */
   authProviders?: string;
+  /** Progress lines (default: console.log). */
+  log?: (message: string) => void;
   /** Override "today" for the wrangler compatibility date (used by tests). */
   compatibilityDate?: string;
 }
@@ -113,23 +115,42 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
     writeFileSync(join(dir, "pnpm-workspace.yaml"), "allowBuilds:\n  esbuild: true\n  workerd: true\n  sharp: false\n");
   }
 
+  const log = options.log ?? ((message: string) => console.log(message));
   if (options.install !== false) {
-    const code = run(packageManager, ["install"], dir);
+    log(`${pc.green("✔")} Wrote the app to ${relative(process.cwd(), dir) || "."}`);
+    log(`${pc.cyan("●")} Installing dependencies with ${packageManager}. The first install downloads the Workers runtime and toolchain, so it can take a few minutes.\n`);
+    const started = Date.now();
+    const code = run(packageManager, installArgs(packageManager), dir);
     if (code !== 0) throw new Error(`${packageManager} install failed (exit code ${code}).`);
+    log(`${pc.green("✔")} Installed dependencies ${pc.dim(`(${formatDuration(Date.now() - started)})`)}`);
+
     // Generate worker-configuration.d.ts so `env.DB` and other bindings are typed.
-    const typegen = run(packageManager, ["run", "cf-typegen"], dir);
-    if (typegen !== 0) throw new Error(`wrangler types failed (exit code ${typegen}).`);
+    // wrangler prints the whole generated file; keep it unless something fails.
+    const typegen = runQuiet(packageManager, ["run", "cf-typegen"], dir);
+    if (typegen.code !== 0) {
+      process.stderr.write(typegen.output);
+      throw new Error(`wrangler types failed (exit code ${typegen.code}).`);
+    }
+    log(`${pc.green("✔")} Generated types for the Cloudflare bindings`);
   }
 
   return { dir, name, packageManager, inWorkspace };
 }
 
+export function formatDuration(ms: number): string {
+  const seconds = Math.round(ms / 1000);
+  return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`;
+}
+
 export function printNextSteps(result: CreateResult, installed: boolean) {
   const rel = relative(process.cwd(), result.dir) || ".";
   const pm = result.packageManager;
-  console.log(`\n${pc.green("✔")} Created ${pc.bold(result.name)} in ${rel}\n`);
+  const step = (command: string, note: string) => `  ${command.padEnd(30)}${pc.dim(note)}`;
+  console.log(`\n${pc.green("✔")} Created ${pc.bold(result.name)}\n`);
   console.log("Next steps:");
   console.log(`  cd ${rel}`);
   if (!installed) console.log(`  ${pm} install`);
-  console.log(`  ${pm} run dev`);
+  console.log(step(`${pm} run dev`, "start it at http://localhost:3000"));
+  console.log(step("npx flare gen resource ...", "add your first resource"));
+  console.log(`\nQuickstart: ${pc.cyan("https://flare-docs.codetotech.com/start/quickstart/")}`);
 }

@@ -20,7 +20,7 @@ were verified against, including a real deploy to
 Generated with:
 
 ```bash
-npx flare gen resource Company --fields "name:string!, deals:hasMany(Deal)"
+npx flare gen resource Company --fields 'name:string!, deals:hasMany(Deal)'
 npx flare gen resource Contact --fields "name:string, email:string, phone:string?, status:enum(lead,pending,customer,churned)?, vip:boolean?"
 npx flare gen resource Deal --fields "title:string, amount:float?, company:belongsTo(Company), owner:belongsTo(Contact)?, closeOn:date?, contract:file:[pdf,image]?"
 ```

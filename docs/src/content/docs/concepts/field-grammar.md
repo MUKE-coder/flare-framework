@@ -27,8 +27,15 @@ Append `?` to make a field optional (nullable), `!` to make it unique.
 They combine: `sku:string!?`.
 
 ```bash
-npx flare gen resource Product --fields "sku:string!?, price:float, inStock:boolean?"
+npx flare gen resource Product --fields 'sku:string!?, price:float, inStock:boolean?'
 ```
+
+:::note[Quoting in your shell]
+Wrap `--fields` in **single quotes** in bash, zsh (including Git Bash on
+Windows) and PowerShell. Inside double quotes, bash reads `!` as a history
+command and fails with `event not found` before Flare ever runs. In Windows
+`cmd.exe`, which has no single-quote quoting, use double quotes instead.
+:::
 
 `hasMany` fields can't take suffixes — they don't store a column.
 

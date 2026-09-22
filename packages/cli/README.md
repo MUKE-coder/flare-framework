@@ -35,7 +35,7 @@ npx @flaredev/cli create my-app
 ```sh
 flare create shop
 cd shop
-flare gen resource Product --fields "name:string, price:int, sku:string!"
+flare gen resource Product --fields 'name:string, price:int, sku:string!'
 flare migrate
 flare dev
 flare deploy
