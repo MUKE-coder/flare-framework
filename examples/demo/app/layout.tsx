@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { site } from "@/lib/site";
+import { activeTheme } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "demo",
-  description: "Built with Flare",
+  title: { default: site.name, template: `%s · ${site.name}` },
+  description: site.description,
 };
 
 /**
@@ -16,7 +18,7 @@ const themeScript = `(function(){try{var m=document.cookie.match(/(?:^|; )flare-
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-theme={activeTheme} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

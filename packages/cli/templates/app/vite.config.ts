@@ -1,9 +1,11 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import vinext from "vinext";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { kvDataAdapter } from "@vinext/cloudflare/cache/kv-data-adapter";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  // FLARE_THEME (shell or .env) picks the theme for this build; see lib/theme.ts.
+  define: { __FLARE_THEME__: JSON.stringify(loadEnv(mode, process.cwd(), "FLARE_").FLARE_THEME ?? "") },
   // `flare dev --tunnel` serves the dev server on a https://*.trycloudflare.com URL.
   server: { allowedHosts: [".trycloudflare.com"] },
   plugins: [
@@ -26,4 +28,4 @@ export default defineConfig({
       },
     }),
   ],
-});
+}));

@@ -1,5 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* One typeface per theme (self-hosted; only the active theme's font is downloaded). */
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource-variable/noto-sans";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/figtree";
 
 /*
  * Dark mode: the `dark` class on <html> (set from the theme cookie) or, with no
@@ -66,8 +72,6 @@
   --card-foreground: var(--foreground);
   --popover: var(--surface);
   --popover-foreground: var(--foreground);
-  --primary: var(--foreground);
-  --primary-foreground: var(--background);
   --secondary: var(--surface-muted);
   --secondary-foreground: var(--foreground);
   --muted: var(--surface-muted);
@@ -76,7 +80,6 @@
   --accent-foreground: var(--foreground);
   --destructive: var(--danger);
   --input: var(--border);
-  --ring: var(--foreground-muted);
   --chart-1: var(--foreground);
   --chart-2: #71717a;
   --chart-3: #a1a1aa;
@@ -101,8 +104,104 @@
   }
 }
 
+/*
+ * Themes (lib/theme.ts): <html data-theme="…">. Each sets the brand colour, link colour,
+ * button shape, heading weight and typeface; --primary and --ring follow the brand, so
+ * the admin, dashboard, auth screens and home page all change together.
+ */
+:root,
+[data-theme="default"] {
+  --brand: #5b5bd6;
+  --brand-foreground: #ffffff;
+  --link: #5b5bd6;
+  --radius: 0.5rem;
+  --button-radius: 0.5rem;
+  --heading-weight: 600;
+  --heading-tracking: -0.02em;
+  --font-theme: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-theme="coral"] {
+  --brand: #e31c5f;
+  --brand-foreground: #ffffff;
+  --brand-gradient: linear-gradient(90deg, #e61e4d 0%, #e31c5f 50%, #d70466 100%);
+  --link: #d70466;
+  --radius: 0.75rem;
+  --button-radius: 0.5rem;
+  --heading-weight: 700;
+  --heading-tracking: -0.025em;
+  --font-theme: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-theme="amber"] {
+  --brand: #ffd814;
+  --brand-foreground: #0f1111;
+  --link: #2162a1;
+  --radius: 0.5rem;
+  --button-radius: 999px;
+  --heading-weight: 400;
+  --heading-tracking: 0;
+  --font-theme: "Noto Sans Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-theme="sky"] {
+  --brand: #0051c3;
+  --brand-foreground: #ffffff;
+  --link: #0051c3;
+  --radius: 0.375rem;
+  --button-radius: 0.375rem;
+  --heading-weight: 650;
+  --heading-tracking: -0.025em;
+  --font-theme: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-theme="mono"] {
+  --brand: var(--foreground);
+  --brand-foreground: var(--background);
+  --link: var(--foreground);
+  --radius: 0.5rem;
+  --button-radius: 0.5rem;
+  --heading-weight: 600;
+  --heading-tracking: -0.03em;
+  --font-theme: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-theme="emerald"] {
+  --brand: #3ecf8e;
+  --brand-foreground: #0f1f17;
+  --link: #11784a;
+  --radius: 0.375rem;
+  --button-radius: 0.375rem;
+  --heading-weight: 500;
+  --heading-tracking: -0.02em;
+  --font-theme: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Links stay readable on dark grounds. */
+.dark {
+  --link: color-mix(in oklab, var(--brand) 65%, white);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --link: color-mix(in oklab, var(--brand) 65%, white);
+  }
+}
+[data-theme="mono"].dark,
+[data-theme="amber"].dark {
+  --link: var(--foreground);
+}
+
+:root {
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --ring: var(--brand);
+}
+
 @theme inline {
-  --font-sans: ui-sans-serif, -apple-system, "Inter", "Segoe UI", sans-serif;
+  --font-sans: var(--font-theme);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-link: var(--link);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
@@ -152,5 +251,11 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    font-weight: var(--heading-weight);
+    letter-spacing: var(--heading-tracking);
   }
 }

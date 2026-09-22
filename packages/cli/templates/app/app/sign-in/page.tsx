@@ -1,33 +1,49 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AuthForm } from "@/components/auth-form";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { SignInFlow } from "@/components/auth/sign-in-flow";
 import { enabledSocialProviders } from "@/lib/auth";
+import { authConfig } from "@/lib/auth-config";
 import { getSession, safeRedirectPath } from "@/lib/session";
+import { site } from "@/lib/site";
+import { theme } from "@/lib/theme";
 
-export default async function SignInPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ next?: string; error?: string }>;
-}) {
+export const metadata = { title: "Sign in" };
+
+const ERRORS: Record<string, string> = {
+  oauth: "Sign-in with that provider didn't finish. Try again.",
+  link: "That sign-in link has expired or was already used. Ask for a new one.",
+};
+
+export default async function SignInPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string; reset?: string }> }) {
   const params = await searchParams;
   const next = safeRedirectPath(params.next);
   if (await getSession()) redirect(next);
 
+  const copy = theme.signIn(site.name);
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6">
-      <h1 className="text-2xl font-semibold">Sign in</h1>
-      <AuthForm
-        mode="sign-in"
+    <AuthShell
+      page="sign-in"
+      title={copy.title}
+      subtitle={(copy as { subtitle?: string }).subtitle}
+      footer={
+        <>
+          Don&apos;t have an account?{" "}
+          <Link href={`/sign-up?next=${encodeURIComponent(next)}`} className="font-medium text-link hover:underline">
+            Sign up
+          </Link>
+        </>
+      }
+    >
+      <SignInFlow
+        providers={enabledSocialProviders()}
+        socialPlacement={theme.social}
+        socialStyle={theme.socialStyle}
+        methods={{ magicLink: authConfig.magicLink, emailOtp: authConfig.emailOtp, passkeys: authConfig.passkeys }}
         next={next}
-        socialProviders={enabledSocialProviders()}
-        initialError={params.error ? "Sign-in with that provider failed. Please try again." : null}
+        initialError={params.error ? (ERRORS[params.error] ?? "Sign-in didn't finish. Try again.") : null}
+        initialNotice={params.reset ? "Your password is changed. Sign in with the new one." : null}
       />
-      <p className="text-sm text-[var(--foreground-muted)]">
-        No account?{" "}
-        <Link href={`/sign-up?next=${encodeURIComponent(next)}`} className="font-medium text-[var(--foreground)] underline">
-          Create one
-        </Link>
-      </p>
-    </main>
+    </AuthShell>
   );
 }

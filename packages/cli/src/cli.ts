@@ -3,6 +3,8 @@ import { FLARE_VERSION } from "@flaredev/core";
 import { createApp, printNextSteps } from "./commands/create.js";
 import { genBilling } from "./commands/gen-billing.js";
 import { genSecurity } from "./commands/gen-security.js";
+import { setTheme } from "./commands/theme.js";
+import { askCreateQuestions, canPrompt, type CreateAnswers } from "./commands/create-prompts.js";
 import { genResource } from "./commands/gen.js";
 import { genMigration } from "./commands/gen-migration.js";
 import { genPolicy } from "./commands/gen-policy.js";
@@ -22,12 +24,18 @@ export function createCli() {
   cli
     .command("create <dir>", "Scaffold a new Flare app")
     .option("--pm <manager>", "Package manager: pnpm, npm, yarn, or bun (default: detected)")
-    .option("--auth-providers <list>", "OAuth providers to scaffold, comma-separated (google, github)")
+    .option("--theme <name>", "Look of the app: default, coral, amber, sky, mono or emerald")
+    .option("--auth <list>", "Sign-in methods: magic-link, email-otp, passkeys, 2fa-app, 2fa-email, all or none (default: all)")
+    .option("--auth-providers <list>", "Social sign-in, comma-separated: google, github, apple, microsoft")
+    .option("-y, --yes", "Don't ask: use the flags given and the defaults for the rest")
     .option("--skip-install", "Write files without installing dependencies")
-    .example("flare create shop --auth-providers google,github")
-    .action((dir: string, options: { pm?: string; skipInstall?: boolean; authProviders?: string }) => {
+    .example("flare create shop")
+    .example("flare create shop --theme mono --auth passkeys,2fa-app --auth-providers google,github --yes")
+    .action(async (dir: string, options: { pm?: string; skipInstall?: boolean; authProviders?: string; auth?: string; theme?: string; yes?: boolean }) => {
       const install = !options.skipInstall;
-      const result = createApp(dir, { pm: options.pm, install, authProviders: options.authProviders });
+      let answers: CreateAnswers = { theme: options.theme, auth: options.auth, authProviders: options.authProviders };
+      if (canPrompt(options.yes)) answers = await askCreateQuestions(answers);
+      const result = createApp(dir, { pm: options.pm, install, ...answers });
       printNextSteps(result, install);
     });
 
@@ -158,6 +166,12 @@ export function createCli() {
     .action(async (options: { check?: boolean; force?: boolean }) => {
       process.exitCode = await syncTypes(options);
     });
+
+  cli
+    .command("theme [name]", "List the themes, or switch the app to one: default, coral, amber, sky, mono, emerald")
+    .example("flare theme")
+    .example("flare theme mono")
+    .action((name: string | undefined) => setTheme(name));
 
   cli
     .command("tunnel [target]", "Share a local server on a public https://*.trycloudflare.com URL (Cloudflare Quick Tunnel; no account needed)")

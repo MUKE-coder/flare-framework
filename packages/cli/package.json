@@ -41,6 +41,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@clack/prompts": "1.8.1",
     "@flaredev/core": "workspace:*",
     "cac": "^7.0.0",
     "jiti": "^2.7.0",

@@ -4,6 +4,7 @@
  */
 export const APP_DEPENDENCIES = {
   "@better-auth/drizzle-adapter": "1.7.5",
+  "@better-auth/passkey": "1.7.5",
   // Server components import Slot from here rather than the "radix-ui" umbrella (see components/ui/button.tsx).
   "@radix-ui/react-slot": "1.3.3",
   "@vinext/cloudflare": "1.0.0-beta.8",
@@ -19,6 +20,14 @@ export const APP_DEPENDENCIES = {
   sonner: "^2.0.8",
   "tailwind-merge": "^3.7.0",
   "tw-animate-css": "^1.4.0",
+  // Typefaces for the six themes (app/globals.css).
+  "@fontsource-variable/figtree": "5.3.0",
+  "@fontsource-variable/geist": "5.3.0",
+  "@fontsource-variable/inter": "5.3.0",
+  "@fontsource-variable/noto-sans": "5.3.0",
+  "@fontsource-variable/plus-jakarta-sans": "5.3.0",
+  // QR codes for authenticator-app (2FA) setup.
+  uqr: "0.1.3",
   "drizzle-orm": "^0.45.2",
   react: "19.3.0",
   "react-dom": "19.3.0",

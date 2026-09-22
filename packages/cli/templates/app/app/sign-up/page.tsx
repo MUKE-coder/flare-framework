@@ -1,23 +1,42 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AuthForm } from "@/components/auth-form";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { SignUpForm } from "@/components/auth/sign-up-form";
 import { enabledSocialProviders } from "@/lib/auth";
+import { authConfig } from "@/lib/auth-config";
 import { getSession, safeRedirectPath } from "@/lib/session";
+import { site } from "@/lib/site";
+import { theme } from "@/lib/theme";
+
+export const metadata = { title: "Create an account" };
 
 export default async function SignUpPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  const next = safeRedirectPath((await searchParams).next);
+  const params = await searchParams;
+  const next = safeRedirectPath(params.next);
   if (await getSession()) redirect(next);
 
+  const copy = theme.signUp(site.name);
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6">
-      <h1 className="text-2xl font-semibold">Create an account</h1>
-      <AuthForm mode="sign-up" next={next} socialProviders={enabledSocialProviders()} />
-      <p className="text-sm text-[var(--foreground-muted)]">
-        Already registered?{" "}
-        <Link href={`/sign-in?next=${encodeURIComponent(next)}`} className="font-medium text-[var(--foreground)] underline">
-          Sign in
-        </Link>
-      </p>
-    </main>
+    <AuthShell
+      page="sign-up"
+      title={copy.title}
+      subtitle={(copy as { subtitle?: string }).subtitle}
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link href={`/sign-in?next=${encodeURIComponent(next)}`} className="font-medium text-link hover:underline">
+            Sign in
+          </Link>
+        </>
+      }
+    >
+      <SignUpForm
+        providers={enabledSocialProviders()}
+        socialPlacement={theme.social}
+        socialStyle={theme.socialStyle}
+        next={next}
+        verifyFirst={authConfig.requireEmailVerification}
+      />
+    </AuthShell>
   );
 }

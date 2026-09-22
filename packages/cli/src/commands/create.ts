@@ -3,7 +3,8 @@ import { appendFileSync, existsSync, readdirSync, writeFileSync } from "node:fs"
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import pc from "picocolors";
 import { FLARE_VERSION } from "@flaredev/core";
-import { devVarsEntries, devVarsExampleEntries, parseAuthProviders, socialProvidersCode } from "../auth-providers.js";
+import { devVarsEntries, devVarsExampleEntries, parseAuthMethods, parseAuthProviders, renderAuthConfig } from "../auth-providers.js";
+import { parseTheme } from "../themes.js";
 import { APP_DEPENDENCIES, APP_DEV_DEPENDENCIES } from "../versions.js";
 import { copyTemplate, findUp, templatesDir, writeJson } from "../utils/fs.js";
 import { detectPackageManager, installArgs, isPackageManager, run, runQuiet, type PackageManager } from "../utils/pm.js";
@@ -13,6 +14,10 @@ export interface CreateOptions {
   pm?: string;
   /** Comma-separated OAuth providers, e.g. "google,github". */
   authProviders?: string;
+  /** Comma-separated sign-in methods (magic-link, email-otp, passkeys, 2fa-app, 2fa-email), "all" or "none". */
+  auth?: string;
+  /** One of the six themes (default when omitted). */
+  theme?: string;
   /** Progress lines (default: console.log). */
   log?: (message: string) => void;
   /** Override "today" for the wrangler compatibility date (used by tests). */
@@ -72,6 +77,8 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   }
   const packageManager = options.pm ?? detectPackageManager();
   const authProviders = parseAuthProviders(options.authProviders);
+  const authMethods = parseAuthMethods(options.auth);
+  const theme = parseTheme(options.theme);
 
   // When scaffolding inside an existing pnpm workspace (e.g. this repo's examples/),
   // the app joins that workspace instead of becoming its own root.
@@ -82,8 +89,9 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
     APP_NAME: name,
     COMPAT_DATE: compatibilityDate,
     PM: packageManager,
-    SOCIAL_PROVIDERS: socialProvidersCode(authProviders),
+    THEME: theme,
   });
+  writeFileSync(join(dir, "lib", "auth-config.ts"), renderAuthConfig(authMethods, authProviders));
   appendFileSync(join(dir, ".dev.vars.example"), devVarsExampleEntries(authProviders));
 
   writeJson(join(dir, "package.json"), {
