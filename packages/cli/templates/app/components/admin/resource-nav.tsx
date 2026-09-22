@@ -88,13 +88,24 @@ export function ResourceNav({
               <SidebarMenu>
                 {links.map((link) => {
                   const Icon = resourceIcon(link.icon);
+                  // Route handlers (/api/...) and other sites are whole pages: open them in a new tab.
+                  const external = link.href.startsWith("/api/") || /^https?:\/\//.test(link.href);
+                  const content = (
+                    <>
+                      <Icon />
+                      <span>{link.label}</span>
+                    </>
+                  );
                   return (
                     <SidebarMenuItem key={link.href}>
                       <SidebarMenuButton asChild isActive={pathname === link.href || pathname.startsWith(`${link.href}/`)} tooltip={link.label}>
-                        <Link href={link.href}>
-                          <Icon />
-                          <span>{link.label}</span>
-                        </Link>
+                        {external ? (
+                          <a href={link.href} target="_blank" rel="noreferrer">
+                            {content}
+                          </a>
+                        ) : (
+                          <Link href={link.href}>{content}</Link>
+                        )}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );

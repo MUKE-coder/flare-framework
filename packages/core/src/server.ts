@@ -18,3 +18,4 @@ export {
   type Result,
 } from "./server/store.js";
 export { parseListQuery, isFilterable, isSearchable, isSortable, type ListQuery, type QueryIssue } from "./server/query.js";
+export { fieldJsonSchema, openApiDocument, type OpenApiOptions } from "./server/openapi.js";

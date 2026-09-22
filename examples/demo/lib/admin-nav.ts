@@ -12,4 +12,4 @@ export const generatedAdminLinks: AdminLink[] = [{ label: "Security", href: "/ad
 // generated:end
 
 /** Links shown under "Platform" in the admin sidebar. */
-export const adminLinks: AdminLink[] = [...generatedAdminLinks, { label: "Realtime", href: "/admin/realtime", icon: "radio" }];
+export const adminLinks: AdminLink[] = [...generatedAdminLinks, { label: "Realtime", href: "/admin/realtime", icon: "radio" }, { label: "API reference", href: "/api/reference", icon: "book" }];

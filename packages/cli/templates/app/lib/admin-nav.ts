@@ -12,4 +12,4 @@ export const generatedAdminLinks: AdminLink[] = [];
 // generated:end
 
 /** Links shown under "Platform" in the admin sidebar. */
-export const adminLinks: AdminLink[] = [...generatedAdminLinks];
+export const adminLinks: AdminLink[] = [...generatedAdminLinks, { label: "API reference", href: "/api/reference", icon: "book" }];

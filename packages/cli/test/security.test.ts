@@ -73,7 +73,7 @@ describe("flare gen security", () => {
     expect(read(root, "app/admin/security/actions.ts")).toMatch(/^\/\/ Generated[\s\S]*"use server"/);
     expect(read(root, "lib/admin-nav.ts")).toContain(`href: "/admin/security"`);
     // The hand-written part after the block stays.
-    expect(read(root, "lib/admin-nav.ts")).toContain("export const adminLinks: AdminLink[] = [...generatedAdminLinks];");
+    expect(read(root, "lib/admin-nav.ts")).toContain(`export const adminLinks: AdminLink[] = [...generatedAdminLinks, { label: "API reference", href: "/api/reference", icon: "book" }];`);
     expect(result.bindings).toHaveLength(4);
     expect(existsSync(join(root, "db/schema/security-events.ts")) || existsSync(join(root, "db/schema/securityEvents.ts")) || read(root, "db/schema.ts").includes("security")).toBe(true);
   });
