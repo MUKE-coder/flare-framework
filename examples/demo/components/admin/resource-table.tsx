@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
-import { formatValue, statusTone, storedFields, type Resource, type StoredField } from "@flaredev/core";
+import { formatValue, optionLabel, statusTone, storedFields, type Resource, type StoredField } from "@flaredev/core";
 import { isSortable } from "@flaredev/core/server";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -157,6 +157,36 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
                       if (column.def.kind === "enum" && value != null) {
                         const tone = statusTone(value);
                         content = <Badge variant={tone === "neutral" ? "secondary" : tone}>{content}</Badge>;
+                      } else if (column.def.kind === "multiselect" && Array.isArray(value) && value.length) {
+                        const def = column.def;
+                        content = (
+                          <span className="flex flex-wrap gap-1">
+                            {value.map((item) => (
+                              <Badge key={String(item)} variant="secondary">
+                                {optionLabel(def, String(item))}
+                              </Badge>
+                            ))}
+                          </span>
+                        );
+                      } else if (index !== 0 && column.def.kind === "string" && typeof value === "string" && value) {
+                        // Contact-style values are links; a colour shows its swatch.
+                        const format = column.def.format;
+                        const href =
+                          format === "email" ? `mailto:${value}` : format === "tel" ? `tel:${value}` : format === "url" ? value : format === "domain" ? `https://${value}` : undefined;
+                        if (href) {
+                          content = (
+                            <a href={href} className="hover:underline" {...(format === "url" || format === "domain" ? { target: "_blank", rel: "noreferrer" } : {})}>
+                              {content}
+                            </a>
+                          );
+                        } else if (format === "color") {
+                          content = (
+                            <span className="inline-flex items-center gap-2 font-mono text-xs">
+                              <span className="size-3.5 rounded-sm border" style={{ backgroundColor: value }} aria-hidden="true" />
+                              {value}
+                            </span>
+                          );
+                        }
                       } else if (column.def.kind === "belongsTo" && typeof value === "string") {
                         const target = byName.get(column.def.target);
                         content = target ? (

@@ -94,3 +94,25 @@ describe("parseFields", () => {
     expect(() => parseFields("company:belongsTo(Company), companyId:string")).toThrow(/declared more than once/);
   });
 });
+
+describe("formats and choices", () => {
+  it("parses string formats, the phone alias, select, radio and multiselect", () => {
+    const fields = parseFields("phone:tel?, mobile:phone, site:domain, from:country, brand:color, handle:slug!, tier:radio(a,b), kind:select(x,y), tags:multiselect(p,q)?");
+    expect(fields.map((f) => [f.key, f.kind, f.format ?? f.widget ?? ""])).toEqual([
+      ["phone", "string", "tel"],
+      ["mobile", "string", "tel"],
+      ["site", "string", "domain"],
+      ["from", "string", "country"],
+      ["brand", "string", "color"],
+      ["handle", "string", "slug"],
+      ["tier", "enum", "radio"],
+      ["kind", "enum", ""],
+      ["tags", "multiselect", ""],
+    ]);
+  });
+
+  it("refuses a unique multiselect and suggests near-miss types", () => {
+    expect(() => parseFields("tags:multiselect(a,b)!")).toThrow(/can't be unique/);
+    expect(() => parseFields("site:domian")).toThrow(/Did you mean "domain"/);
+  });
+});

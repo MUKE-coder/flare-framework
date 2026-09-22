@@ -1,4 +1,4 @@
-import type { CreateInput, Field, RecordOf, StoredField, UpdateInput } from "./fields.js";
+import { STRING_FORMATS, type CreateInput, type Field, type RecordOf, type StoredField, type UpdateInput } from "./fields.js";
 import { camelCase, humanize, kebabCase, pascalCase, pluralize, snakeCase } from "./naming.js";
 
 export const RESERVED_FIELD_NAMES = ["id", "createdAt", "updatedAt"] as const;
@@ -74,6 +74,15 @@ export function defineResource<const Fields extends Record<string, Field>>(confi
       if (new Set(def.options).size !== def.options.length) fail(`enum field "${key}" has duplicate options.`);
       if (def.default !== undefined && !def.options.includes(def.default)) fail(`default of "${key}" isn't one of its options.`);
     }
+    if (def.kind === "multiselect") {
+      if (def.options.length === 0) fail(`multiselect field "${key}" needs at least one option.`);
+      if (new Set(def.options).size !== def.options.length) fail(`multiselect field "${key}" has duplicate options.`);
+      if (def.default?.some((value) => !def.options.includes(value))) fail(`default of "${key}" includes a value that isn't one of its options.`);
+      if (def.minItems !== undefined && def.maxItems !== undefined && def.minItems > def.maxItems) fail(`"${key}": minItems is larger than maxItems.`);
+    }
+    if (def.kind === "string" && def.format && !STRING_FORMATS.includes(def.format)) {
+      fail(`field "${key}" has unknown format "${def.format}". Formats: ${STRING_FORMATS.join(", ")}.`);
+    }
     if (def.kind === "belongsTo" && !key.endsWith("Id")) fail(`belongsTo field "${key}" must end in "Id", e.g. "${camelCase(def.target)}Id".`);
     if ((def.kind === "belongsTo" || def.kind === "hasMany") && pascalCase(def.target) !== def.target) {
       fail(`relation "${key}" must target a PascalCase resource name.`);
@@ -87,7 +96,7 @@ export function defineResource<const Fields extends Record<string, Field>>(confi
 
   const stored = entries.filter(([, def]) => def.kind !== "hasMany") as [string, StoredField][];
   const titleField =
-    config.titleField ?? stored.find(([, def]) => def.kind === "string")?.[0] ?? stored[0]?.[0] ?? "id";
+    config.titleField ?? stored.find(([, def]) => def.kind === "string" && !["tel", "country", "color"].includes(def.format ?? ""))?.[0] ?? stored.find(([, def]) => def.kind === "string")?.[0] ?? stored[0]?.[0] ?? "id";
   if (config.titleField && !stored.some(([key]) => key === config.titleField)) {
     fail(`titleField "${config.titleField}" isn't a stored field.`);
   }

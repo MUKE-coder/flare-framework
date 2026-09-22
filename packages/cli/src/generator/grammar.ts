@@ -1,4 +1,4 @@
-import { camelCase, FILE_CATEGORIES, type FileCategory } from "@flaredev/core";
+import { camelCase, FILE_CATEGORIES, STRING_FORMATS, type FileCategory, type StringFormat } from "@flaredev/core";
 
 /**
  * The `--fields` grammar of `flare gen resource`:
@@ -6,6 +6,10 @@ import { camelCase, FILE_CATEGORIES, type FileCategory } from "@flaredev/core";
  *   name:string, email:string!, bio:text?, age:int?, price:float, active:boolean,
  *   birthday:date?, publishedAt:datetime?, status:enum(draft,published),
  *   avatar:file:[image,pdf]?, company:belongsTo(Company)?, notes:hasMany(Note)
+ *
+ * Formats (stored as text): email, url, tel (or phone), domain, country, color, slug.
+ * Choices: select(a,b) (= enum), radio(a,b) (enum with radio buttons),
+ * multiselect(a,b) (any number, stored as a JSON array).
  *
  * Suffix `?` = optional (nullable), `!` = unique (combinable: `sku:string!?`).
  * Commas inside (...) and [...] don't split fields.
@@ -20,6 +24,7 @@ export type ParsedKind =
   | "date"
   | "datetime"
   | "enum"
+  | "multiselect"
   | "file"
   | "belongsTo"
   | "hasMany";
@@ -29,17 +34,20 @@ export interface ParsedField {
   kind: ParsedKind;
   required: boolean;
   unique: boolean;
-  /** enum values */
+  /** enum / multiselect values */
   options?: string[];
+  /** enum input: radio buttons instead of a dropdown */
+  widget?: "radio";
   /** file categories */
   accept?: FileCategory[];
   /** relation target (PascalCase resource name) */
   target?: string;
-  format?: "email" | "url";
+  format?: StringFormat;
 }
 
 const SIMPLE_KINDS = ["string", "text", "int", "float", "boolean", "date", "datetime"] as const;
-const ALL_KINDS = [...SIMPLE_KINDS, "enum", "file", "belongsTo", "hasMany"];
+const FORMAT_ALIASES: Record<string, StringFormat> = { phone: "tel" };
+const ALL_KINDS = [...SIMPLE_KINDS, ...STRING_FORMATS, "phone", "enum", "select", "radio", "multiselect", "file", "belongsTo", "hasMany"];
 
 export class FieldGrammarError extends Error {
   constructor(message: string) {
@@ -124,15 +132,21 @@ export function parseField(spec: string): ParsedField {
   let match: RegExpExecArray | null;
   if ((SIMPLE_KINDS as readonly string[]).includes(type)) {
     field.kind = type as ParsedKind;
-  } else if ((match = /^enum\((.*)\)$/.exec(type))) {
-    field.kind = "enum";
-    const options = list(match[1]!, "enum option", spec);
+  } else if ((STRING_FORMATS as readonly string[]).includes(type) || type in FORMAT_ALIASES) {
+    field.kind = "string";
+    field.format = FORMAT_ALIASES[type] ?? (type as StringFormat);
+  } else if ((match = /^(enum|select|radio|multiselect)\((.*)\)$/.exec(type))) {
+    const choice = match[1]!;
+    field.kind = choice === "multiselect" ? "multiselect" : "enum";
+    if (choice === "radio") field.widget = "radio";
+    if (choice === "multiselect" && unique) throw new FieldGrammarError(`"${spec}": multiselect fields can't be unique.`);
+    const options = list(match[2]!, `${choice} option`, spec);
     for (const option of options) {
       if (!/^[A-Za-z0-9_-]+$/.test(option)) {
-        throw new FieldGrammarError(`"${spec}": enum option "${option}" may only use letters, digits, _ and -.`);
+        throw new FieldGrammarError(`"${spec}": ${choice} option "${option}" may only use letters, digits, _ and -.`);
       }
     }
-    if (new Set(options).size !== options.length) throw new FieldGrammarError(`"${spec}": duplicate enum options.`);
+    if (new Set(options).size !== options.length) throw new FieldGrammarError(`"${spec}": duplicate ${choice} options.`);
     field.options = options;
   } else if ((match = /^file(?::\[(.*)\])?$/.exec(type))) {
     field.kind = "file";
@@ -168,7 +182,7 @@ export function parseField(spec: string): ParsedField {
     throw new FieldGrammarError(`"${spec}": unknown type "${type}".${suggest(base, ALL_KINDS)} Types: ${ALL_KINDS.join(", ")}.`);
   }
 
-  if (field.kind === "string") {
+  if (field.kind === "string" && !field.format) {
     // Whole word at a camelCase boundary: "email", "billingEmail", "avatarUrl" — not "curl".
     if (/^email$|Email$/.test(key)) field.format = "email";
     else if (/^(url|website)$|(Url|Website)$/.test(key)) field.format = "url";

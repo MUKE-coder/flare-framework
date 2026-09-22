@@ -28,6 +28,10 @@ function columnExpression(key: string, def: StoredField, resources: Map<string, 
     case "enum":
       expr = `text(${col}, { enum: ${q(def.options)} })`;
       break;
+    case "multiselect":
+      // A JSON array of option values; the validators keep it to the listed options.
+      expr = `text(${col}, { mode: "json" }).$type<(${def.options.map((option) => q(option)).join(" | ")})[]>()`;
+      break;
     case "belongsTo": {
       const target = resources.get(def.target);
       if (!target) {
@@ -41,7 +45,7 @@ function columnExpression(key: string, def: StoredField, resources: Map<string, 
       expr = `text(${col})`;
   }
   if (def.required) expr += ".notNull()";
-  if (def.unique) expr += ".unique()";
+  if ("unique" in def && def.unique) expr += ".unique()";
   if ("default" in def && def.default !== undefined) expr += `.default(${q(def.default)})`;
   return expr;
 }

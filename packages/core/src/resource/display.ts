@@ -1,4 +1,5 @@
 import type { StoredField } from "./fields.js";
+import { countryName, flagEmoji, formatPhone } from "./formats.js";
 
 /** Semantic tone for a status-like enum value (style-guide status colors). */
 export type Tone = "success" | "warning" | "danger" | "neutral";
@@ -17,7 +18,7 @@ export function statusTone(value: unknown): Tone {
 
 /** Display label for an enum option: the descriptor's optionLabels, else "on_hold" → "On hold". */
 export function optionLabel(def: StoredField, value: string): string {
-  if (def.kind === "enum" && def.optionLabels?.[value]) return def.optionLabels[value]!;
+  if ((def.kind === "enum" || def.kind === "multiselect") && def.optionLabels?.[value]) return def.optionLabels[value]!;
   const text = value.replace(/[_-]+/g, " ").trim();
   return text ? text[0]!.toUpperCase() + text.slice(1) : value;
 }
@@ -57,6 +58,12 @@ export function formatValue(def: StoredField | { kind: "timestamp" }, value: unk
     }
     case "enum":
       return optionLabel(def, String(value));
+    case "multiselect":
+      return Array.isArray(value) && value.length ? value.map((item) => optionLabel(def, String(item))).join(", ") : "—";
+    case "string":
+      if (def.format === "tel") return formatPhone(String(value));
+      if (def.format === "country") return `${flagEmoji(String(value))} ${countryName(String(value), locale.split("-")[0])}`.trim();
+      return String(value);
     case "file":
       return String(value).split("/").pop()!.replace(/^[0-9a-f-]{36}-/, "");
     default:

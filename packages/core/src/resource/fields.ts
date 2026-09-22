@@ -16,6 +16,7 @@ export type FieldKind =
   | "date"
   | "datetime"
   | "enum"
+  | "multiselect"
   | "file"
   | "belongsTo"
   | "hasMany";
@@ -38,10 +39,24 @@ export interface CommonOptions<T> {
   searchable?: boolean;
 }
 
+/**
+ * What a string holds. Each format is still a text column; the format decides
+ * validation, the admin input and how the value is shown.
+ *
+ * - email, url: validated addresses (url: http or https)
+ * - tel: an international number, stored E.164 (`+256772123456`), entered with a country picker
+ * - domain: a hostname such as `example.com`, stored lowercase
+ * - country: an ISO 3166-1 alpha-2 code (`UG`), chosen from a searchable list
+ * - color: a hex colour (`#f2541d`)
+ * - slug: lowercase words joined by hyphens (`my-first-post`)
+ */
+export type StringFormat = "email" | "url" | "tel" | "domain" | "country" | "color" | "slug";
+export const STRING_FORMATS: readonly StringFormat[] = ["email", "url", "tel", "domain", "country", "color", "slug"];
+
 export interface StringOptions extends CommonOptions<string> {
   maxLength?: number;
   minLength?: number;
-  format?: "email" | "url";
+  format?: StringFormat;
   pattern?: string;
 }
 export interface TextOptions extends CommonOptions<string> {
@@ -57,6 +72,14 @@ export type DateOptions = CommonOptions<string>;
 export interface EnumOptions<O extends string> extends CommonOptions<O> {
   /** Display labels per option value. */
   optionLabels?: Partial<Record<O, string>>;
+  /** Admin input: a dropdown (default) or radio buttons (best for a few options). */
+  widget?: "select" | "radio";
+}
+export interface MultiSelectOptions<O extends string> extends Omit<CommonOptions<O[]>, "unique"> {
+  optionLabels?: Partial<Record<O, string>>;
+  /** Fewest / most options that can be picked. A required field needs at least one. */
+  minItems?: number;
+  maxItems?: number;
 }
 export interface FileOptions extends CommonOptions<string> {
   /** Maximum upload size in bytes. Default 10 MiB. */
@@ -89,6 +112,8 @@ export type DateField<R extends boolean = boolean> = Base<"date", R> & DateOptio
 export type DateTimeField<R extends boolean = boolean> = Base<"datetime", R> & DateOptions;
 export type EnumField<O extends string = string, R extends boolean = boolean> = Base<"enum", R> &
   EnumOptions<O> & { options: readonly O[] };
+export type MultiSelectField<O extends string = string, R extends boolean = boolean> = Base<"multiselect", R> &
+  MultiSelectOptions<O> & { options: readonly O[] };
 export type FileField<R extends boolean = boolean> = Base<"file", R> &
   FileOptions & {
     /** Accepted categories from the `file:[image,pdf]` grammar. */
@@ -110,6 +135,7 @@ export type Field =
   | DateField
   | DateTimeField
   | EnumField
+  | MultiSelectField
   | FileField
   | BelongsToField
   | HasManyField;
@@ -164,6 +190,22 @@ export const field = {
   datetime: <const O extends DateOptions>(options?: O) => build("datetime", options) as DateTimeField<Req<O>> & O,
   enum: <const V extends readonly [string, ...string[]], const O extends EnumOptions<V[number]>>(values: V, options?: O) =>
     build("enum", options, { options: values }) as EnumField<V[number], Req<O>> & O,
+  /** One of a list, picked from a dropdown. The same as `enum`. */
+  select: <const V extends readonly [string, ...string[]], const O extends EnumOptions<V[number]>>(values: V, options?: O) =>
+    build("enum", options, { options: values, widget: "select" }) as EnumField<V[number], Req<O>> & O,
+  /** One of a list, picked with radio buttons. Stored like `enum`. */
+  radio: <const V extends readonly [string, ...string[]], const O extends EnumOptions<V[number]>>(values: V, options?: O) =>
+    build("enum", options, { options: values, widget: "radio" }) as EnumField<V[number], Req<O>> & O,
+  /** Any number of a list, picked with checkboxes. Stored as a JSON array. */
+  multiselect: <const V extends readonly [string, ...string[]], const O extends MultiSelectOptions<V[number]>>(values: V, options?: O) =>
+    build("multiselect", options, { options: values, sortable: false }) as MultiSelectField<V[number], Req<O>> & O,
+  email: <const O extends Omit<StringOptions, "format">>(options?: O) => build("string", options, { format: "email" }) as StringField<Req<O>> & O,
+  url: <const O extends Omit<StringOptions, "format">>(options?: O) => build("string", options, { format: "url" }) as StringField<Req<O>> & O,
+  tel: <const O extends Omit<StringOptions, "format">>(options?: O) => build("string", options, { format: "tel" }) as StringField<Req<O>> & O,
+  domain: <const O extends Omit<StringOptions, "format">>(options?: O) => build("string", options, { format: "domain" }) as StringField<Req<O>> & O,
+  country: <const O extends Omit<StringOptions, "format">>(options?: O) => build("string", options, { format: "country" }) as StringField<Req<O>> & O,
+  color: <const O extends Omit<StringOptions, "format">>(options?: O) => build("string", options, { format: "color" }) as StringField<Req<O>> & O,
+  slug: <const O extends Omit<StringOptions, "format">>(options?: O) => build("string", options, { format: "slug" }) as StringField<Req<O>> & O,
   file: <const O extends FileOptions>(accept: readonly FileCategory[], options?: O) =>
     build("file", options, { accept, list: false, sortable: false }) as FileField<Req<O>> & O,
   belongsTo: <const O extends BelongsToOptions>(target: string, options?: O) =>
@@ -181,6 +223,8 @@ export type FieldValue<F> = F extends { kind: "int" | "float" }
     ? boolean
     : F extends { kind: "enum"; options: readonly (infer O)[] }
       ? O
+      : F extends { kind: "multiselect"; options: readonly (infer M)[] }
+        ? M[]
       : F extends { kind: "hasMany" }
         ? never
         : string;

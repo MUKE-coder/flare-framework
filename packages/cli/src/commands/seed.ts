@@ -84,6 +84,11 @@ function sampleValue(key: string, def: StoredField, row: number): string | undef
     case "string":
       if (def.format === "email") return `\`${kebabCase(key).replace(/-?email$/, "") || "user"}\${i}@example.com\``;
       if (def.format === "url") return `\`https://example.com/\${i}\``;
+      if (def.format === "tel") return `\`+1202555\${String(1000 + i).slice(-4)}\``;
+      if (def.format === "domain") return `\`example\${i}.com\``;
+      if (def.format === "country") return JSON.stringify(["US", "GB", "UG", "KE", "DE"][row % 5]);
+      if (def.format === "color") return JSON.stringify("#f2541d");
+      if (def.format === "slug") return `\`${kebabCase(def.label ?? key)}-\${i}\``;
       return `\`${def.label} \${i}\``;
     case "text":
       return `"Lorem ipsum dolor sit amet."`;
@@ -99,6 +104,8 @@ function sampleValue(key: string, def: StoredField, row: number): string | undef
       return "new Date().toISOString()";
     case "enum":
       return JSON.stringify(def.options[row % def.options.length]);
+    case "multiselect":
+      return JSON.stringify(def.options.slice(0, Math.max(1, def.minItems ?? 1)));
     case "file":
       return undefined;
     case "belongsTo":

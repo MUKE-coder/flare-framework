@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { storedFields, type Resource } from "./define.js";
 import type { CreateInput, Field, StoredField, UpdateInput } from "./fields.js";
+import { isColor, isCountryCode, isDomain, isPhoneNumber, isSlug, normalizeDomain } from "./formats.js";
 
 /**
  * Zod schemas derived from a descriptor at runtime. Unknown keys are rejected,
@@ -39,9 +40,27 @@ export function fieldSchema(def: StoredField): z.ZodType {
       if (def.minLength !== undefined) s = s.min(def.minLength, `At least ${def.minLength} characters`);
       else if (def.required) s = s.min(1, "Required");
       if (def.pattern) s = s.regex(new RegExp(def.pattern), "Invalid format");
-      if (def.format === "email") return s.pipe(z.email({ error: "Enter a valid email address" }));
-      if (def.format === "url") return s.pipe(z.url({ protocol: /^https?$/, error: "Enter a valid URL (http or https)" }));
-      return s;
+      switch (def.format) {
+        case "email":
+          return s.pipe(z.email({ error: "Enter a valid email address" }));
+        case "url":
+          return s.pipe(z.url({ protocol: /^https?$/, error: "Enter a valid URL (http or https)" }));
+        case "tel":
+          return s.refine((value) => value === "" || isPhoneNumber(value), "Enter a valid phone number, including the country");
+        case "domain":
+          // Accept a pasted URL and keep just the hostname.
+          return s.transform(normalizeDomain).refine((value) => value === "" || isDomain(value), "Enter a domain such as example.com");
+        case "country":
+          return s
+            .transform((value) => value.toUpperCase())
+            .refine((value) => value === "" || isCountryCode(value), "Choose a country");
+        case "color":
+          return s.transform((value) => value.toLowerCase()).refine((value) => value === "" || isColor(value), "Enter a colour such as #f2541d");
+        case "slug":
+          return s.refine((value) => value === "" || isSlug(value), "Use lowercase letters, numbers and hyphens, e.g. my-first-post");
+        default:
+          return s;
+      }
     }
     case "text":
       return stringSchema(def.maxLength ?? DEFAULT_TEXT_MAX, def.minLength, def.required);
@@ -61,6 +80,15 @@ export function fieldSchema(def: StoredField): z.ZodType {
       return z.iso.datetime({ offset: true, error: typeError("Enter a valid date and time") });
     case "enum":
       return z.enum(def.options as [string, ...string[]], { error: typeError("Choose one of the options") });
+    case "multiselect": {
+      let s = z
+        .array(z.enum(def.options as [string, ...string[]], { error: "Choose from the listed options" }), { error: typeError("Choose one or more options") })
+        .refine((values) => new Set(values).size === values.length, "Each option can be picked once");
+      const min = def.minItems ?? (def.required ? 1 : 0);
+      if (min > 0) s = s.refine((values) => values.length >= min, min === 1 ? "Choose at least one" : `Choose at least ${min}`);
+      if (def.maxItems !== undefined) s = s.refine((values) => values.length <= def.maxItems!, `Choose at most ${def.maxItems}`);
+      return s;
+    }
     case "file":
       return z.string({ error: typeError("Upload a file") }).regex(OBJECT_KEY, "Invalid file");
     case "belongsTo":

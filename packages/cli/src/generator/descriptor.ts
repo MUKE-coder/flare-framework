@@ -19,6 +19,7 @@ function options(field: ParsedField): Record<string, unknown> {
   if (!field.required) opts.required = false;
   if (field.unique) opts.unique = true;
   if (field.format) opts.format = field.format;
+  if (field.widget) opts.widget = field.widget;
   if (field.kind === "belongsTo" && !field.required) opts.onDelete = "set null";
   return opts;
 }
@@ -29,6 +30,8 @@ export function toField(field: ParsedField): Field {
   switch (field.kind) {
     case "enum":
       return builders.enum(field.options as [string, ...string[]], opts);
+    case "multiselect":
+      return builders.multiselect(field.options as [string, ...string[]], opts);
     case "file":
       return builders.file(field.accept!, opts);
     case "belongsTo":
@@ -53,6 +56,8 @@ export function renderField(field: ParsedField): string {
   switch (field.kind) {
     case "enum":
       return `${field.key}: field.enum(${args(literal(field.options), opts)}),`;
+    case "multiselect":
+      return `${field.key}: field.multiselect(${args(literal(field.options), opts)}),`;
     case "file":
       return `${field.key}: field.file(${args(literal(field.accept), opts)}),`;
     case "belongsTo":
