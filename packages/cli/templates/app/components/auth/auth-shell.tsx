@@ -14,13 +14,20 @@ interface ShellProps {
   page?: "sign-in" | "sign-up" | "flow";
 }
 
-/** The app's mark: its initial on the brand colour. Swap in your logo here. */
-export function BrandMark({ className }: { className?: string }) {
+/**
+ * The app's mark: its initial on the brand colour. Swap in your logo here. It links
+ * home unless `link={false}` (inside another link, where a nested <a> isn't valid HTML).
+ */
+export function BrandMark({ className, link = true }: { className?: string; link?: boolean }) {
+  const mark = (
+    <span className="grid size-9 place-items-center rounded-[calc(var(--radius)+2px)] bg-brand text-lg font-bold text-brand-foreground [background-image:var(--brand-gradient,none)]">
+      {site.name.charAt(0).toUpperCase()}
+    </span>
+  );
+  if (!link) return <span className={cn("inline-flex items-center gap-2.5", className)}>{mark}</span>;
   return (
     <Link href="/" aria-label={`${site.name} home`} className={cn("inline-flex items-center gap-2.5", className)}>
-      <span className="grid size-9 place-items-center rounded-[calc(var(--radius)+2px)] bg-brand text-lg font-bold text-brand-foreground [background-image:var(--brand-gradient,none)]">
-        {site.name.charAt(0).toUpperCase()}
-      </span>
+      {mark}
     </Link>
   );
 }

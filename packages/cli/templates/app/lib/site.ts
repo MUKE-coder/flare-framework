@@ -14,6 +14,19 @@ export const site = {
    * overrides it when the app is built or run with `flare dev`.
    */
   theme: "__THEME__" as ThemeName,
+  /** The small pill above the home page headline; set to null to hide it. */
+  announcement: { label: "New", text: "Passkeys and two-factor sign-in are here", href: "/sign-up" } as { label: string; text: string; href: string } | null,
+  /** The home page's feature grid (icon names from lucide.dev). */
+  features: [
+    { icon: "zap", title: "Fast everywhere", description: "Served from the edge in every region, so pages load in milliseconds wherever your customers are." },
+    { icon: "shield-check", title: "Secure by default", description: "Passkeys, two-factor sign-in, roles and rate limits, switched on from day one." },
+    { icon: "layout-dashboard", title: "One place for your data", description: "Every record your team keeps, with search, filters and an admin built in." },
+    { icon: "users", title: "Built for teams", description: "Invite your team, give each person the right access, and see who changed what." },
+    { icon: "plug", title: "Connects to your tools", description: "A documented API for every record, ready for your scripts and integrations." },
+    { icon: "credit-card", title: "Billing when you need it", description: "Plans, checkout and invoices through Stripe, without building a billing system." },
+  ],
+  /** Placeholder names for the logo strip: replace them with your customers (or remove the strip). */
+  customers: ["Acme", "Globex", "Initech", "Vandelay", "Northwind", "Brightline"],
   /** Shown beside the sign-up form. */
   highlights: [
     "Set up in minutes, with nothing to install",

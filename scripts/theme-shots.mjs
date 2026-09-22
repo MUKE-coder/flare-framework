@@ -36,7 +36,7 @@ for (const theme of themes) {
       await page.goto(`http://localhost:${port}${path}`, { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       const file = join(outDir, `${theme}${path.replaceAll("/", "-")}.png`);
-      await page.screenshot({ path: file });
+      await page.screenshot({ path: file, fullPage: process.env.FULL === "1" });
       console.log(`shot ${file}`);
     }
     await page.close();

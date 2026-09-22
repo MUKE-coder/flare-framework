@@ -21,7 +21,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <header className="border-b border-border bg-surface">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 pt-4">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <BrandMark className="pointer-events-none" />
+            <BrandMark link={false} />
             <span className="font-semibold">{site.name}</span>
           </Link>
           <div className="flex items-center gap-3">
