@@ -1,6 +1,6 @@
 {
   "name": "@flaredev/core",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Flare runtime: resource descriptors, field grammar, and Cloudflare-native helpers",
   "license": "MIT",
   "author": "Muke Johnbaptist",

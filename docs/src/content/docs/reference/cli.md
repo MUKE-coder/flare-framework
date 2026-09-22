@@ -7,16 +7,31 @@ Short, `wrangler`-consistent verbs. Every command below accepts `--help`.
 
 ## `flare create <dir>`
 
-Scaffold a new app.
+Scaffold a new app. In a terminal it asks for the theme, the sign-in methods
+and the social providers; flags answer those questions up front, and `--yes`
+skips any left unanswered.
 
 | Flag | |
 | --- | --- |
+| `--theme <name>` | `default`, `coral`, `amber`, `sky`, `mono` or `emerald` ([Themes](/guides/themes/)) |
+| `--auth <list>` | Sign-in methods: `magic-link`, `email-otp`, `passkeys`, `2fa-app`, `2fa-email`, or `all` (default) / `none` |
+| `--auth-providers <list>` | Social sign-in: `google`, `github`, `apple`, `microsoft` |
+| `-y`, `--yes` | Don't ask; use the flags given and defaults for the rest |
 | `--pm <manager>` | `pnpm`, `npm`, `yarn`, or `bun` (default: detected) |
-| `--auth-providers <list>` | Comma-separated OAuth providers to scaffold: `google`, `github` |
 | `--skip-install` | Write files without installing dependencies |
 
 ```bash
-npx @flaredev/cli create shop --auth-providers google,github
+npx @flaredev/cli create shop
+npx @flaredev/cli create shop --theme mono --auth passkeys,2fa-app --auth-providers google,github --yes
+```
+
+## `flare theme [name]`
+
+List the themes (the current one marked), or switch the app to one by
+rewriting `lib/site.ts`. Restart `flare dev` to see it.
+
+```bash
+npx flare theme mono
 ```
 
 ## `flare gen resource <Name>`

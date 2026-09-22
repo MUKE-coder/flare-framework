@@ -1,4 +1,5 @@
 ---
+import { Code } from "@astrojs/starlight/components";
 /**
  * The docs home page. One idea carries it: describe a resource once, and Flare
  * writes the rest. The hero panel shows exactly that, with real generator output.
@@ -70,6 +71,113 @@ const generators = [
     href: "/guides/security/",
   },
 ];
+
+const themes = [
+  { id: "default", label: "Default", note: "Calm and centred, indigo accents" },
+  { id: "coral", label: "Coral", note: "Warm and rounded, sign-in as a card over the page" },
+  { id: "amber", label: "Amber", note: "Plain and direct, boxed forms with pill buttons" },
+  { id: "sky", label: "Sky", note: "Crisp blue, bold headings, social sign-in first" },
+  { id: "mono", label: "Mono", note: "Black and white on a fine grid" },
+  { id: "emerald", label: "Emerald", note: "Fresh green, sign-in beside a customer quote" },
+];
+
+const authMethods = [
+  { name: "Email and password", body: "With reset links and email verification." },
+  { name: "Magic links", body: "A one-time sign-in link by email." },
+  { name: "Email codes", body: "A 6-digit code, for people who'd rather not click links." },
+  { name: "Passkeys", body: "Face ID, Touch ID, Windows Hello or a security key." },
+  { name: "Two-factor", body: "Authenticator apps with backup codes, or codes by email." },
+  { name: "Google, GitHub, Apple, Microsoft", body: "Each switches on once its credentials are set." },
+];
+
+const examples = [
+  {
+    id: "resource",
+    label: "Resource",
+    title: "resources/deal.resource.ts",
+    lang: "ts",
+    code: `import { defineResource, field } from "@flaredev/core";
+
+export default defineResource({
+  name: "Deal",
+  fields: {
+    title: field.string(),
+    value: field.int({ min: 0 }),
+    stage: field.radio(["lead", "won", "lost"]),
+    contact: field.email({ required: false }),
+    companyId: field.belongsTo("Company"),
+  },
+});`,
+  },
+  {
+    id: "policy",
+    label: "Policy",
+    title: "policies/deal.policy.ts",
+    lang: "ts",
+    code: `import { definePolicy } from "@flaredev/core";
+
+// The API and the admin both enforce this.
+export default definePolicy({
+  resource: "Deal",
+  read: ["*"], // any signed-in user
+  create: ["admin", "staff"],
+  update: ["admin", "staff"],
+  delete: ["admin"],
+});`,
+  },
+  {
+    id: "query",
+    label: "Query",
+    title: "app/dashboard/deals/page.tsx",
+    lang: "ts",
+    code: `import { desc, gt } from "drizzle-orm";
+import { getDb } from "@/db";
+import { deals } from "@/db/schema";
+
+// Relations come from db/relations.ts, which flare gen keeps up to date.
+const recent = await getDb().query.deals.findMany({
+  where: gt(deals.value, 1000),
+  with: { company: true },
+  orderBy: [desc(deals.createdAt)],
+  limit: 10,
+});`,
+  },
+  {
+    id: "client",
+    label: "Client",
+    title: "components/deal-list.tsx",
+    lang: "ts",
+    code: `import { dealClient } from "@/resources/deal.client";
+
+// Typed from the descriptor: stage is "lead" | "won" | "lost".
+const { data, meta } = await dealClient.list({ sort: "-value", filter: { stage: "won" } });
+
+await dealClient.create({ title: "Renewal", value: 4200, stage: "lead", companyId });`,
+  },
+];
+
+const faq = [
+  {
+    q: "Is it production-ready?",
+    a: "Flare is at 0.x: the generators, auth, admin and deploy are tested end to end on every release, but APIs can still change between minor versions. Pin your version and read the changelog before upgrading.",
+  },
+  {
+    q: "Do I need a Cloudflare account to start?",
+    a: "No. flare dev and flare start run everything locally, D1, R2, KV and Durable Objects included. You only need an account for flare deploy.",
+  },
+  {
+    q: "Can I edit the generated code?",
+    a: "Yes. Generated code lives inside marked blocks; everything outside them is yours and is never touched. Flare also tells you when you've edited inside a block, instead of overwriting it.",
+  },
+  {
+    q: "How is it different from Next.js on Vercel?",
+    a: "It runs vinext, Cloudflare's Next.js-compatible framework, on Workers. Flare adds what a Next.js app leaves to you: database, auth, admin, API, roles, billing and security, generated and wired together.",
+  },
+  {
+    q: "Can I change the theme later?",
+    a: "Any time: flare theme <name>, or FLARE_THEME in .env. Every screen follows, the admin included.",
+  },
+];
 ---
 
 <div class="fl-landing not-content">
@@ -114,6 +222,37 @@ const generators = [
           </button>
         </div>
       ))}
+    </div>
+
+    <div class="fl-showcase" data-showcase>
+      <div class="fl-showcase-term" aria-label="What npm create asks">
+        <div class="fl-term-bar"><span></span><span></span><span></span></div>
+        <ol class="fl-term">
+          <li style="--i:0"><span class="fl-prompt">$</span> npm create flare-framework@latest my-app</li>
+          <li style="--i:1" class="fl-dim">┌  Let's set up your Flare app</li>
+          <li style="--i:2"><span class="fl-ok-mark">◇</span>  Pick a look <span class="fl-dim">›</span> <span class="fl-term-choice" data-showcase-theme>default</span></li>
+          <li style="--i:3"><span class="fl-ok-mark">◇</span>  How can people sign in? <span class="fl-dim">›</span> magic links, email codes, passkeys, 2FA</li>
+          <li style="--i:4"><span class="fl-ok-mark">◇</span>  Social sign-in? <span class="fl-dim">›</span> Google, GitHub</li>
+          <li style="--i:5" class="fl-dim">└  Creating your app</li>
+          <li style="--i:6"><span class="fl-ok-mark">✔</span> Installed dependencies <span class="fl-dim">(1m 38s)</span></li>
+          <li style="--i:7"><span class="fl-ok-mark">✔</span> Created my-app</li>
+        </ol>
+      </div>
+      <div class="fl-showcase-app">
+        <div class="fl-browser-bar">
+          <span></span><span></span><span></span>
+          <code>localhost:3000</code>
+        </div>
+        <img src="/screens/home-default.webp" alt="The home page of a new Flare app in the default theme" width="1280" height="860" data-showcase-image />
+        <div class="fl-theme-chips" role="group" aria-label="Preview a theme">
+          {themes.map((theme, index) => (
+            <button type="button" aria-pressed={index === 0 ? "true" : "false"} data-theme-chip={theme.id} data-label={theme.label}>
+              <span class={`fl-swatch fl-swatch-${theme.id}`} aria-hidden="true"></span>
+              {theme.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   </section>
 
@@ -169,7 +308,7 @@ const generators = [
 
     <!-- 01 Create -->
     <section class="fl-section fl-rail" aria-labelledby="fl-create">
-      <p class="fl-step"><span>[ 01 / 03 ]</span> Create</p>
+      <p class="fl-step"><span>[ 01 / 05 ]</span> Create</p>
       <div class="fl-section-head">
         <h2 id="fl-create">Everything a real app needs,<br /><span class="fl-ember-text">wired on day one</span></h2>
         <p>
@@ -199,9 +338,66 @@ const generators = [
       </ul>
     </section>
 
-    <!-- 02 Generate -->
+    <!-- 02 Look -->
+    <section class="fl-section fl-rail" aria-labelledby="fl-look">
+      <p class="fl-step"><span>[ 02 / 05 ]</span> Look</p>
+      <div class="fl-section-head">
+        <h2 id="fl-look">Six themes,<br /><span class="fl-ember-text">so no two apps look alike</span></h2>
+        <p>Pick one when you create the app, switch with <code>flare theme mono</code>, or set <code>FLARE_THEME</code>. Sign-in, dashboard, admin and home page all follow: colours, type, button shapes and even the sign-in layout.</p>
+      </div>
+      <div class="fl-looks" data-tabs>
+        <div class="fl-gens-tabs" role="tablist" aria-label="Themes">
+          {themes.map((theme, index) => (
+            <button role="tab" id={`fl-t-${theme.id}`} aria-controls={`fl-tp-${theme.id}`} aria-selected={index === 0 ? "true" : "false"} tabindex={index === 0 ? 0 : -1}>
+              <span class={`fl-swatch fl-swatch-${theme.id}`} aria-hidden="true"></span>
+              {theme.label}
+            </button>
+          ))}
+        </div>
+        {themes.map((theme, index) => (
+          <div class="fl-look-panel" role="tabpanel" id={`fl-tp-${theme.id}`} aria-labelledby={`fl-t-${theme.id}`} hidden={index !== 0}>
+            <figure>
+              <img src={`/screens/sign-in-${theme.id}.webp`} alt={`Sign-in screen, ${theme.label} theme`} width="1280" height="860" loading="lazy" />
+              <figcaption>Sign in</figcaption>
+            </figure>
+            <figure>
+              <img src={`/screens/home-${theme.id}.webp`} alt={`Home page, ${theme.label} theme`} width="1280" height="860" loading="lazy" />
+              <figcaption>Home page</figcaption>
+            </figure>
+            <p class="fl-look-note">{theme.note}. <code>flare create my-app --theme {theme.id}</code></p>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- 03 Secure -->
+    <section class="fl-section fl-rail" aria-labelledby="fl-secure">
+      <p class="fl-step"><span>[ 03 / 05 ]</span> Secure</p>
+      <div class="fl-section-head">
+        <h2 id="fl-secure">Every way to sign in,<br /><span class="fl-ember-text">already built</span></h2>
+        <p><code>flare create</code> asks which to switch on. Each has its screens, emails and account settings, and a method you switch off is refused by the API, not just hidden.</p>
+      </div>
+      <div class="fl-secure">
+        <ul class="fl-methods">
+          {authMethods.map((method) => (
+            <li>
+              <span class="fl-method-name">{method.name}</span>
+              <span class="fl-method-body">{method.body}</span>
+            </li>
+          ))}
+          <li class="fl-method-more">
+            <a href="/guides/auth/" class="fl-link">Read the auth guide</a>
+          </li>
+        </ul>
+        <figure class="fl-shot">
+          <img src="/screens/account.webp" alt="The account page: profile, password, two-factor, passkeys and sessions" width="1280" height="1314" loading="lazy" />
+        </figure>
+      </div>
+    </section>
+
+    <!-- 04 Generate -->
     <section class="fl-section fl-rail" aria-labelledby="fl-generate">
-      <p class="fl-step"><span>[ 02 / 03 ]</span> Generate</p>
+      <p class="fl-step"><span>[ 04 / 05 ]</span> Generate</p>
       <div class="fl-section-head">
         <h2 id="fl-generate">Grow the app<br /><span class="fl-ember-text">one command at a time</span></h2>
         <p>Each generator writes plain, readable files into your project. Change them, or regenerate: Flare keeps your edits and tells you when something drifted.</p>
@@ -235,11 +431,27 @@ const generators = [
           </div>
         ))}
       </div>
+
+      <div class="fl-examples" data-tabs>
+        <p class="fl-examples-title">And the code you write stays small</p>
+        <div class="fl-gens-tabs" role="tablist" aria-label="Code examples">
+          {examples.map((example, index) => (
+            <button role="tab" id={`fl-x-${example.id}`} aria-controls={`fl-xp-${example.id}`} aria-selected={index === 0 ? "true" : "false"} tabindex={index === 0 ? 0 : -1}>
+              {example.label}
+            </button>
+          ))}
+        </div>
+        {examples.map((example, index) => (
+          <div role="tabpanel" id={`fl-xp-${example.id}`} aria-labelledby={`fl-x-${example.id}`} hidden={index !== 0}>
+            <Code code={example.code} lang={example.lang} title={example.title} />
+          </div>
+        ))}
+      </div>
     </section>
 
-    <!-- 03 Ship -->
+    <!-- 05 Ship -->
     <section class="fl-section fl-rail" aria-labelledby="fl-ship">
-      <p class="fl-step"><span>[ 03 / 03 ]</span> Ship</p>
+      <p class="fl-step"><span>[ 05 / 05 ]</span> Ship</p>
       <div class="fl-section-head">
         <h2 id="fl-ship">Live on Cloudflare<br /><span class="fl-ember-text">in one command</span></h2>
         <p><code>flare deploy</code> migrates the database first, deploys the Worker, then sets any secret you're missing. Nothing to configure on the dashboard.</p>
@@ -270,6 +482,26 @@ const generators = [
             <code class="fl-share-cmd">npx flare dev --tunnel</code>
             <a href="/guides/tunnels/" class="fl-link">Sharing your local app</a>
           </div>
+          <div class="fl-share">
+            <p class="fl-share-title">Documented as it ships</p>
+            <p>Every app serves an OpenAPI reference of its own API, filtered to what each role may call.</p>
+            <a href="/guides/api-reference/" class="fl-link">API reference (OpenAPI)</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="fl-section fl-rail" aria-labelledby="fl-faq">
+      <div class="fl-faq-grid">
+        <h2 id="fl-faq" class="fl-faq-title">Questions</h2>
+        <div class="fl-faq">
+          {faq.map((item) => (
+            <details>
+              <summary>{item.q}</summary>
+              <p>{item.a}</p>
+            </details>
+          ))}
         </div>
       </div>
     </section>
@@ -321,6 +553,24 @@ const generators = [
         next.focus();
       });
     });
+  }
+
+  // Hero preview: the theme chips swap the screenshot and the answer in the terminal.
+  for (const showcase of document.querySelectorAll<HTMLElement>("[data-showcase]")) {
+    const image = showcase.querySelector<HTMLImageElement>("[data-showcase-image]");
+    const answer = showcase.querySelector<HTMLElement>("[data-showcase-theme]");
+    const chips = [...showcase.querySelectorAll<HTMLButtonElement>("[data-theme-chip]")];
+    for (const chip of chips) {
+      chip.addEventListener("click", () => {
+        const theme = chip.dataset.themeChip!;
+        for (const other of chips) other.setAttribute("aria-pressed", String(other === chip));
+        if (image) {
+          image.src = `/screens/home-${theme}.webp`;
+          image.alt = `The home page of a new Flare app in the ${chip.dataset.label} theme`;
+        }
+        if (answer) answer.textContent = theme;
+      });
+    }
   }
 
   // Copy buttons: confirm in place, then return to "Copy".
@@ -1162,6 +1412,338 @@ const generators = [
     color: var(--fl-ink);
   }
 
+
+  /* ---- Hero showcase: npm create, and the app it makes ---- */
+  .fl-showcase {
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.45fr);
+    gap: 1.25rem;
+    max-width: 72rem;
+    margin: 3.5rem auto 0;
+    text-align: left;
+    align-items: start;
+  }
+
+  .fl-showcase-term {
+    border-radius: 0.875rem;
+    background: #141414;
+    color: #e5e5e5;
+    border: 1px solid #2a2a2a;
+    box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+  }
+
+  .fl-term-bar,
+  .fl-browser-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.625rem 0.875rem;
+  }
+
+  .fl-term-bar {
+    border-bottom: 1px solid #262626;
+  }
+
+  .fl-term-bar span,
+  .fl-browser-bar span {
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 999px;
+    background: #3a3a3a;
+  }
+
+  .fl-browser-bar span {
+    background: var(--fl-rule-strong);
+  }
+
+  .fl-browser-bar code {
+    margin-left: 0.75rem;
+    flex: 1;
+    padding: 0.25rem 0.625rem;
+    border-radius: 0.375rem;
+    background: var(--fl-surface);
+    color: var(--fl-muted);
+    font-size: 0.75rem;
+  }
+
+  .fl-term {
+    list-style: none;
+    margin: 0;
+    padding: 1rem 1.125rem 1.25rem;
+    font-family: var(--sl-font-mono);
+    font-size: 0.78125rem;
+    line-height: 1.95;
+  }
+
+  .fl-term li {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    animation: fl-write 0.35s ease-out both;
+    animation-delay: calc(var(--i) * 180ms + 200ms);
+  }
+
+  .fl-term .fl-dim {
+    color: #8a8a8a;
+  }
+
+  .fl-term .fl-prompt,
+  .fl-ok-mark {
+    color: #ff6b35;
+  }
+
+  .fl-term-choice {
+    color: #fafafa;
+    font-weight: 600;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fl-term li {
+      animation: none;
+    }
+  }
+
+  .fl-showcase-app {
+    border: 1px solid var(--fl-rule);
+    border-radius: 0.875rem;
+    background: var(--fl-paper);
+    overflow: hidden;
+    box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.18);
+  }
+
+  .fl-browser-bar {
+    border-bottom: 1px solid var(--fl-rule);
+  }
+
+  .fl-showcase-app img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1280 / 860;
+  }
+
+  .fl-theme-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    padding: 0.75rem;
+    border-top: 1px solid var(--fl-rule);
+  }
+
+  .fl-theme-chips button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.65rem;
+    border: 1px solid var(--fl-rule);
+    border-radius: 999px;
+    background: var(--fl-paper);
+    color: var(--fl-muted);
+    font: inherit;
+    font-size: 0.78125rem;
+    cursor: pointer;
+  }
+
+  .fl-theme-chips button[aria-pressed="true"] {
+    border-color: var(--fl-ink);
+    color: var(--fl-ink);
+  }
+
+  .fl-swatch {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  }
+
+  .fl-swatch-default { background: #5b5bd6; }
+  .fl-swatch-coral { background: linear-gradient(135deg, #e61e4d, #d70466); }
+  .fl-swatch-amber { background: #ffd814; }
+  .fl-swatch-sky { background: #0051c3; }
+  .fl-swatch-mono { background: #0a0a0a; }
+  .fl-swatch-emerald { background: #3ecf8e; }
+
+  .fl-gens-tabs button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  /* ---- Look: every theme's sign-in and home page ---- */
+  .fl-looks {
+    border: 1px solid var(--fl-rule);
+    border-radius: 0.875rem;
+    background: var(--fl-paper);
+    overflow: hidden;
+  }
+
+  .fl-look-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    padding: 1.25rem;
+  }
+
+  .fl-look-panel figure,
+  .fl-shot {
+    margin: 0;
+  }
+
+  .fl-look-panel img,
+  .fl-shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--fl-rule);
+    border-radius: 0.625rem;
+  }
+
+  .fl-look-panel figcaption {
+    margin-top: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--fl-muted);
+  }
+
+  .fl-look-note {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--fl-muted);
+  }
+
+  .fl-look-note code,
+  .fl-section-head code {
+    color: var(--fl-ink);
+  }
+
+  /* ---- Secure ---- */
+  .fl-secure {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .fl-methods {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--fl-rule);
+  }
+
+  .fl-methods li {
+    display: grid;
+    gap: 0.2rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--fl-rule);
+  }
+
+  .fl-method-name {
+    font-weight: 600;
+    color: var(--fl-ink);
+    letter-spacing: -0.01em;
+  }
+
+  .fl-method-body {
+    font-size: 0.9rem;
+    color: var(--fl-muted);
+  }
+
+  .fl-method-more {
+    border-bottom: 0 !important;
+  }
+
+  .fl-shot {
+    max-height: 34rem;
+    overflow: hidden;
+    border-radius: 0.625rem;
+    mask-image: linear-gradient(to bottom, black 80%, transparent);
+  }
+
+  /* ---- Code examples ---- */
+  .fl-examples {
+    margin-top: 2.5rem;
+  }
+
+  .fl-examples-title {
+    margin: 0 0 1rem;
+    font-weight: 600;
+    color: var(--fl-ink);
+    letter-spacing: -0.015em;
+  }
+
+  .fl-examples .fl-gens-tabs {
+    border: 1px solid var(--fl-rule);
+    border-bottom: 0;
+    border-radius: 0.875rem 0.875rem 0 0;
+    background: var(--fl-paper);
+  }
+
+  .fl-examples :global(.expressive-code .frame) {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  .fl-examples :global(.expressive-code) {
+    margin: 0;
+  }
+
+  /* ---- FAQ ---- */
+  .fl-faq-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.6fr) minmax(0, 1.4fr);
+    gap: 2rem;
+  }
+
+  .fl-faq-title {
+    margin: 0;
+    font-size: clamp(1.875rem, 1.2rem + 2.6vw, 3rem);
+    font-weight: 650;
+    letter-spacing: -0.04em;
+    color: var(--fl-ink);
+  }
+
+  .fl-faq details {
+    border-bottom: 1px solid var(--fl-rule);
+  }
+
+  .fl-faq details:first-child {
+    border-top: 1px solid var(--fl-rule);
+  }
+
+  .fl-faq summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 1.125rem 2rem 1.125rem 0;
+    font-weight: 560;
+    color: var(--fl-ink);
+    position: relative;
+  }
+
+  .fl-faq summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .fl-faq summary::after {
+    content: "+";
+    position: absolute;
+    right: 0.25rem;
+    font-family: var(--sl-font-mono);
+    color: var(--fl-ember);
+    transition: transform 0.15s ease;
+  }
+
+  .fl-faq details[open] summary::after {
+    transform: rotate(45deg);
+  }
+
+  .fl-faq details p {
+    margin: 0 0 1.25rem;
+    max-width: 60ch;
+    color: var(--fl-muted);
+  }
+
   /* ---- Narrow screens ---- */
   @media (max-width: 64rem) {
     .fl-batteries {
@@ -1170,6 +1752,12 @@ const generators = [
   }
 
   @media (max-width: 50rem) {
+    .fl-showcase,
+    .fl-look-panel,
+    .fl-secure,
+    .fl-faq-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
     .fl-demo {
       grid-template-columns: minmax(0, 1fr);
     }
