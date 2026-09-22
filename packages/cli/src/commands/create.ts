@@ -1,13 +1,15 @@
 import { randomBytes } from "node:crypto";
-import { appendFileSync, existsSync, readdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, copyFileSync, existsSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import * as prompts from "@clack/prompts";
 import pc from "picocolors";
 import { FLARE_VERSION } from "@flaredev/core";
 import { devVarsEntries, devVarsExampleEntries, parseAuthMethods, parseAuthProviders, renderAuthConfig } from "../auth-providers.js";
 import { parseTheme } from "../themes.js";
 import { APP_DEPENDENCIES, APP_DEV_DEPENDENCIES } from "../versions.js";
+import { formatDuration } from "../terminal.js";
 import { copyTemplate, findUp, templatesDir, writeJson } from "../utils/fs.js";
-import { detectPackageManager, installArgs, isPackageManager, run, runQuiet, type PackageManager } from "../utils/pm.js";
+import { detectPackageManager, installArgs, isPackageManager, run, type PackageManager } from "../utils/pm.js";
 
 export interface CreateOptions {
   install?: boolean;
@@ -20,6 +22,11 @@ export interface CreateOptions {
   theme?: string;
   /** Progress lines (default: console.log). */
   log?: (message: string) => void;
+  /**
+   * Run the install yourself, and report it: the CLI passes one that shows a spinner.
+   * Only the exit code is read here. Default: inherit this process's output.
+   */
+  installer?: (packageManager: PackageManager, args: string[], dir: string) => number;
   /** Override "today" for the wrangler compatibility date (used by tests). */
   compatibilityDate?: string;
 }
@@ -85,7 +92,7 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   const inWorkspace = findUp("pnpm-workspace.yaml", dirname(dir)) !== undefined;
 
   const compatibilityDate = options.compatibilityDate ?? new Date().toISOString().slice(0, 10);
-  copyTemplate(join(templatesDir, "app"), dir, {
+  const files = copyTemplate(join(templatesDir, "app"), dir, {
     APP_NAME: name,
     COMPAT_DATE: compatibilityDate,
     PM: packageManager,
@@ -123,42 +130,46 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
     writeFileSync(join(dir, "pnpm-workspace.yaml"), "allowBuilds:\n  esbuild: true\n  workerd: true\n  sharp: false\n");
   }
 
-  const log = options.log ?? ((message: string) => console.log(message));
-  if (options.install !== false) {
-    log(`${pc.green("✔")} Wrote the app to ${relative(process.cwd(), dir) || "."}`);
-    log(`${pc.cyan("●")} Installing dependencies with ${packageManager}. The first install downloads the Workers runtime and toolchain, so it can take a few minutes.\n`);
-    const started = Date.now();
-    const code = run(packageManager, installArgs(packageManager), dir);
-    if (code !== 0) throw new Error(`${packageManager} install failed (exit code ${code}).`);
-    log(`${pc.green("✔")} Installed dependencies ${pc.dim(`(${formatDuration(Date.now() - started)})`)}`);
+  // A lockfile turns the install from "resolve 340 packages, then fetch them" into
+  // just the fetch. Only for published versions: a checkout links @flaredev/* locally,
+  // which the lockfile knows nothing about.
+  const pinned = flarePackageSpec("core", dir, packageManager).startsWith("^");
+  if (pinned) copyLockfile(packageManager, dir);
 
-    // Generate worker-configuration.d.ts so `env.DB` and other bindings are typed.
-    // wrangler prints the whole generated file; keep it unless something fails.
-    const typegen = runQuiet(packageManager, ["run", "cf-typegen"], dir);
-    if (typegen.code !== 0) {
-      process.stderr.write(typegen.output);
-      throw new Error(`wrangler types failed (exit code ${typegen.code}).`);
-    }
-    log(`${pc.green("✔")} Generated types for the Cloudflare bindings`);
+  const log = options.log ?? ((message: string) => console.log(message));
+  log(`${pc.green("✔")} Wrote ${files} files to ${relative(process.cwd(), dir) || "."}`);
+  if (options.install !== false) {
+    const started = Date.now();
+    const code = (options.installer ?? run)(packageManager, installArgs(packageManager), dir);
+    if (code !== 0) throw new Error(`${packageManager} install failed (exit code ${code}).`);
+    if (!options.installer) log(`${pc.green("✔")} Installed dependencies ${pc.dim(`(${formatDuration(Date.now() - started)})`)}`);
   }
 
   return { dir, name, packageManager, inWorkspace };
 }
 
-export function formatDuration(ms: number): string {
-  const seconds = Math.round(ms / 1000);
-  return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`;
+/** The lockfile shipped for this package manager, if there is one (yarn and bun have none). */
+export function copyLockfile(packageManager: PackageManager, dir: string): boolean {
+  const file = packageManager === "npm" ? "package-lock.json" : packageManager === "pnpm" ? "pnpm-lock.yaml" : undefined;
+  if (!file) return false;
+  const source = join(templatesDir, "locks", file);
+  if (!existsSync(source)) return false;
+  copyFileSync(source, join(dir, file));
+  return true;
 }
 
 export function printNextSteps(result: CreateResult, installed: boolean) {
   const rel = relative(process.cwd(), result.dir) || ".";
   const pm = result.packageManager;
-  const step = (command: string, note: string) => `  ${command.padEnd(30)}${pc.dim(note)}`;
-  console.log(`\n${pc.green("✔")} Created ${pc.bold(result.name)}\n`);
-  console.log("Next steps:");
-  console.log(`  cd ${rel}`);
-  if (!installed) console.log(`  ${pm} install`);
-  console.log(step(`${pm} run dev`, "start it at http://localhost:3000"));
-  console.log(step("npx flare gen resource ...", "add your first resource"));
-  console.log(`\nQuickstart: ${pc.cyan("https://flare-docs.codetotech.com/start/quickstart/")}`);
+  const commands: [string, string][] = [
+    [`cd ${rel}`, "your new app"],
+    ...(installed ? [] : ([[`${pm} install`, "dependencies first"]] as [string, string][])),
+    [`${pm} run dev`, "http://localhost:3000"],
+    ["npx flare gen resource Contact", "a table, API and admin screens"],
+    ["npx flare seed:resource Contact 1000", "fill it with sample rows"],
+  ];
+  const width = Math.max(...commands.map(([command]) => command.length)) + 2;
+  const steps = commands.map(([command, note]) => `${pc.cyan(command.padEnd(width))}${pc.dim(note)}`);
+  prompts.note(steps.join("\n"), "Next");
+  prompts.outro(`${pc.bold(result.name)} is ready ${pc.dim("·")} ${pc.cyan("https://flare-docs.codetotech.com/start/quickstart/")}`);
 }

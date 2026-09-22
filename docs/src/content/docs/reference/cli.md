@@ -203,6 +203,26 @@ npx flare seed             # every seed, file-name order
 npx flare seed contacts    # just seeds/contacts.seed.ts
 ```
 
+## `flare seed:resource <resource> [count]`
+
+Fill a resource's table with sample rows built from its descriptor. About
+14,000 rows a second locally.
+
+```bash
+npx flare seed:resource Contact --count 1000
+npx flare seed:resource Contact 1m
+npx flare seed:resource Contact 5k --remote --yes
+```
+
+| Flag | |
+| --- | --- |
+| `--count <rows>` | `1000`, `25k`, `1m` (default `25`) |
+| `--truncate` | Delete the table's rows first |
+| `--seed <number>` | Same number, same rows |
+| `--remote` | The deployed database (requires `--yes`) |
+| `--database <binding>` | D1 binding, when the app has several |
+| `--env <name>` | Wrangler environment |
+
 ## `flare seed:make <name>`
 
 Create `seeds/<name>.seed.ts`, with example rows if the name matches a

@@ -38,4 +38,5 @@ export {
   type SubscriptionStatus,
 } from "./billing.js";
 export * from "./resource/index.js";
-export { defineSeed, type Seed, type SeedContext } from "./seed.js";
+export { defineSeed, type Seed, type SeedContext, type InsertMany } from "./seed.js";
+export { createFake, fake, type Fake } from "./fake.js";

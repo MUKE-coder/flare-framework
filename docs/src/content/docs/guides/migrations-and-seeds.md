@@ -50,38 +50,88 @@ running `flare sync-types`.
 
 ## Seeds
 
+Two ways to fill a table: a command for sample rows, and seed files for data
+you control.
+
 ```bash
+npx flare seed:resource Contact --count 1000   # sample rows, no file needed
 npx flare seed:make contacts --resource Contact
-npx flare seed              # every seed, file-name order
+npx flare seed              # every seed file, in file-name order
 npx flare seed contacts     # just seeds/contacts.seed.ts
 ```
 
-`seed:make` writes `seeds/<name>.seed.ts` with three example rows when the
-name matches a resource (or you pass `--resource`) — one sample value per
-field kind, with required relations and files left as `// TODO` lines to
-fill in.
+### Sample rows from a resource
+
+`seed:resource` reads the resource's descriptor and makes rows that fit it:
+an `email` field gets an address, a `tel` field an international number, an
+enum one of its options, a `belongsTo` the id of a row that already exists.
+Field names steer it too, so `city` reads "Kampala" and a `Company.name` is a
+company rather than a person.
+
+```bash
+npx flare seed:resource Contact --count 1000
+npx flare seed:resource Contact 1m               # a million rows
+npx flare seed:resource Contact 5k --truncate    # replace what's there
+npx flare seed:resource Contact 5k --remote --yes
+```
+
+| Flag | |
+| --- | --- |
+| `--count <rows>` | `1000`, `25k`, `1m`, `1,000,000` (default 25) |
+| `--truncate` | Delete the table's rows first |
+| `--seed <number>` | Same number, same rows |
+| `--remote` | The deployed database, not the local one (needs `--yes`) |
+
+Rows land in batches. Locally that runs about **14,000 rows a second** — a
+million rows in a bit over a minute; `--remote` writes one file and hands it to
+D1's import, rather than a query per batch.
+
+Timestamps are spread over the past year and ids sort by creation time, so
+lists, charts and "newest first" look like an app that's been running a while.
+
+### Seed files
+
+`seed:make` writes `seeds/<name>.seed.ts`, with rows for a resource when the
+name matches one (or you pass `--resource`). Required relations and files are
+left as `// TODO` lines to fill in.
 
 ```ts
 // seeds/contacts.seed.ts
 import { defineSeed } from "@flaredev/core";
 import { contacts } from "@/db/schema";
 
-export default defineSeed(async ({ db, log }) => {
-  await db.insert(contacts).values([
-    { name: "Ada Lovelace", email: "ada@example.com" },
-    // ...
-  ]);
-  log("Seeded 1 contact");
+const COUNT = 50;
+
+export default defineSeed(async ({ insertMany, fake, log }) => {
+  const rows = await insertMany(contacts, COUNT, () => ({
+    name: fake.fullName(),
+    email: fake.email(),
+    status: fake.pick(["lead", "customer"]),
+  }));
+  log(`inserted ${rows} contacts`);
 });
 ```
 
+A seed is handed:
+
+| | |
+| --- | --- |
+| `db` | Drizzle, over your schema, on the local database |
+| `insertMany(table, count, build)` | Many rows at once, batched |
+| `fake` | Sample values: `fullName`, `email`, `phone`, `company`, `city`, `country`, `sentence`, `date`, `pick`, `some`, `int`, `bool` |
+| `env` | Local bindings and variables (D1, R2, `.dev.vars`) |
+| `log` | A line of output |
+
+Use `db.insert(...)` for a handful of rows you've written out, and
+`insertMany` for anything larger. They differ by a lot: Drizzle binds every
+value as a parameter and D1 allows 100 of those per statement, so 10,000 rows
+become thousands of round trips. `insertMany` writes the values into the SQL
+instead, which measured about **50× quicker**.
+
 Seeds run in Node against the **local** D1 database through Wrangler's
-`getPlatformProxy()`, sharing state with `flare dev`/`flare start`/`flare
-migrate`. Remote seeding isn't supported — Wrangler's remote-bindings
-proxy isn't reliable enough yet; use
+`getPlatformProxy()`, sharing state with `flare dev`, `flare start` and
+`flare migrate`. For the deployed database, use `seed:resource --remote`, or
 `wrangler d1 execute --remote --file` for one-off production data.
 
 Generated tables default `id` to `crypto.randomUUID()`, so seeds insert
-without supplying one. D1 caps bound parameters at 100 per query, so batch
-large seed inserts accordingly (a 15-row × 6-column insert is already at
-90 parameters).
+without supplying one.

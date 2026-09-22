@@ -51,17 +51,18 @@ describe("renderSeed", () => {
     const source = renderSeed(deal);
     expect(source).toContain('import { deals } from "@/db/schema";');
     for (const line of [
-      "    title: `Title ${i}`,",
-      "    contactEmail: `contact${i}@example.com`,",
-      "    site: `https://example.com/${i}`,",
-      '    notes: "Lorem ipsum dolor sit amet.",',
-      "    qty: i,",
-      "    price: i * 1.5,",
-      "    won: i % 2 === 0,",
-      "    closeOn: `2026-01-0${i}`,",
-      "    seenAt: new Date().toISOString(),",
-      '    stage: "open",',
+      "    title: fake.words(2),",
+      "    contactEmail: fake.email(),",
+      "    site: fake.url(),",
+      "    notes: fake.paragraph(),",
+      "    qty: fake.int(1, 1000),",
+      "    price: fake.float(1, 1000),",
+      "    won: fake.bool(),",
+      "    closeOn: fake.date(),",
+      "    seenAt: fake.datetime(),",
+      '    stage: fake.pick(["open","won"]),',
       "    // companyId: TODO (id of an existing Company),",
+      "await insertMany(deals, COUNT,",
     ]) {
       expect(source).toContain(line);
     }

@@ -1,6 +1,7 @@
 import { cac } from "cac";
+import * as prompts from "@clack/prompts";
 import { FLARE_VERSION } from "@flaredev/core";
-import { createApp, printNextSteps } from "./commands/create.js";
+import { createApp, printNextSteps, toAppName } from "./commands/create.js";
 import { genBilling } from "./commands/gen-billing.js";
 import { genSecurity } from "./commands/gen-security.js";
 import { setTheme } from "./commands/theme.js";
@@ -12,11 +13,13 @@ import { migrate, rollback } from "./commands/migrate.js";
 import { rmResource } from "./commands/rm.js";
 import { addRole } from "./commands/role.js";
 import { makeSeed, runSeeds } from "./commands/seed.js";
+import { seedResourceCommand, type SeedResourceOptions } from "./commands/seed-resource.js";
 import { syncPlans } from "./commands/billing-sync.js";
 import { syncTypes } from "./commands/sync.js";
 import { setUserRole } from "./commands/user-role.js";
 import { DELEGATED_COMMANDS } from "./commands/run.js";
 import { openTunnel, toLocalUrl, tunnelBanner } from "./tunnel.js";
+import { runQuiet } from "./utils/pm.js";
 
 export function createCli() {
   const cli = cac("flare");
@@ -34,8 +37,27 @@ export function createCli() {
     .action(async (dir: string, options: { pm?: string; skipInstall?: boolean; authProviders?: string; auth?: string; theme?: string; yes?: boolean }) => {
       const install = !options.skipInstall;
       let answers: CreateAnswers = { theme: options.theme, auth: options.auth, authProviders: options.authProviders };
-      if (canPrompt(options.yes)) answers = await askCreateQuestions(answers);
-      const result = createApp(dir, { pm: options.pm, install, ...answers });
+      if (canPrompt(options.yes)) answers = await askCreateQuestions(answers, toAppName(dir));
+      const result = createApp(dir, {
+        pm: options.pm,
+        install,
+        ...answers,
+        log: (message) => prompts.log.message(message),
+        // The install is the long part of `flare create`, so it gets a timer rather
+        // than a wall of package manager output. Output is kept for when it fails.
+        installer: (packageManager, args, cwd) => {
+          const spin = prompts.spinner({ indicator: "timer" });
+          spin.start(`Installing dependencies with ${packageManager}`);
+          const { code, output } = runQuiet(packageManager, args, cwd);
+          if (code === 0) {
+            spin.stop(`Installed dependencies with ${packageManager}`);
+          } else {
+            spin.error(`${packageManager} install failed`);
+            process.stderr.write(output);
+          }
+          return code;
+        },
+      });
       printNextSteps(result, install);
     });
 
@@ -139,6 +161,22 @@ export function createCli() {
     .example("flare seed contacts   # just seeds/contacts.seed.ts")
     .action(async (names: string[]) => {
       await runSeeds({ names });
+    });
+
+  cli
+    .command("seed:resource <resource> [count]", "Fill a resource's table with sample rows built from its descriptor")
+    .option("--count <rows>", "How many rows: 1000, 25k, 1m (default: 25)")
+    .option("--remote", "Seed the deployed database instead of the local one (needs --yes)")
+    .option("--truncate", "Delete the table's rows first")
+    .option("--seed <number>", "Same number, same rows")
+    .option("--env <name>", "Wrangler environment")
+    .option("--database <binding>", "D1 binding, when the app has several")
+    .option("-y, --yes", "Confirm writing to the remote database")
+    .example("flare seed:resource Contact --count 1000")
+    .example("flare seed:resource Contact 1m            # a million rows")
+    .example("flare seed:resource Contact 5k --remote --yes")
+    .action(async (resource: string, count: string | undefined, options: SeedResourceOptions & { count?: string }) => {
+      await seedResourceCommand(resource, { ...options, count: options.count ?? count });
     });
 
   cli

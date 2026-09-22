@@ -1,12 +1,12 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
-import { kebabCase, storedFields, type Resource, type StoredField } from "@flaredev/core";
+import { createFake, kebabCase, storedFields, type Resource, type StoredField } from "@flaredev/core";
 import { createJiti } from "jiti";
 import pc from "picocolors";
 import { loadResources } from "../generator/load.js";
 import { tableExport } from "../generator/render.js";
+import { createInsertMany, type DrizzleHelpers } from "../seed/insert-many.js";
+import { openLocalD1 } from "../seed/local-d1.js";
 import { findAppRoot } from "./run.js";
 
 export interface SeedOptions {
@@ -16,14 +16,7 @@ export interface SeedOptions {
   log?: (message: string) => void;
 }
 
-/** The part of wrangler's Node API we use (resolved from the app at runtime). */
-interface WranglerModule {
-  getPlatformProxy(options: { configPath: string; persist: { path: string } }): Promise<{ env: unknown; dispose: () => Promise<void> }>;
-}
-
 const SEEDS_DIR = "seeds";
-/** Same local state as `flare dev`, `flare start` and `flare migrate`. */
-const LOCAL_STATE = ".wrangler/state/v3";
 
 export function seedFiles(appRoot: string, names?: string[]): string[] {
   const dir = join(appRoot, SEEDS_DIR);
@@ -54,58 +47,60 @@ export async function runSeeds(options: SeedOptions = {}): Promise<void> {
 
   // Load everything from the app itself so versions match what the app runs.
   const jiti = createJiti(join(appRoot, "package.json"), { alias: { "@": appRoot }, moduleCache: false, fsCache: false });
-  const appRequire = createRequire(join(appRoot, "package.json"));
-  const wrangler = (await import(pathToFileURL(appRequire.resolve("wrangler")).href)) as WranglerModule;
   const { drizzle } = (await jiti.import("drizzle-orm/d1")) as { drizzle: (db: unknown, config: object) => unknown };
+  const drizzleHelpers = (await jiti.import("drizzle-orm")) as unknown as DrizzleHelpers;
   const schema = (await jiti.import(join(appRoot, "db/schema.ts"))) as Record<string, unknown>;
 
-  const { env, dispose } = await wrangler.getPlatformProxy({
-    configPath: join(appRoot, "wrangler.jsonc"),
-    persist: { path: join(appRoot, LOCAL_STATE) },
-  });
+  const local = await openLocalD1(appRoot);
   try {
-    const bindings = env as Record<string, unknown>;
-    if (!bindings.DB) throw new Error("No DB binding found in wrangler.jsonc.");
-    const db = drizzle(bindings.DB, { schema });
+    const db = drizzle(local.db, { schema });
+    const insertMany = createInsertMany(local.db, drizzleHelpers);
     for (const file of files) {
       const mod = (await jiti.import(join(appRoot, SEEDS_DIR, file))) as { default?: unknown };
       if (typeof mod.default !== "function") throw new Error(`${SEEDS_DIR}/${file} must \`export default defineSeed(async ({ db }) => { ... })\`.`);
       log(`${pc.cyan("seed")} ${file}`);
-      await mod.default({ db, env: bindings, log: (message: string) => log(`  ${message}`) });
+      await mod.default({ db, env: local.env, insertMany, fake: createFake(), log: (message: string) => log(`  ${message}`) });
     }
     log(pc.green(`\nRan ${files.length} seed(s) against the local database.`));
   } finally {
-    await dispose();
+    await local.dispose();
   }
 }
 
-function sampleValue(key: string, def: StoredField, row: number): string | undefined {
+/** The `fake` call that suits a field, as source for the generated seed. */
+function sampleValue(key: string, def: StoredField): string | undefined {
+  const name = key.toLowerCase();
   switch (def.kind) {
     case "string":
-      if (def.format === "email") return `\`${kebabCase(key).replace(/-?email$/, "") || "user"}\${i}@example.com\``;
-      if (def.format === "url") return `\`https://example.com/\${i}\``;
-      if (def.format === "tel") return `\`+1202555\${String(1000 + i).slice(-4)}\``;
-      if (def.format === "domain") return `\`example\${i}.com\``;
-      if (def.format === "country") return JSON.stringify(["US", "GB", "UG", "KE", "DE"][row % 5]);
-      if (def.format === "color") return JSON.stringify("#f2541d");
-      if (def.format === "slug") return `\`${kebabCase(def.label ?? key)}-\${i}\``;
-      return `\`${def.label} \${i}\``;
+      if (def.format === "email") return "fake.email()";
+      if (def.format === "url") return "fake.url()";
+      if (def.format === "tel") return "fake.phone()";
+      if (def.format === "domain") return "fake.domain()";
+      if (def.format === "country") return "fake.country()";
+      if (def.format === "color") return "fake.color()";
+      if (def.format === "slug") return "fake.slug()";
+      if (name.includes("email")) return "fake.email()";
+      if (name.includes("phone") || name.includes("mobile")) return "fake.phone()";
+      if (name.includes("company")) return "fake.company()";
+      if (name.includes("city")) return "fake.city()";
+      if (name.includes("name")) return "fake.fullName()";
+      return "fake.words(2)";
     case "text":
-      return `"Lorem ipsum dolor sit amet."`;
+      return "fake.paragraph()";
     case "int":
-      return "i";
+      return "fake.int(1, 1000)";
     case "float":
-      return "i * 1.5";
+      return "fake.float(1, 1000)";
     case "boolean":
-      return "i % 2 === 0";
+      return "fake.bool()";
     case "date":
-      return "`2026-01-0${i}`";
+      return "fake.date()";
     case "datetime":
-      return "new Date().toISOString()";
+      return "fake.datetime()";
     case "enum":
-      return JSON.stringify(def.options[row % def.options.length]);
+      return `fake.pick(${JSON.stringify(def.options)})`;
     case "multiselect":
-      return JSON.stringify(def.options.slice(0, Math.max(1, def.minItems ?? 1)));
+      return `fake.some(${JSON.stringify(def.options)}, ${Math.max(1, def.minItems ?? 1)})`;
     case "file":
       return undefined;
     case "belongsTo":
@@ -118,9 +113,10 @@ export function renderSeed(resource: Resource | undefined): string {
   if (!resource) {
     return `import { defineSeed } from "@flaredev/core";
 
-export default defineSeed(async ({ db, log }) => {
+export default defineSeed(async ({ db, insertMany, fake, log }) => {
   // Insert rows with Drizzle, e.g.:
   // await db.insert(contacts).values([{ name: "Ada", email: "ada@example.com" }]);
+  // Or many at once, batched: insertMany(contacts, 10_000, () => ({ name: fake.fullName() }));
   log("nothing to seed yet");
 });
 `;
@@ -129,19 +125,21 @@ export default defineSeed(async ({ db, log }) => {
   const lines: string[] = [];
   const todos: string[] = [];
   for (const [key, def] of storedFields(resource)) {
-    const value = sampleValue(key, def, 0);
+    const value = sampleValue(key, def);
     if (value !== undefined) lines.push(`    ${key}: ${value},`);
     else if (def.required) todos.push(`    // ${key}: TODO (${def.kind === "belongsTo" ? `id of an existing ${def.target}` : "R2 object key"}),`);
   }
   return `import { defineSeed } from "@flaredev/core";
 import { ${table} } from "@/db/schema";
 
-export default defineSeed(async ({ db, log }) => {
-  const rows = [1, 2, 3].map((i) => ({
+/** How many to create. insertMany batches them, so hundreds of thousands are fine. */
+const COUNT = 50;
+
+export default defineSeed(async ({ insertMany, fake, log }) => {
+  const rows = await insertMany(${table}, COUNT, () => ({
 ${[...lines, ...todos].join("\n")}
   }));
-  await db.insert(${table}).values(rows);
-  log(\`inserted \${rows.length} ${resource.pluralLabel.toLowerCase()}\`);
+  log(\`inserted \${rows.toLocaleString()} ${resource.pluralLabel.toLowerCase()}\`);
 });
 `;
 }
