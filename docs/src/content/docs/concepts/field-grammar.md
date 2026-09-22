@@ -3,7 +3,7 @@ title: Field type grammar
 description: The --fields string flare gen resource parses.
 ---
 
-`flare gen resource <Name> --fields "..."` accepts a comma-separated list
+`flare gen resource <Name> --fields '...'` accepts a comma-separated list
 of `name:type` pairs. Commas inside `(...)` or `[...]` don't split the
 list, so `enum(a,b,c)` and `file:[image,pdf]` are each one field.
 
@@ -16,10 +16,39 @@ list, so `enum(a,b,c)` and `file:[image,pdf]` are each one field.
 | `int` / `float` | `integer` / `real` | number input |
 | `boolean` | `integer` (0/1) | toggle |
 | `date` / `datetime` | `text` (ISO) | date picker |
-| `enum(a,b,c)` | `text` + CHECK constraint | select |
+| `enum(a,b,c)` or `select(a,b,c)` | `text` + CHECK constraint | dropdown |
+| `radio(a,b,c)` | `text` + CHECK constraint | radio buttons |
+| `multiselect(a,b,c)` | `text` (JSON array) | checkboxes; badges in the table |
 | `file:[image,pdf,...]` | `text` (R2 key) | file upload, MIME-restricted to the bracketed categories |
 | `belongsTo(Model)` | FK column | relation picker |
 | `hasMany(Model)` | — (inverse relation only) | inline table |
+
+## Formats
+
+These are strings (a `text` column, searchable and sortable) with their own
+validation, input and display:
+
+| Syntax | Stored as | Admin input | Shown as |
+| --- | --- | --- | --- |
+| `email` | `ada@example.com` | email input | `mailto:` link |
+| `url` | `https://example.com/about` (http or https only) | URL input | link |
+| `tel` (or `phone`) | E.164: `+256772123456`, validated for its country | searchable country-code picker + number | `+256 772 123456`, `tel:` link |
+| `domain` | `example.com` (a pasted URL is trimmed to its host) | text input | link |
+| `country` | ISO 3166-1 code: `UG` | searchable country list with flags | 🇺🇬 Uganda |
+| `color` | `#f2541d` | colour picker + hex | swatch |
+| `slug` | `my-first-post` (typed text is slugified) | text input | text |
+
+```bash
+npx flare gen resource Vendor --fields 'name:string, email:email, phone:tel?, website:url?, domain:domain?, country:country?, brandColor:color?, handle:slug!?, tier:radio(bronze,silver,gold), services:multiselect(design,build,hosting)?'
+```
+
+A field named `email`, `…Email`, `url`, `website` or `…Url` declared as
+`string` becomes `email` or `url` automatically.
+
+In a descriptor, the same types have builders: `field.email()`, `field.tel()`,
+`field.url()`, `field.domain()`, `field.country()`, `field.color()`,
+`field.slug()`, `field.select([...])`, `field.radio([...])` and
+`field.multiselect([...], { minItems, maxItems })`.
 
 ## Modifiers
 
