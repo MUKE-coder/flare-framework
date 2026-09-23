@@ -1,9 +1,19 @@
 import { authorize, currentUser } from "@/lib/api";
+import { storage } from "@/lib/storage";
 import { dashboardStore } from "@/lib/dashboard";
 import { getDb } from "@/db";
 import { products } from "@/db/schema";
 import { inArray } from "drizzle-orm";
 import orderResource from "@/resources/order.resource";
+
+/** How long a download link from the till stays good. */
+const DOWNLOAD_HOURS = 24;
+
+/** ".zip" from "downloads/kit-a83f.zip"; nothing if the key has no extension. */
+function extensionOf(key: string): string {
+  const match = /\.[A-Za-z0-9]{1,8}$/.exec(key);
+  return match ? match[0] : "";
+}
 
 /**
  * POST /api/orders/checkout
@@ -72,15 +82,29 @@ export async function POST(request: Request) {
     if (!line.ok) return Response.json({ error: line.error }, { status: line.status });
   }
 
-  // What the customer walks away with: a receipt, and a download for anything digital.
-  const downloads = priced
-    .filter(({ product }) => product.kind === "digital" && product.downloadFile)
-    .map(({ product }) => ({ name: product.name, productId: product.id }));
+  // What the customer walks away with: a receipt, and a link for anything digital.
+  //
+  // The link is signed and expires; the file itself stays private in R2, so the only way
+  // to it is a link the shop issued for a sale that was paid for. A day is long enough
+  // for someone to get home and download it, and short enough not to be a back door.
+  const downloads = await Promise.all(
+    priced
+      .filter(({ product }) => product.kind === "digital" && product.downloadFile)
+      .map(async ({ product }) => ({
+        name: product.name,
+        url: await storage.createReadUrl({
+          key: product.downloadFile as string,
+          expiresIn: DOWNLOAD_HOURS * 3600,
+          downloadAs: `${product.sku} ${product.name}`.replace(/[^\w .-]/g, "") + extensionOf(product.downloadFile as string),
+        }),
+      })),
+  );
 
   return Response.json({
     ok: true,
     order: { id: order.data.id, reference: order.data.reference, total: order.data.total },
     downloads,
+    downloadHours: DOWNLOAD_HOURS,
   });
 }
 

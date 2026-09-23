@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BanknoteIcon, CreditCardIcon, MinusIcon, PlusIcon, SearchIcon, SmartphoneIcon, Trash2Icon } from "lucide-react";
+import { BanknoteIcon, CreditCardIcon, DownloadIcon, MinusIcon, PlusIcon, SearchIcon, SmartphoneIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,8 @@ interface Line {
 interface Receipt {
   reference: string;
   total: number;
-  downloads: { name: string; productId: string }[];
+  downloads: { name: string; url: string }[];
+  downloadHours: number;
 }
 
 const money = (value: number) => value.toLocaleString(undefined, { style: "currency", currency: "USD" });
@@ -101,12 +102,22 @@ export function Till() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ paidWith: payment, lines: lines.map((line) => ({ productId: line.product.id, quantity: line.quantity })) }),
       });
-      const body = (await response.json()) as { order?: { reference: string; total: number }; downloads?: Receipt["downloads"]; error?: string };
+      const body = (await response.json()) as {
+        order?: { reference: string; total: number };
+        downloads?: Receipt["downloads"];
+        downloadHours?: number;
+        error?: string;
+      };
       if (!response.ok || !body.order) {
         toast.error(body.error ?? "That sale didn't go through.");
         return;
       }
-      setReceipt({ reference: body.order.reference, total: body.order.total, downloads: body.downloads ?? [] });
+      setReceipt({
+        reference: body.order.reference,
+        total: body.order.total,
+        downloads: body.downloads ?? [],
+        downloadHours: body.downloadHours ?? 24,
+      });
       setLines([]);
       toast.success(`${body.order.reference} · ${money(body.order.total)}`);
       // The shelf just changed, and so did today's takings.
@@ -186,9 +197,19 @@ export function Till() {
               <span className="text-2xl font-semibold tabular-nums">{money(receipt.total)}</span>
               <span className="text-xs text-muted-foreground">Paid. Next customer.</span>
               {receipt.downloads.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Digital: {receipt.downloads.map((download) => download.name).join(", ")} — send the download from the order.
-                </p>
+                <div className="flex flex-col gap-2 border-t border-success/30 pt-3">
+                  <span className="text-xs text-muted-foreground">
+                    Downloads, good for {receipt.downloadHours} hours:
+                  </span>
+                  {receipt.downloads.map((download) => (
+                    <Button key={download.url} variant="outline" size="sm" className="justify-start" asChild>
+                      <a href={download.url} download>
+                        <DownloadIcon data-icon="inline-start" />
+                        <span className="truncate">{download.name}</span>
+                      </a>
+                    </Button>
+                  ))}
+                </div>
               )}
             </div>
           )}

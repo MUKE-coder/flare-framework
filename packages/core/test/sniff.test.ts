@@ -55,6 +55,21 @@ describe("sniffMatches", () => {
     expect(sniffMatches(type, head)).toBe(false);
   });
 
+  it("knows the names browsers give a zip", () => {
+    // Chrome on Windows calls a .zip "application/x-zip-compressed"; refusing that would
+    // refuse most of the zips a real upload form is handed.
+    expect(sniffMatches("application/x-zip-compressed", SAMPLES.zip)).toBe(true);
+    expect(sniffMatches("application/x-zip", SAMPLES.zip)).toBe(true);
+    expect(sniffMatches("application/x-zip-compressed", SAMPLES.pdf)).toBe(false);
+  });
+
+  it("recognises the other archives the archive category accepts", () => {
+    expect(sniffMatches("application/gzip", bytes([0x1f, 0x8b, 0x08]))).toBe(true);
+    expect(sniffMatches("application/x-7z-compressed", bytes([0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c]))).toBe(true);
+    expect(sniffMatches("application/vnd.rar", bytes([0x52, 0x61, 0x72, 0x21, 0x1a, 0x07]))).toBe(true);
+    expect(sniffMatches("application/gzip", SAMPLES.pdf)).toBe(false);
+  });
+
   it("stays out of the way for types it has no signature for", () => {
     expect(sniffMatches("application/x-custom", SAMPLES.html)).toBeUndefined();
     expect(sniffMatches("image/svg+xml", SAMPLES.html)).toBeUndefined();

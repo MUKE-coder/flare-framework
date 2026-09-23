@@ -160,7 +160,18 @@ export const FILE_CATEGORIES = {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "application/vnd.oasis.opendocument.spreadsheet",
   ],
-  archive: ["application/zip"],
+  // Browsers disagree about what a .zip is — Windows sends x-zip-compressed — and an
+  // archive field that refuses an ordinary zip is no use, so the aliases are listed too.
+  archive: [
+    "application/zip",
+    "application/x-zip-compressed",
+    "application/x-zip",
+    "application/gzip",
+    "application/x-gzip",
+    "application/x-7z-compressed",
+    "application/vnd.rar",
+    "application/x-rar-compressed",
+  ],
 } as const;
 
 export type FileCategory = keyof typeof FILE_CATEGORIES;

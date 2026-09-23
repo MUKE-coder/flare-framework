@@ -33,7 +33,29 @@ export function RelationField({ id, value, onChange, invalid, disabled, required
   const [query, setQuery] = useState("");
   const [options, setOptions] = useState<Option[]>([]);
   const [loading, setLoading] = useState(false);
-  const [title, setTitle] = useState(relation.initialTitle ?? "");
+  // The title is remembered against the id it belongs to, so a value that changes
+  // underneath the field doesn't keep the name of the record it used to hold.
+  const [known, setKnown] = useState({ id: value, title: relation.initialTitle ?? "" });
+  const title = known.id === value ? known.title : "";
+
+  // A form opened from a table row is given the id but not the name behind it. Looking it
+  // up here means the field reads correctly wherever the form was rendered.
+  useEffect(() => {
+    if (!value || title) return;
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const response = await fetch(`/api/${relation.slug}/${value}`, { signal: controller.signal, credentials: "same-origin" });
+        if (!response.ok) return;
+        const record = (await response.json()) as Record<string, unknown>;
+        const found = record[relation.titleField];
+        if (found) setKnown({ id: value, title: String(found) });
+      } catch {
+        // Leave the id showing; the field still works.
+      }
+    })();
+    return () => controller.abort();
+  }, [value, title, relation.slug, relation.titleField]);
 
   useEffect(() => {
     if (!open) return;
@@ -99,7 +121,7 @@ export function RelationField({ id, value, onChange, invalid, disabled, required
                     value={option.id}
                     onSelect={() => {
                       onChange(option.id);
-                      setTitle(option.title);
+                      setKnown({ id: option.id, title: option.title });
                       setOpen(false);
                     }}
                   >
@@ -121,7 +143,7 @@ export function RelationField({ id, value, onChange, invalid, disabled, required
           disabled={disabled}
           onClick={() => {
             onChange("");
-            setTitle("");
+            setKnown({ id: "", title: "" });
           }}
         >
           <XIcon />

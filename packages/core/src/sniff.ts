@@ -31,6 +31,8 @@ const OLE2 = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
 const EBML = [0x1a, 0x45, 0xdf, 0xa3]; // WebM, Matroska
 
 const isZip = (head: Uint8Array) => startsWith(head, ZIP) || startsWith(head, EMPTY_ZIP);
+const isGzip = (head: Uint8Array) => startsWith(head, [0x1f, 0x8b]);
+const isRar = (head: Uint8Array) => startsWith(head, ascii("Rar!"));
 
 /** Checks by exact MIME type. */
 const EXACT: Record<string, (head: Uint8Array) => boolean> = {
@@ -41,6 +43,13 @@ const EXACT: Record<string, (head: Uint8Array) => boolean> = {
   "image/avif": (head) => ["avif", "avis", "mif1", "msf1"].includes(isoBrand(head) ?? ""),
   "application/pdf": (head) => startsWith(head, ascii("%PDF-")),
   "application/zip": isZip,
+  "application/x-zip-compressed": isZip,
+  "application/x-zip": isZip,
+  "application/gzip": isGzip,
+  "application/x-gzip": isGzip,
+  "application/x-7z-compressed": (head) => startsWith(head, [0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c]),
+  "application/vnd.rar": isRar,
+  "application/x-rar-compressed": isRar,
   // Office Open XML and OpenDocument files are zip archives.
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": isZip,
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": isZip,
