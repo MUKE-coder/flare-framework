@@ -114,6 +114,16 @@ export default function Home() {
           <p>
             © {new Date().getFullYear()} {site.name}
           </p>
+          {/* Delete this line when the app is your own — it's here so whoever set the
+              project up can find what running it actually costs. */}
+          <a
+            href="https://flare-docs.codetotech.com/guides/costs/"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-foreground"
+          >
+            Built with Flare · what it costs to run
+          </a>
           <nav aria-label="Footer" className="flex gap-6">
             <Link href={site.links.terms} className="hover:text-foreground">
               Terms

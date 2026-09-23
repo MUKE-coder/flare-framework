@@ -35,6 +35,8 @@ export default defineConfig({
             { label: "What is Flare?", slug: "index" },
             { label: "Quickstart", slug: "start/quickstart" },
             { label: "Installation", slug: "start/installation" },
+            { label: "Choosing a stack", slug: "start/stacks" },
+            { label: "Setting up Cloudflare", slug: "start/cloudflare-setup" },
             { label: "Project structure", slug: "start/project-structure" },
           ],
         },
@@ -68,6 +70,8 @@ export default defineConfig({
             { label: "Coming from Prisma", slug: "guides/prisma-to-drizzle" },
             { label: "Migrations & seeds", slug: "guides/migrations-and-seeds" },
             { label: "Deploying to Cloudflare", slug: "guides/deployment" },
+            { label: "What it costs", slug: "guides/costs" },
+            { label: "Self-hosting", slug: "guides/self-hosting" },
           ],
         },
         {
