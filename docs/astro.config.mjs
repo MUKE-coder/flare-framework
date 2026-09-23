@@ -72,7 +72,10 @@ export default defineConfig({
         },
         {
           label: "Tutorials",
-          items: [{ label: "A shop with a till", slug: "tutorials/shop" }],
+          items: [
+            { label: "A shop with a till", slug: "tutorials/shop" },
+            { label: "A drive", slug: "tutorials/drive" },
+          ],
         },
         {
           label: "Reference",
