@@ -71,6 +71,10 @@ export default defineConfig({
           ],
         },
         {
+          label: "Tutorials",
+          items: [{ label: "A shop with a till", slug: "tutorials/shop" }],
+        },
+        {
           label: "Reference",
           items: [{ label: "CLI reference", slug: "reference/cli" }],
         },
