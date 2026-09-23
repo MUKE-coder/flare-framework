@@ -28,13 +28,15 @@ const dir = mkdtempSync(join(tmpdir(), "flare-locks-"));
 const app = join(dir, "flare-app");
 try {
   // Scaffold with the real CLI, so the dependencies are exactly what `flare create` writes.
-  run(process.execPath, [join(root, "packages/cli/dist/index.js"), "create", app, "--skip-install", "--yes"], root);
+  execFileSync(process.execPath, [join(root, "packages/cli/dist/index.js"), "create", app, "--skip-install", "--yes"], { cwd: root, stdio: "ignore" });
 
-  // A checkout links @flaredev/* locally; a user installing from npm gets the published versions.
+  // Flare's own packages are left out on purpose: the version being released isn't on
+  // the registry yet, so pinning it here would fail. Everything else is pinned — that's
+  // the 340 packages that make an install slow — and npm resolves these two itself.
   const manifestPath = join(app, "package.json");
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  manifest.dependencies["@flaredev/core"] = `^${FLARE_VERSION}`;
-  manifest.devDependencies["@flaredev/cli"] = `^${FLARE_VERSION}`;
+  delete manifest.dependencies["@flaredev/core"];
+  delete manifest.devDependencies["@flaredev/cli"];
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   mkdirSync(locksDir, { recursive: true });
 
