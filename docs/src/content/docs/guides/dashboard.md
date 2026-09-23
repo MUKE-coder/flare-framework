@@ -1,6 +1,6 @@
 ---
 title: The dashboard
-description: "One signed-in area: resources, stats, tables with import and export, forms in a dialog, account, security and observability."
+description: "One signed-in area: resources, stats, tables with import and export, forms in a sheet, account, security and observability."
 ---
 
 Every Flare app ships a dashboard at `/dashboard`. It's the whole signed-in
@@ -103,14 +103,15 @@ with a column saying why.
 
 ## Forms
 
-Records are created and edited in a dialog over the list, so you keep the
-list, its filters and your place in it. Long forms read better on their own
-page — switch in `lib/site.ts`:
+Records are created and edited in a sheet over the list, so you keep the
+list, its filters and your place in it. A form is a column of fields, and a
+panel down the side has room for them without squeezing them into a box.
+Long forms read better on their own page — switch in `lib/site.ts`:
 
 ```ts
 export const site = {
   dashboard: {
-    forms: "modal", // or "page"
+    forms: "sheet", // or "page"
   },
 };
 ```
@@ -122,6 +123,33 @@ toast-only. It validates with the descriptor's Zod schemas in the browser
 first (focusing the first invalid field), then a server action validates again
 through the same store the REST API uses — including unique-constraint
 conflicts, which land back on the field that caused them.
+
+### Steps
+
+More than five stored fields and the form splits into steps, with a progress
+bar and Back/Next. Each step is validated before you can leave it, so the
+first problem appears while you're still on the field that caused it rather
+than after the whole form is filled in. Submitting from the last step
+validates everything and jumps back to whichever step holds a problem.
+
+Five is the line where a form starts reading as a chore. Fields are cut in
+declaration order, so the order in the descriptor is the order people meet
+them.
+
+### Generated codes
+
+A unique string field with no format — a SKU, a slug, a reference — gets a
+**Generate** button beside the input. It builds a code from the record's
+title field ("Brushed steel desk lamp" gives `BRU-4821`, or
+`brushed-steel-desk-lamp` for a `slug`), and whatever it suggests can be
+typed over. Email and URL fields are unique too, and inventing one would be
+nonsense, so they don't get it.
+
+### Numbers
+
+`int` and `float` inputs are shown grouped and stored plain: type `2000` into
+a price and it reads `2,000`, while the form, the validators and the API all
+still see `2000`.
 
 ## Field widgets
 

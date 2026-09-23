@@ -12,9 +12,15 @@ more than a CRUD app:
   with a file the buyer gets to keep.
 - **A till.** Tap products, take cash, hand over a receipt. It has to price
   the sale on the server, move the stock, and never trust the browser.
+- **Two ways to buy.** A customer orders online; someone at the counter is
+  served at the till. Both end up as the same order, through the same code.
 
-The finished app is `examples/shop` in the framework repo. Expect about an
-hour.
+You'll build the dashboard, the till, and the shop front customers actually
+see — browse, basket, checkout, and their own order history with the files
+they bought.
+
+The finished app is `examples/shop` in the framework repo. Expect about two
+hours.
 
 Do the [quickstart](/start/quickstart/) first; this assumes you know what
 `gen resource` produces.
@@ -413,7 +419,127 @@ export const dashboardLinks: DashboardLink[] = [
 ];
 ```
 
-## 11. Sell something
+## 11. A basket that lives in the browser
+
+Everything so far serves the person running the shop. Now the other half: a
+customer who wants to buy something.
+
+A basket holds ids and quantities and nothing else — no prices, no names.
+Keep it in `localStorage` with a context around the app
+([`components/store/cart.tsx`](https://github.com/MUKE-coder/flare-framework/blob/main/examples/shop/components/store/cart.tsx)):
+
+```tsx
+export interface CartLine {
+  productId: string;
+  quantity: number;
+}
+```
+
+That is the whole shape, and it is the point. Prices are worked out again on
+the server at checkout, so a basket edited in devtools buys nothing at the
+wrong price. Read it after mount rather than during render — the server has
+no `localStorage`, and a count it can't know would make the first paint
+disagree with the markup it sent:
+
+```tsx
+useEffect(() => {
+  setLines(read());
+  setReady(true);
+}, []);
+```
+
+Mount the provider in `app/layout.tsx` so the header's basket count and the
+basket page share one source.
+
+## 12. The shop front
+
+Five pages, all ordinary server components reading through `lib/store.ts`:
+
+| Page | Shows |
+| --- | --- |
+| `/` | The hero, the categories, the latest products |
+| `/products` and `/categories/[slug]` | Grids of what's for sale |
+| `/products/[id]` | One product, with **Add to basket** |
+| `/cart` | The basket, priced by the server |
+| `/account/orders` and `/account/orders/[id]` | What this person has bought |
+
+`lib/store.ts` is deliberately not the generated store. The dashboard's store
+applies the admin's policies; these queries are the customer's view, and each
+one says out loud what it will show:
+
+```ts
+/** Active products, newest first, optionally within one category. */
+export async function listProducts(categoryId?: string): Promise<StoreProduct[]> {
+  const where = categoryId ? and(eq(products.active, true), eq(products.categoryId, categoryId)) : eq(products.active, true);
+  return getDb().select().from(products).where(where).orderBy(desc(products.createdAt)).limit(60);
+}
+```
+
+Checkout is a second endpoint beside the till's, because the two sales are
+not the same sale — one needs a signed-in account and attaches the order to a
+customer, the other is a stranger at a counter:
+
+```ts
+export async function POST(request: Request) {
+  const account = await currentAccount();
+  if (!account) return Response.json({ error: "Sign in to place an order." }, { status: 401 });
+
+  // …price the basket from the database, exactly as the till does…
+
+  const customer = await customerForAccount(account, true);
+  const order = await dashboardStore("Order").create({
+    channel: "online",
+    status: "paid",
+    customerId: customer?.id,
+    total: Math.round(total * 100) / 100,
+  });
+  // …then a line per product, through the store, so the stock hook runs…
+}
+```
+
+Both checkouts go through `dashboardStore("OrderItem")`, so the hook from
+step 6 takes stock down whichever way the thing was sold. That is the payoff
+of putting it on the resource instead of in the till.
+
+**Who a customer is.** The account is who signs in; the `Customer` record is
+who the shop sells to. They are matched on email, and the customer record is
+made on first purchase — a shop may well have served that address over the
+counter long before they made an account.
+
+```ts
+export async function customerForAccount(account: { email: string; name: string }, create = false) {
+  const [existing] = await db.select().from(customers).where(eq(customers.email, account.email)).limit(1);
+  if (existing || !create) return existing ?? null;
+  const [made] = await db.insert(customers).values({ name: account.name || account.email, email: account.email }).returning();
+  return made ?? null;
+}
+```
+
+**Downloads on the order page** are signed as the page renders, never stored:
+
+```tsx
+const downloads = await Promise.all(
+  bought
+    .filter((product) => product.kind === "digital" && product.downloadFile)
+    .map(async (product) => ({
+      name: product.name,
+      url: await storage.createReadUrl({
+        key: product.downloadFile as string,
+        expiresIn: 24 * 3600,
+        downloadAs: downloadName(product.name, product.downloadFile as string),
+      }),
+    })),
+);
+```
+
+A link that expires can always be replaced by opening the page again. A link
+saved in the database would be a permanent key to a private file.
+
+Sign-in already takes a `?next=`, so `/sign-in?next=/cart` brings someone
+back to their basket — and because the basket is in `localStorage`, it is
+still there when they arrive.
+
+## 13. Sell something
 
 Open `/dashboard/pos`, tap **Recycled storage box** twice, and take the
 cash. Then check the work:
@@ -425,7 +551,13 @@ cash. Then check the work:
 Sell the source code and the receipt offers a download button. Follow it and
 the file arrives, named after the product, straight from R2.
 
-## 12. Deploy
+Then buy something as a customer. Open `/`, put the storage box in the
+basket, sign in, and place the order. You land on `/account/orders/<id>` with
+the order, its lines and — if you bought a download — a button that fetches
+the file. The same order is in `/dashboard/orders`, channel `online` this
+time, and the stock has moved again.
+
+## 14. Deploy
 
 ```bash
 npx flare deploy
@@ -453,8 +585,9 @@ lives in R2, not the database, so it doesn't travel with the rows.
 
 ## What to do next
 
-- **Take orders online.** `POST /api/orders` already exists, generated. A
-  storefront is a client for it.
+- **Take payment.** Orders are marked paid the moment they're placed. Stripe
+  Checkout goes between the basket and the order — see the
+  [billing guide](/guides/billing/).
 - **Receipts by email.** `lib/mail.ts` is wired to Resend; send one from an
   `afterCreate` hook on `Order`.
 - **Refunds.** A `beforeUpdate` hook on `Order` that puts stock back when
