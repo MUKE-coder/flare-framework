@@ -18,6 +18,11 @@ describe("parseDeployArgs", () => {
     expect(parseDeployArgs(["--preview"]).env).toBe("preview");
   });
 
+  it("takes --yes rather than handing it to wrangler, which would refuse it", () => {
+    expect(parseDeployArgs(["--yes"]).forwarded).toEqual([]);
+    expect(parseDeployArgs(["-y", "--env", "staging"]).forwarded).toEqual(["--env", "staging"]);
+  });
+
   it("treats --dry-run and --help as passthrough only", () => {
     expect(parseDeployArgs(["--dry-run"]).passthroughOnly).toBe(true);
     expect(parseDeployArgs(["--help"]).passthroughOnly).toBe(true);

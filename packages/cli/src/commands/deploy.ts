@@ -46,6 +46,10 @@ export function parseDeployArgs(args: string[]): DeployArgs {
     if (arg === "--skip-migrations") skipMigrations = true;
     else if (arg === "--skip-secrets") skipSecrets = true;
     else if (arg === "--skip-security") skipSecurity = true;
+    // Every other command that touches production takes --yes, so people type it here
+    // too. Deploying is the confirmation, so take it and don't pass it to wrangler,
+    // which would stop the deploy with "Unknown option '--yes'".
+    else if (arg === "--yes" || arg === "-y") continue;
     else {
       forwarded.push(arg);
       if (arg === "--env" && args[i + 1]) env = args[i + 1];

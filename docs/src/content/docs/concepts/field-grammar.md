@@ -19,7 +19,7 @@ list, so `enum(a,b,c)` and `file:[image,pdf]` are each one field.
 | `enum(a,b,c)` or `select(a,b,c)` | `text` + CHECK constraint | dropdown |
 | `radio(a,b,c)` | `text` + CHECK constraint | radio buttons |
 | `multiselect(a,b,c)` | `text` (JSON array) | checkboxes; badges in the table |
-| `file:[image,pdf,...]` | `text` (R2 key) | file upload, MIME-restricted to the bracketed categories |
+| `file:[image,pdf,...]` | `text` (R2 key) | file upload, MIME-restricted to the bracketed categories; `:5mb` sets the limit |
 | `belongsTo(Model)` | FK column | relation picker |
 | `hasMany(Model)` | — (inverse relation only) | inline table |
 
@@ -90,7 +90,28 @@ get `format: "url"`.
 | `video`, `audio`, `text`, `csv` | as named |
 | `document` | common word-processor formats |
 | `spreadsheet` | common spreadsheet formats |
-| `archive` | zip only (`application/zip`) |
+| `archive` | zip, gzip, 7z, rar — including the names browsers give a .zip |
+| `any` | anything at all |
+
+Every category but `any` also checks the file's leading bytes against the
+type it claims, so a `.exe` renamed `.png` is refused. `any` checks nothing
+beyond the size limit — reach for it when the point is that anything goes (a
+drive, an attachment, a backup), not out of convenience.
+
+## File size limits
+
+A file field allows 10 MB unless you say otherwise. Write the limit after
+the category list:
+
+```bash
+npx flare gen resource File --fields 'content:file:[any]:100mb'
+npx flare gen resource Deal --fields 'contract:file:[pdf]:2mb?'
+```
+
+`b`, `kb`, `mb` and `gb` are all understood, and the suffixes still work
+after it (`:2mb?` is an optional field with a 2 MB limit). The most a field
+can take is `100mb`: an upload streams through the Worker, and that's what
+one request will carry.
 
 ## Typos are caught early
 
