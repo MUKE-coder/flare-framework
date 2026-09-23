@@ -11,6 +11,10 @@ import { applyPlan, ensureSupportFiles, logResults, planFiles, type FileResult }
 import { findAppRoot } from "./run.js";
 
 export interface GenResourceOptions {
+  /** Sidebar heading this resource sits under, e.g. "Sales". */
+  group?: string;
+  /** lucide-react icon name for the sidebar, e.g. "users". */
+  icon?: string;
   fields?: string;
   cwd?: string;
   /** Overwrite hand-edited generated blocks (including the descriptor's fields). */
@@ -73,7 +77,7 @@ export async function genResource(rawName: string, options: GenResourceOptions):
 
     if (!exists) {
       mkdirSync(dirname(path), { recursive: true });
-      writeFileSync(path, renderDescriptor(name, fields));
+      writeFileSync(path, renderDescriptor(name, fields, { group: options.group, icon: options.icon }));
       log(`${pc.green("create".padEnd(9))} ${relativePath}`);
     } else {
       try {

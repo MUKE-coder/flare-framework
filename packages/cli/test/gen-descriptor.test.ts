@@ -81,6 +81,7 @@ describe("genResource", () => {
       "resources/order-item.client.ts",
       "resources/order-item.validators.ts",
       "app/dashboard/order-items/page.tsx",
+      "app/dashboard/order-items/[id]/page.tsx",
       "app/dashboard/order-items/new/page.tsx",
       "app/dashboard/order-items/[id]/edit/page.tsx",
       "db/relations.ts",

@@ -243,6 +243,19 @@ export function renderAdminListPage(entry: LoadedResource): string {
   ].join("\n");
 }
 
+/** `app/dashboard/<slug>/[id]/page.tsx`: one record, its relations and its history. */
+export function renderAdminDetailPage(entry: LoadedResource): string {
+  return [
+    `import { RecordDetail } from "@/components/dashboard/record-detail";`,
+    ...adminImports(entry),
+    "",
+    `export default async function ${entry.resource.name}DetailPage({ params }: { params: Promise<{ id: string }> }) {`,
+    `  return <RecordDetail resource={${resourceLocal(entry.stem)}} id={(await params).id} />;`,
+    "}",
+    "",
+  ].join("\n");
+}
+
 /** `app/dashboard/<slug>/new/page.tsx`: the create form. */
 export function renderAdminNewPage(entry: LoadedResource): string {
   return [
@@ -341,6 +354,7 @@ export function resourceFiles(entry: LoadedResource, all: LoadedResource[]): { p
     { path: `resources/${stem}.client.ts`, content: renderClient(entry) },
     { path: `resources/${stem}.validators.ts`, content: renderValidators(entry) },
     { path: `app/dashboard/${resource.slug}/page.tsx`, content: renderAdminListPage(entry) },
+    { path: `app/dashboard/${resource.slug}/[id]/page.tsx`, content: renderAdminDetailPage(entry) },
     { path: `app/dashboard/${resource.slug}/new/page.tsx`, content: renderAdminNewPage(entry) },
     { path: `app/dashboard/${resource.slug}/[id]/edit/page.tsx`, content: renderAdminEditPage(entry) },
   ];

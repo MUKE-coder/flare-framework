@@ -79,16 +79,23 @@ export function renderFieldsBlock(fields: ParsedField[]): string {
  * would at runtime, so an invalid descriptor is never written. The fields block is
  * tracked, so re-running `gen resource --fields` can tell whether it was edited by hand.
  */
-export function renderDescriptor(name: string, fields: ParsedField[]): string {
+export function renderDescriptor(name: string, fields: ParsedField[], options: { group?: string; icon?: string } = {}): string {
   defineResource({ name, fields: Object.fromEntries(fields.map((f) => [f.key, toField(f)])) });
   const block = renderFieldsBlock(fields);
+  // Both show up in the sidebar: the icon on the item, the group as its heading.
+  const heading = [
+    options.icon ? `  icon: ${literal(options.icon)},
+` : "",
+    options.group ? `  group: ${literal(options.group)},
+` : "",
+  ].join("");
 
   return joinMarkers({
     before: `import { defineResource, field } from "@flaredev/core";
 
 export default defineResource({
   name: ${literal(name)},
-  fields: {
+${heading}  fields: {
 `,
     block,
     after: `  },

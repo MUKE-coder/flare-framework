@@ -17,6 +17,11 @@ export interface ResourceConfig<Fields extends Record<string, Field>> {
   pluralLabel?: string;
   /** lucide-react icon name for navigation, e.g. "users". Default: a generic document icon. */
   icon?: string;
+  /**
+   * Heading this resource sits under in the dashboard sidebar, e.g. "Sales". Resources
+   * without one share a "Resources" group, which is all a small app needs.
+   */
+  group?: string;
   /** Field used to represent a record in lists and relation pickers. Default: first string field. */
   titleField?: FieldKey<Fields>;
   defaultSort?: { field: FieldKey<Fields> | "createdAt" | "updatedAt"; direction: "asc" | "desc" };
@@ -31,6 +36,7 @@ export interface Resource<Fields extends Record<string, Field> = Record<string, 
   label: string;
   pluralLabel: string;
   icon: string | undefined;
+  group: string | undefined;
   titleField: string;
   defaultSort: { field: string; direction: "asc" | "desc" };
   perPage: number;
@@ -117,6 +123,7 @@ export function defineResource<const Fields extends Record<string, Field>>(confi
     label: config.label ?? humanize(name),
     pluralLabel: config.pluralLabel ?? humanize(pluralName),
     icon: config.icon,
+    group: config.group,
     titleField,
     defaultSort,
     perPage,

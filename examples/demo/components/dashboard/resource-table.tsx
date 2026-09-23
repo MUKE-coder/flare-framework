@@ -223,7 +223,7 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
                       } else if (column.def.kind === "belongsTo" && typeof value === "string") {
                         const target = byName.get(column.def.target);
                         content = target ? (
-                          <Link href={resourcePath(target, value, "edit")} className="hover:underline">
+                          <Link href={resourcePath(target, value)} className="hover:underline">
                             {titles[column.key]?.[value] ?? value}
                           </Link>
                         ) : (
@@ -231,7 +231,7 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
                         );
                       } else if (index === 0) {
                         content = (
-                          <Link href={resourcePath(resource, id, "edit")} className="font-medium hover:underline">
+                          <Link href={resourcePath(resource, id)} className="font-medium hover:underline">
                             {content}
                           </Link>
                         );
@@ -258,6 +258,7 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
                         relations={relations}
                         listHref={basePath}
                         editHref={resourcePath(resource, id, "edit")}
+                        detailHref={resourcePath(resource, id)}
                         canUpdate={permissions.update}
                         canDelete={permissions.delete}
                       />

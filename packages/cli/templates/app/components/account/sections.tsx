@@ -80,7 +80,7 @@ function BackupCodes({ codes }: { codes: string[] }) {
   );
 }
 
-function Profile({ user }: { user: Props["user"] }) {
+export function Profile({ user }: { user: Props["user"] }) {
   const router = useRouter();
   const [name, setName] = useState(user.name);
   const [pending, setPending] = useState<string | null>(null);
@@ -130,7 +130,7 @@ function Profile({ user }: { user: Props["user"] }) {
   );
 }
 
-function Password({ hasPassword, email }: { hasPassword: boolean; email: string }) {
+export function Password({ hasPassword, email }: { hasPassword: boolean; email: string }) {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [pending, setPending] = useState(false);
@@ -174,7 +174,7 @@ function Password({ hasPassword, email }: { hasPassword: boolean; email: string 
   );
 }
 
-function TwoFactor({ enabled, hasPassword, methods }: { enabled: boolean; hasPassword: boolean; methods: Props["methods"]["twoFactor"] }) {
+export function TwoFactor({ enabled, hasPassword, methods }: { enabled: boolean; hasPassword: boolean; methods: Props["methods"]["twoFactor"] }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [stage, setStage] = useState<"idle" | "confirm-app" | "confirm-email" | "scan" | "disable" | "regenerate">("idle");
@@ -341,7 +341,7 @@ interface PasskeyRow {
   createdAt?: string | Date | null;
 }
 
-function Passkeys() {
+export function Passkeys() {
   const [list, setList] = useState<PasskeyRow[] | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -397,7 +397,7 @@ function Passkeys() {
   );
 }
 
-function ConnectedAccounts({ providers }: { providers: SocialProvider[] }) {
+export function ConnectedAccounts({ providers }: { providers: SocialProvider[] }) {
   const [linked, setLinked] = useState<{ providerId: string; accountId: string }[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -459,7 +459,7 @@ function describeDevice(agent?: string | null): string {
   return system ? `${browser} on ${system}` : browser;
 }
 
-function Sessions() {
+export function Sessions() {
   const [list, setList] = useState<SessionRow[] | null>(null);
   const [current, setCurrent] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -503,20 +503,5 @@ function Sessions() {
         </SecondaryButton>
       )}
     </Section>
-  );
-}
-
-/** Everything about how this person signs in, in one page. */
-export function SecuritySettings({ user, hasPassword, methods, socialProviders }: Props) {
-  const twoFactor = methods.twoFactor.authenticator || methods.twoFactor.email;
-  return (
-    <div className="flex flex-col gap-6">
-      <Profile user={user} />
-      <Password hasPassword={hasPassword} email={user.email} />
-      {twoFactor && <TwoFactor enabled={user.twoFactorEnabled} hasPassword={hasPassword} methods={methods.twoFactor} />}
-      {methods.passkeys && <Passkeys />}
-      {socialProviders.length > 0 && <ConnectedAccounts providers={socialProviders} />}
-      <Sessions />
-    </div>
   );
 }

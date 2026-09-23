@@ -28,6 +28,7 @@ const TAG_FILES = [
   "resources/tag.client.ts",
   "resources/tag.validators.ts",
   "app/dashboard/tags/page.tsx",
+  "app/dashboard/tags/[id]/page.tsx",
   "app/dashboard/tags/new/page.tsx",
   "app/dashboard/tags/[id]/edit/page.tsx",
 ];

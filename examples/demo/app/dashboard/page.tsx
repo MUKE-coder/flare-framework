@@ -44,8 +44,8 @@ export default async function DashboardPage() {
   const twoFactorOn = Boolean((user as { twoFactorEnabled?: boolean | null }).twoFactorEnabled);
   const steps = [
     { done: user.emailVerified, label: "Verify your email address", href: "/verify-email" },
-    ...(twoFactorAvailable ? [{ done: twoFactorOn, label: "Turn on two-factor authentication", href: "/dashboard/account#two-factor" }] : []),
-    ...(authConfig.passkeys ? [{ done: passkeys > 0, label: "Add a passkey for one-tap sign-in", href: "/dashboard/account#passkeys" }] : []),
+    ...(twoFactorAvailable ? [{ done: twoFactorOn, label: "Turn on two-factor authentication", href: "/dashboard/account/security" }] : []),
+    ...(authConfig.passkeys ? [{ done: passkeys > 0, label: "Add a passkey for one-tap sign-in", href: "/dashboard/account/security" }] : []),
   ];
   const remaining = steps.filter((step) => !step.done).length;
 

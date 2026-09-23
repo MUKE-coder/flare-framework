@@ -21,8 +21,22 @@ export interface NavResource {
   pluralLabel: string;
   slug: string;
   icon?: string;
+  /** Heading it sits under, from the descriptor's `group`. */
+  group?: string;
   /** Optional count badge (off by default). */
   badge?: number;
+}
+
+/** Resources in the order given, under their headings; ungrouped ones come first. */
+function byGroup(resources: NavResource[]): [string, NavResource[]][] {
+  const groups = new Map<string, NavResource[]>();
+  for (const resource of resources) {
+    const heading = resource.group?.trim() || "Resources";
+    const existing = groups.get(heading);
+    if (existing) existing.push(resource);
+    else groups.set(heading, [resource]);
+  }
+  return [...groups];
 }
 
 /**
@@ -85,29 +99,29 @@ export function DashboardSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {resources.length > 0 && (
-        <SidebarGroup>
-          <SidebarGroupLabel>Resources</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {resources.map((resource) => {
-                const href = `/dashboard/${resource.slug}`;
-                const Icon = resourceIcon(resource.icon);
-                return (
-                  <SidebarMenuItem key={resource.name}>
-                    <SidebarMenuButton asChild isActive={pathname === href || pathname.startsWith(`${href}/`)} tooltip={resource.pluralLabel}>
-                      <Link href={href}>
-                        <Icon />
-                        <span>{resource.pluralLabel}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        )}
+        {byGroup(resources).map(([heading, group]) => (
+          <SidebarGroup key={heading}>
+            <SidebarGroupLabel>{heading}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.map((resource) => {
+                  const href = `/dashboard/${resource.slug}`;
+                  const Icon = resourceIcon(resource.icon);
+                  return (
+                    <SidebarMenuItem key={resource.name}>
+                      <SidebarMenuButton asChild isActive={pathname === href || pathname.startsWith(`${href}/`)} tooltip={resource.pluralLabel}>
+                        <Link href={href}>
+                          <Icon />
+                          <span>{resource.pluralLabel}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
 
         <SidebarGroup>
           <SidebarGroupLabel>Manage</SidebarGroupLabel>

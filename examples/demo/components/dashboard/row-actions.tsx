@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import { ExternalLinkIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import type { Resource } from "@flaredev/core";
 import { deleteRecordAction } from "@/app/dashboard/actions";
@@ -39,6 +39,7 @@ export function RowActions({
   relations = {},
   listHref,
   editHref,
+  detailHref,
   canUpdate = true,
   canDelete = true,
 }: {
@@ -49,6 +50,8 @@ export function RowActions({
   relations?: FormRelations;
   listHref: string;
   editHref: string;
+  /** The record's own page. */
+  detailHref: string;
   canUpdate?: boolean;
   canDelete?: boolean;
 }) {
@@ -71,7 +74,7 @@ export function RowActions({
     });
   }
 
-  if (!canUpdate && !canDelete) return null;
+
 
   return (
     <>
@@ -82,6 +85,15 @@ export function RowActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuGroup>
+            <DropdownMenuItem asChild>
+              <Link href={detailHref}>
+                <ExternalLinkIcon />
+                Open
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
           {canUpdate && (
             <DropdownMenuGroup>
               {record ? (

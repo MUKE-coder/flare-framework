@@ -64,6 +64,8 @@ export function createCli() {
   cli
     .command("gen <generator> [name]", "Generate code. Generators: resource, migration, policy, billing, security")
     .option("--fields <fields>", "resource: fields, e.g. 'name:string, email:string!, status:enum(lead,customer)' (single quotes: bash treats ! in double quotes as history)")
+    .option("--group <name>", "resource: sidebar heading to file it under, e.g. Sales")
+    .option("--icon <name>", "resource: lucide icon for the sidebar, e.g. users")
     .option("--force", "resource/policy/billing/security: overwrite hand-edited generated blocks")
     .option("--from-schema", "migration: diff the current tables instead of a blank migration")
     .option("--roles <roles>", "policy: roles allowed to read, create and update, e.g. admin,staff")
@@ -84,6 +86,8 @@ export function createCli() {
         name: string | undefined,
         options: {
           fields?: string;
+          group?: string;
+          icon?: string;
           force?: boolean;
           fromSchema?: boolean;
           roles?: string;
@@ -100,7 +104,7 @@ export function createCli() {
         if (["resource", "migration", "policy"].includes(generator) && !name) {
           throw new Error(`flare gen ${generator} needs a name, e.g. flare gen ${generator} ${generator === "migration" ? "add_phone_to_contacts" : "Contact"}`);
         }
-        if (generator === "resource") return genResource(name!, { fields: options.fields, force: options.force });
+        if (generator === "resource") return genResource(name!, { fields: options.fields, force: options.force, group: options.group, icon: options.icon });
         if (generator === "migration") return genMigration(name!, { fromSchema: options.fromSchema });
         if (generator === "policy") return genPolicy(name!, { roles: options.roles, deleteRoles: options.deleteRoles, force: options.force });
         throw new Error(`Unknown generator "${generator}". Available: resource, migration, policy, billing, security.`);

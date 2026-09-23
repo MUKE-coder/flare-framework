@@ -27,6 +27,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     pluralLabel: resource.pluralLabel,
     slug: resource.slug,
     icon: resource.icon,
+    group: resource.group,
   }));
 
   return (
