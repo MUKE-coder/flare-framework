@@ -8,6 +8,37 @@ export interface ListQuery {
   q?: string;
   /** Field key → coerced value; `null` means IS NULL. */
   filters: Record<string, string | number | boolean | null>;
+  /**
+   * Where to carry on from, instead of counting rows to skip. `OFFSET 500000` makes
+   * SQLite walk half a million index entries before it reads anything (8s at a million
+   * rows); a cursor turns that into a range scan (~100ms).
+   */
+  cursor?: Cursor;
+}
+
+/** The last row of the page you came from, and which way you're going. */
+export interface Cursor {
+  /** The sort field's value on that row. */
+  value: string | number | boolean | null;
+  id: string;
+  direction: "after" | "before";
+}
+
+/** Cursors travel in the URL, so they're base64url of the smallest JSON that works. */
+export function encodeCursor(cursor: Cursor): string {
+  const json = JSON.stringify([cursor.value, cursor.id, cursor.direction === "before" ? 0 : 1]);
+  return btoa(json).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+export function decodeCursor(raw: string): Cursor | undefined {
+  try {
+    const json = atob(raw.replace(/-/g, "+").replace(/_/g, "/"));
+    const parsed = JSON.parse(json) as [string | number | boolean | null, string, number];
+    if (!Array.isArray(parsed) || typeof parsed[1] !== "string") return undefined;
+    return { value: parsed[0], id: parsed[1], direction: parsed[2] === 0 ? "before" : "after" };
+  } catch {
+    return undefined;
+  }
 }
 
 export interface QueryIssue {
@@ -82,6 +113,13 @@ export function parseListQuery(resource: Resource, params: URLSearchParams): { q
 
   const q = params.get("q")?.trim().slice(0, MAX_SEARCH_LENGTH) || undefined;
 
+  const rawCursor = params.get("cursor");
+  let cursor: Cursor | undefined;
+  if (rawCursor) {
+    cursor = decodeCursor(rawCursor);
+    if (!cursor) issues.push({ param: "cursor", message: "isn't a cursor this list handed out" });
+  }
+
   const filters: ListQuery["filters"] = {};
   for (const [name, raw] of params) {
     const match = /^filter\[(.+)\]$/.exec(name);
@@ -97,5 +135,5 @@ export function parseListQuery(resource: Resource, params: URLSearchParams): { q
     else filters[key] = value;
   }
 
-  return issues.length ? { issues } : { query: { page, perPage, sort, q, filters } };
+  return issues.length ? { issues } : { query: { page, perPage, sort, q, filters, cursor } };
 }

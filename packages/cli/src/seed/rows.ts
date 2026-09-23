@@ -15,6 +15,12 @@ export interface RowSourceOptions {
   parentIds?: ParentIds;
   /** Overrides "now" when spreading created_at / updated_at (used by tests). */
   now?: number;
+  /**
+   * Where this run's numbering starts, normally the rows already in the table. Without
+   * it, seeding twice would number both runs from one and the second would collide with
+   * the first on every unique column.
+   */
+  startIndex?: number;
 }
 
 const has = (key: string, ...words: string[]) => words.some((word) => key.includes(word));
@@ -159,12 +165,14 @@ export function* seedRows(resource: Resource, count: number, options: RowSourceO
   const parentIds = options.parentIds ?? new Map();
   const fields = storedFields(resource);
   const now = options.now ?? Date.now();
+  const start = options.startIndex ?? 0;
 
   for (let i = 0; i < count; i++) {
+    const number = start + i;
     const row: Row = { id: fake.id() };
     for (const [key, def] of fields) {
-      let value = fieldValue(key, def, fake, resource, parentIds, i);
-      if (typeof value === "string" && "unique" in def && def.unique) value = uniquify(value, i + 1);
+      let value = fieldValue(key, def, fake, resource, parentIds, number);
+      if (typeof value === "string" && "unique" in def && def.unique) value = uniquify(value, number + 1);
       row[columnName(key)] = value;
     }
     // Spread over the past year so lists, charts and "newest first" look real.

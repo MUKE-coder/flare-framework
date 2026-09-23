@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
 import { formatValue, optionLabel, statusTone, storedFields, type Resource, type StoredField } from "@flaredev/core";
 import { isSortable } from "@flaredev/core/server";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -270,13 +270,22 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
         </div>
       )}
 
-      {meta.total > 0 && (
+      {(meta.total > 0 || rows.length > 0) && (
         <div className="flex flex-col items-center justify-between gap-3 text-sm text-muted-foreground sm:flex-row">
           <p className="tabular-nums">
-            {first}–{last} of {meta.total} {meta.total === 1 ? resource.label.toLowerCase() : resource.pluralLabel.toLowerCase()}
+            {meta.exactTotal ? (
+              <>
+                {first}–{last} of {meta.total.toLocaleString()} {meta.total === 1 ? resource.label.toLowerCase() : resource.pluralLabel.toLowerCase()}
+              </>
+            ) : (
+              <>
+                Showing {rows.length} of more than {meta.total.toLocaleString()} {resource.pluralLabel.toLowerCase()}
+              </>
+            )}
             {activeFilters > 0 && ` · ${activeFilters} filter${activeFilters === 1 ? "" : "s"} applied`}
           </p>
-          {meta.totalPages > 1 && (
+
+          {meta.exactTotal && meta.totalPages > 1 && (
             <Pagination className="mx-0 w-auto">
               <PaginationContent>
                 <PaginationItem>
@@ -303,8 +312,43 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
               </PaginationContent>
             </Pagination>
           )}
+
+          {/* Past the count limit, pages are walked with cursors: numbering them would mean
+              counting every row, and jumping to page 20,000 would mean reading the 500,000
+              rows before it. */}
+          {!meta.exactTotal && (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" asChild={Boolean(meta.prevCursor)} disabled={!meta.prevCursor}>
+                {meta.prevCursor ? (
+                  <Link href={hrefWith(basePath, params, { cursor: meta.prevCursor, page: null })}>
+                    <ChevronLeftIcon data-icon="inline-start" />
+                    Previous
+                  </Link>
+                ) : (
+                  <span>
+                    <ChevronLeftIcon data-icon="inline-start" />
+                    Previous
+                  </span>
+                )}
+              </Button>
+              <Button variant="outline" size="sm" asChild={Boolean(meta.nextCursor)} disabled={!meta.nextCursor}>
+                {meta.nextCursor ? (
+                  <Link href={hrefWith(basePath, params, { cursor: meta.nextCursor, page: null })}>
+                    Next
+                    <ChevronRightIcon data-icon="inline-end" />
+                  </Link>
+                ) : (
+                  <span>
+                    Next
+                    <ChevronRightIcon data-icon="inline-end" />
+                  </span>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       )}
+
       <SelectionBar
         resourceName={resource.name}
         label={resource.label}

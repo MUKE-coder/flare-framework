@@ -173,8 +173,16 @@ export function openApiDocument(options: OpenApiOptions): Schema {
     },
     PageMeta: {
       type: "object",
-      properties: { page: { type: "integer" }, perPage: { type: "integer" }, total: { type: "integer" }, totalPages: { type: "integer" } },
-      required: ["page", "perPage", "total", "totalPages"],
+      properties: {
+        page: { type: "integer" },
+        perPage: { type: "integer" },
+        total: { type: "integer", description: "Matching rows, counted up to 10,000." },
+        totalPages: { type: "integer" },
+        exactTotal: { type: "boolean", description: "False when there are more than 10,000 matches; page with the cursors instead." },
+        nextCursor: { type: "string", description: "Pass as ?cursor= for the next page." },
+        prevCursor: { type: "string" },
+      },
+      required: ["page", "perPage", "total", "totalPages", "exactTotal"],
     },
   };
   const tags: Schema[] = [{ name: "Authentication", description: "Sign in here first: the session cookie authorizes every other request." }];

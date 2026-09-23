@@ -138,7 +138,7 @@ describe("list (GET collection)", () => {
 
   it("paginates with metadata", async () => {
     const { body } = await list("?perPage=2&page=2&sort=name");
-    expect(body.meta).toEqual({ page: 2, perPage: 2, total: 3, totalPages: 2 });
+    expect(body.meta).toMatchObject({ page: 2, perPage: 2, total: 3, totalPages: 2, exactTotal: true });
     expect(body.data.map((c: { name: string }) => c.name)).toEqual(["Cy"]);
   });
 

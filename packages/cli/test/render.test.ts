@@ -55,16 +55,19 @@ export const contacts = sqliteTable(
   },
   (table) => [
     check("contacts_status_check", sql\`\${table.status} in ('lead', 'o''brien')\`),
+    index("contacts_status_idx").on(table.status),
     index("contacts_company_id_idx").on(table.companyId),
+    index("contacts_created_at_idx").on(table.createdAt),
   ],
 );
 `);
   });
 
-  it("renders a minimal table without extra config", () => {
+  it("indexes what the list orders by, even on a table with no other config", () => {
     const output = renderTableModule(company, all);
-    expect(output).toContain('import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";');
-    expect(output).not.toContain("(table) =>");
+    expect(output).toContain('import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";');
+    // Without this index, every page of a large table sorts the whole thing.
+    expect(output).toContain('index("companies_created_at_idx").on(table.createdAt)');
   });
 
   it("types self-references so TypeScript can infer them", () => {

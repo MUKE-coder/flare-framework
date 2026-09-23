@@ -38,6 +38,12 @@ export interface SeedResourceResult {
   where: "local" | "remote";
 }
 
+/** How many rows the table already holds, so numbering carries on from there. */
+async function countRows(db: { prepare(sql: string): { first<T>(): Promise<T | null> } }, table: string): Promise<number> {
+  const row = await db.prepare(`SELECT count(*) AS total FROM "${table}"`).first<{ total: number }>();
+  return row?.total ?? 0;
+}
+
 /** Parents to sample ids from; more than this and the spread is already plenty. */
 const PARENT_SAMPLE = 5000;
 
@@ -128,7 +134,10 @@ export async function seedResource(name: string, options: SeedResourceOptions = 
   const columns = seedColumns(resource);
   const started = Date.now();
   let parents: ParentIds = new Map();
-  const rows = () => seedRows(resource, total, { seed: options.seed, parentIds: parents });
+  // Numbering carries on from the rows already there, so a second run doesn't repeat
+  // the first run's unique values.
+  let startIndex = 0;
+  const rows = () => seedRows(resource, total, { seed: options.seed, parentIds: parents, startIndex });
 
   if (options.remote) {
     const db = pickDatabase(readD1Databases(appRoot), options.database);
@@ -145,6 +154,10 @@ export async function seedResource(name: string, options: SeedResourceOptions = 
       const found = await query<{ id: string }>(`SELECT id FROM "${table}" LIMIT ${PARENT_SAMPLE}`);
       return found.map((row) => row.id);
     });
+    if (!options.truncate) {
+      const [counted] = await query<{ total: number }>(`SELECT count(*) AS total FROM "${resource.table}"`);
+      startIndex = counted?.total ?? 0;
+    }
 
     // One file, uploaded once: D1's import path is far quicker than a query per batch.
     const dir = mkdtempSync(join(tmpdir(), "flare-seed-"));
@@ -175,6 +188,7 @@ export async function seedResource(name: string, options: SeedResourceOptions = 
       return (found.results ?? []).map((row) => row.id);
     });
     if (options.truncate) await local.db.exec(`DELETE FROM "${resource.table}";`);
+    else startIndex = await countRows(local.db, resource.table);
     const sink: SqlSink = { exec: (sql) => (local.db as D1Binding).exec(sql) };
     const written = await bulkInsert(sink, {
       table: resource.table,

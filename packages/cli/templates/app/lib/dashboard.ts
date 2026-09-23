@@ -77,15 +77,41 @@ export function dashboardStore(name: string): ResourceStore {
  * admin or the API drops the count on its way out.
  */
 export function recordCount(name: string): Promise<number> {
-  const count = cached(
+  const counted = cached(
     async (resourceName: string) => {
-      const result = await dashboardStore(resourceName).list(new URLSearchParams({ perPage: "1" }));
-      return result.ok ? result.data.meta.total : 0;
+      // Counted straight off the table, not through the store: a list stops counting at
+      // 10,000 so that paging stays quick, and a stat wants the real number.
+      const entry = (resourceTables as unknown as Record<string, { table: SQLiteTable } | undefined>)[resourceName];
+      if (!entry) return 0;
+      const [row] = await getDb().select({ total: count() }).from(entry.table);
+      return row?.total ?? 0;
     },
     ["flare", "record-count"],
     { tags: [resourceTag(name)], revalidate: TTL.short },
   );
-  return count(name);
+  return counted(name);
+}
+
+/**
+ * How many records hold each value of a field, in one grouped query rather than one
+ * count per option. Used by the stats above a resource's table.
+ */
+export function valueCounts(name: string, field: string): Promise<Record<string, number>> {
+  const counted = cached(
+    async (resourceName: string, key: string) => {
+      const entry = (resourceTables as unknown as Record<string, { table: SQLiteTable } | undefined>)[resourceName];
+      const column = entry ? (entry.table as unknown as Record<string, unknown>)[key] : undefined;
+      if (!entry || !column) return {};
+      const rows = (await getDb()
+        .select({ value: column as never, total: count() })
+        .from(entry.table)
+        .groupBy(column as never)) as { value: unknown; total: number }[];
+      return Object.fromEntries(rows.map((row) => [String(row.value ?? ""), row.total]));
+    },
+    ["flare", "value-counts"],
+    { tags: [resourceTag(name)], revalidate: TTL.short },
+  );
+  return counted(name, field);
 }
 
 /**

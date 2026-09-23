@@ -1,5 +1,5 @@
 import { storedFields, optionLabel, type Resource } from "@flaredev/core";
-import { dashboardStore, recentCounts, recordCount, trend } from "@/lib/dashboard";
+import { recentCounts, recordCount, trend, valueCounts } from "@/lib/dashboard";
 import { resourceIcon } from "./resource-icon";
 import { StatCards, type Stat } from "./stat-card";
 
@@ -31,19 +31,14 @@ export async function ResourceStats({ resource }: { resource: Resource }) {
   if (statusField && total > 0) {
     const [key, def] = statusField;
     if (def.kind === "enum") {
-      const store = dashboardStore(resource.name);
+      const counts = await valueCounts(resource.name, key);
       // Two options at most: a strip of eight cards is a wall, not a summary.
-      const counts = await Promise.all(
-        def.options.slice(0, 2).map(async (option) => {
-          const result = await store.list(new URLSearchParams({ perPage: "1", [`filter[${key}]`]: option }));
-          return { option, total: result.ok ? result.data.meta.total : 0 };
-        }),
-      );
-      for (const { option, total: count } of counts) {
+      for (const option of def.options.slice(0, 2)) {
+        const value = counts[option] ?? 0;
         stats.push({
           label: optionLabel(def, option),
-          value: count,
-          hint: total > 0 ? `${Math.round((count / total) * 100)}% of all` : undefined,
+          value,
+          hint: `${Math.round((value / total) * 100)}% of all`,
         });
       }
     }

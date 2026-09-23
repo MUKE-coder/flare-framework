@@ -2,7 +2,7 @@ import { and, asc, count, desc, eq, getTableColumns, inArray, isNull, or, sql, t
 import type { BaseSQLiteDatabase, SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import { storedFields, type Resource } from "../resource/define.js";
 import { createValidators } from "../resource/validators.js";
-import { isSearchable, parseListQuery, type QueryIssue } from "./query.js";
+import { encodeCursor, isSearchable, parseListQuery, type QueryIssue } from "./query.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyDatabase = BaseSQLiteDatabase<"sync" | "async", any, any>;
@@ -29,9 +29,38 @@ export type Failure = {
 
 export type Result<T> = { ok: true; data: T } | Failure;
 
+/**
+ * How far a list will count before it answers "at least this many". Counting a million
+ * rows took 900ms even with an index; counting the first 10,000 takes a few.
+ */
+export const COUNT_LIMIT = 10_000;
+
+/** Dates are stored as milliseconds, and a cursor has to compare the way the column does. */
+function toCursorValue(value: unknown): string | number | boolean | null {
+  if (value instanceof Date) return value.getTime();
+  if (value === null || value === undefined) return null;
+  if (typeof value === "object") return String(value);
+  return value as string | number | boolean;
+}
+
 export interface ListResult<T = Record<string, unknown>> {
   data: T[];
-  meta: { page: number; perPage: number; total: number; totalPages: number };
+  meta: {
+    page: number;
+    perPage: number;
+    /** Rows matching the query, counted up to `COUNT_LIMIT`. */
+    total: number;
+    totalPages: number;
+    /**
+     * Whether `total` is the real number. Counting every row of a large table on every
+     * page load is the single most expensive thing a list does, so the count stops at
+     * `COUNT_LIMIT` and says so; past that, the list pages by cursor.
+     */
+    exactTotal: boolean;
+    /** Carry on from the end of this page, and from its start, without an offset. */
+    nextCursor?: string;
+    prevCursor?: string;
+  };
 }
 
 export interface ChangeEvent {
@@ -148,11 +177,11 @@ export function createResourceStore(options: ResourceStoreOptions) {
     resource,
     table,
 
-    /** `params`: page, perPage, sort, q, filter[field] (as parsed by parseListQuery). */
+    /** `params`: page, perPage, sort, q, filter[field], cursor (as parsed by parseListQuery). */
     async list(params: URLSearchParams): Promise<Result<ListResult>> {
       const parsed = parseListQuery(resource, params);
       if ("issues" in parsed) return fail(400, "Invalid query.", { queryIssues: parsed.issues });
-      const { page, perPage, sort, q, filters } = parsed.query;
+      const { page, perPage, sort, q, filters, cursor } = parsed.query;
 
       const conditions: SQL[] = [];
       if (q) {
@@ -163,18 +192,69 @@ export function createResourceStore(options: ResourceStoreOptions) {
       for (const [key, value] of Object.entries(filters)) {
         conditions.push(value === null ? isNull(columns[key]!) : eq(columns[key]!, value));
       }
-      const where = conditions.length ? and(...conditions) : undefined;
-      const order = sort.direction === "asc" ? asc(columns[sort.field]!) : desc(columns[sort.field]!);
+      const filterWhere = conditions.length ? and(...conditions) : undefined;
+
+      const sortColumn = columns[sort.field]!;
+      // Reading backwards from a "previous page" cursor means flipping the order and
+      // flipping the rows back afterwards.
+      const backwards = cursor?.direction === "before";
+      const descending = backwards ? sort.direction === "asc" : sort.direction === "desc";
+      const order = descending ? [desc(sortColumn), desc(idColumn)] : [asc(sortColumn), asc(idColumn)];
+
+      const pageConditions = [...conditions];
+      if (cursor) {
+        // (sort, id) as one comparison, so rows sharing a sort value aren't skipped or repeated.
+        // Compared as the column stores it: a date column's driver mapper expects a Date,
+        // and a cursor carries the milliseconds it was read as.
+        const value = cursor.value;
+        pageConditions.push(
+          descending
+            ? or(sql`${sortColumn} < ${value}`, and(sql`${sortColumn} = ${value}`, sql`${idColumn} < ${cursor.id}`))!
+            : or(sql`${sortColumn} > ${value}`, and(sql`${sortColumn} = ${value}`, sql`${idColumn} > ${cursor.id}`))!,
+        );
+      }
+      const where = pageConditions.length ? and(...pageConditions) : undefined;
 
       const db = getDb();
-      const [rows, totals] = await Promise.all([
-        db.select().from(table).where(where).orderBy(order, asc(idColumn)).limit(perPage).offset((page - 1) * perPage),
-        db.select({ total: count() }).from(table).where(where),
+      const query = db.select().from(table).where(where).orderBy(...order).limit(perPage + 1);
+      const [found, counted] = await Promise.all([
+        cursor ? query : query.offset((page - 1) * perPage),
+        // One row past the limit is enough to know there's more without counting it all.
+        db
+          .select({ total: count() })
+          .from(db.select({ id: idColumn }).from(table).where(filterWhere).limit(COUNT_LIMIT + 1).as("capped")),
       ]);
-      const total = totals[0]?.total ?? 0;
+
+      // The extra row only tells us another page exists; it isn't part of this one.
+      const hasMore = found.length > perPage;
+      const rows = (hasMore ? found.slice(0, perPage) : found) as Record<string, unknown>[];
+      if (backwards) rows.reverse();
+
+      const counting = counted[0]?.total ?? 0;
+      const exactTotal = counting <= COUNT_LIMIT;
+      const total = exactTotal ? counting : COUNT_LIMIT;
+
+      const first = rows[0];
+      const last = rows[rows.length - 1];
+      const moreAfter = backwards ? true : hasMore;
+      const moreBefore = backwards ? hasMore : Boolean(cursor) || page > 1;
+      const cursorFor = (row: Record<string, unknown> | undefined, direction: "after" | "before") =>
+        row ? encodeCursor({ value: toCursorValue(row[sort.field]), id: String(row.id), direction }) : undefined;
+
       return {
         ok: true,
-        data: { data: rows as Record<string, unknown>[], meta: { page, perPage, total, totalPages: Math.max(1, Math.ceil(total / perPage)) } },
+        data: {
+          data: rows,
+          meta: {
+            page,
+            perPage,
+            total,
+            totalPages: Math.max(1, Math.ceil(total / perPage)),
+            exactTotal,
+            nextCursor: moreAfter ? cursorFor(last, "after") : undefined,
+            prevCursor: moreBefore ? cursorFor(first, "before") : undefined,
+          },
+        },
       };
     },
 

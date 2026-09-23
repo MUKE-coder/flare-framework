@@ -19,7 +19,9 @@ export function hrefWith(path: string, current: URLSearchParams, changes: Record
     if (value === null || value === "") next.delete(key);
     else next.set(key, value);
   }
+  // A cursor belongs to the query that produced it, so changing anything else drops it.
   if (!("page" in changes)) next.delete("page");
+  if (!("cursor" in changes)) next.delete("cursor");
   const query = next.toString();
   return query ? `${path}?${query}` : path;
 }
