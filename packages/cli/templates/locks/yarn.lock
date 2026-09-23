@@ -2879,9 +2879,9 @@ magic-string@^0.30.11, magic-string@^0.30.21:
     "@jridgewell/sourcemap-codec" "^1.5.5"
 
 magic-string@^1.2.3:
-  version "1.4.1"
-  resolved "https://registry.yarnpkg.com/magic-string/-/magic-string-1.4.1.tgz#d0f91b82cd286a8a8de14f4254ccbf1d7e07f55e"
-  integrity sha512-8lyCu36ErXR0J9uaGKlKQoiLZKmtI63YGLE8G2o9jyRPdr4X47LusSOwgOJOzcVtp81fTAAjxR7BwKz682Jhow==
+  version "1.4.2"
+  resolved "https://registry.yarnpkg.com/magic-string/-/magic-string-1.4.2.tgz#508aef4aac7319496dc074ec60ea511c49daf138"
+  integrity sha512-vG+rjFRj1PqdIBozIxAGMjPlOhaVe+GXpbttY/iSK7rGcJRMlwNJO7dcUwmUqkymsFLJiNGI06t4D7Fr7yRC9g==
   dependencies:
     "@jridgewell/sourcemap-codec" "^1.6.0"
 

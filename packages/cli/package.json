@@ -1,6 +1,6 @@
 {
   "name": "@flaredev/cli",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "The flare command-line tool: create, generate, migrate, and deploy Flare apps",
   "license": "MIT",
   "author": "Muke Johnbaptist",
