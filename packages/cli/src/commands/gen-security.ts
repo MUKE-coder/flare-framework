@@ -33,9 +33,9 @@ export interface GenSecurityOptions {
 export function securityFiles(appName: string): { path: string; content: string }[] {
   return [
     { path: "lib/security.ts", content: renderLibSecurity(appName) },
-    { path: "app/admin/security/page.tsx", content: renderSecurityPage() },
-    { path: "app/admin/security/actions.ts", content: renderSecurityActions() },
-    { path: "app/admin/security/ban-controls.tsx", content: renderBanControls() },
+    { path: "app/dashboard/security/page.tsx", content: renderSecurityPage() },
+    { path: "app/dashboard/security/actions.ts", content: renderSecurityActions() },
+    { path: "app/dashboard/security/ban-controls.tsx", content: renderBanControls() },
   ];
 }
 
@@ -58,7 +58,7 @@ function writeOnce(appRoot: string, relative: string, content: string, log: (mes
  *
  * Scaffolds security.config.ts (detectors, rate limits, zone rules), the SecurityEvent
  * resource (staff read, admin write), the Worker-layer guard in lib/security.ts, the
- * /admin/security dashboard with manual ban and unban, and the KV, Durable Object and
+ * /dashboard/security dashboard with manual ban and unban, and the KV, Durable Object and
  * rate-limit bindings in wrangler.jsonc.
  */
 export async function genSecurity(options: GenSecurityOptions = {}): Promise<{ files: FileResult[]; migrations: string[]; bindings: string[] }> {
@@ -85,10 +85,10 @@ export async function genSecurity(options: GenSecurityOptions = {}): Promise<{ f
   };
   for (const { path, content } of securityFiles(appName)) write(path, content, securityHeader());
 
-  // The sidebar link. Apps created before lib/admin-nav.ts existed don't have the seam.
-  const navPath = join(appRoot, "lib/admin-nav.ts");
-  if (existsSync(navPath) && splitMarkers(readFileSync(navPath, "utf8"))) write("lib/admin-nav.ts", renderAdminNavBlock());
-  else log(pc.yellow(`lib/admin-nav.ts not found: link to /admin/security from your admin sidebar yourself.`));
+  // The sidebar link. Apps created before lib/dashboard-nav.ts existed don't have the seam.
+  const navPath = join(appRoot, "lib/dashboard-nav.ts");
+  if (existsSync(navPath) && splitMarkers(readFileSync(navPath, "utf8"))) write("lib/dashboard-nav.ts", renderAdminNavBlock());
+  else log(pc.yellow(`lib/dashboard-nav.ts not found: link to /dashboard/security from your dashboard sidebar yourself.`));
 
   const wranglerPath = join(appRoot, "wrangler.jsonc");
   let bindings: string[] = [];
@@ -120,7 +120,7 @@ export async function genSecurity(options: GenSecurityOptions = {}): Promise<{ f
       "",
       `Next:`,
       `  1. ${pc.bold("flare migrate")} to create the security_events table.`,
-      `  2. ${pc.bold("flare dev")}, then open ${pc.bold("/admin/security")}. Tune detectors in security.config.ts.`,
+      `  2. ${pc.bold("flare dev")}, then open ${pc.bold("/dashboard/security")}. Tune detectors in security.config.ts.`,
       `  3. Optional zone layer: deploy with FLARE_SECURITY_ZONE_ID and FLARE_SECURITY_API_TOKEN set (a token scoped to that`,
       `     one zone with Zone WAF Edit, Firewall Services Edit, Analytics Read, Zone Read). ${pc.bold("flare deploy")} pushes the`,
       `     zone rules and uploads both as secrets.`,

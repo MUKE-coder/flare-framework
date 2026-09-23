@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { renderSVG } from "uqr";
 import { CheckIcon, CopyIcon, FingerprintIcon, LaptopIcon, ShieldCheckIcon, Trash2Icon } from "lucide-react";
 import { AuthInput, AuthLabel, FormMessage, PrimaryButton, SecondaryButton, TextButton } from "@/components/auth/ui";
+import { PasswordField } from "@/components/auth/password-field";
 import { authErrorMessage } from "@/components/auth/sign-in-flow";
 import { PROVIDER_LABELS, ProviderIcon } from "@/components/auth/provider-icons";
 import { authClient } from "@/lib/auth-client";
+import { checkPassword } from "@/lib/password-rules";
 import type { SocialProvider } from "@/lib/auth-config";
 import { cn } from "@/lib/utils";
 
@@ -147,7 +149,8 @@ function Password({ hasPassword, email }: { hasPassword: boolean; email: string 
 
   const change = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (next.length < 8) return setMessage({ tone: "error", text: "Use at least 8 characters." });
+    const check = checkPassword(next, [email]);
+    if (!check.valid) return setMessage({ tone: "error", text: check.advice ?? "That password is too short." });
     setPending(true);
     const { error } = await authClient.changePassword({ currentPassword: current, newPassword: next, revokeOtherSessions: true });
     setPending(false);
@@ -160,14 +163,8 @@ function Password({ hasPassword, email }: { hasPassword: boolean; email: string 
   return (
     <Section id="password" title="Password" description="Changing it signs you out everywhere else.">
       <form className="flex flex-col gap-4" onSubmit={change}>
-        <div className="flex flex-col gap-2">
-          <AuthLabel htmlFor="current-password">Current password</AuthLabel>
-          <AuthInput id="current-password" type="password" autoComplete="current-password" value={current} onChange={(event) => setCurrent(event.target.value)} required />
-        </div>
-        <div className="flex flex-col gap-2">
-          <AuthLabel htmlFor="new-password">New password</AuthLabel>
-          <AuthInput id="new-password" type="password" autoComplete="new-password" value={next} onChange={(event) => setNext(event.target.value)} required minLength={8} />
-        </div>
+        <PasswordField id="current-password" label="Current password" name="current-password" autoComplete="current-password" value={current} onChange={setCurrent} showRules={false} />
+        <PasswordField id="new-password" label="New password" name="new-password" value={next} onChange={setNext} avoid={[email]} />
         {message && <FormMessage tone={message.tone}>{message.text}</FormMessage>}
         <PrimaryButton type="submit" pending={pending} className="w-fit">
           Change password

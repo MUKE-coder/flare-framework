@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
+import { OtpInput } from "./otp-input";
 import { authErrorMessage } from "./sign-in-flow";
+import { useResend } from "./use-resend";
 import { AuthInput, AuthLabel, FormMessage, PrimaryButton, TextButton } from "./ui";
 
 type Method = "authenticator" | "email" | "backup";
@@ -40,8 +42,10 @@ export function TwoFactorForm({ methods, next }: Props) {
     setSent(true);
   };
 
-  const verify = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const emailResend = useResend(sendEmail);
+
+  const verify = async (event?: React.FormEvent) => {
+    event?.preventDefault();
     setPending(true);
     setError(null);
     const body = { code: code.trim(), trustDevice: trust };
@@ -90,20 +94,31 @@ export function TwoFactorForm({ methods, next }: Props) {
         </>
       ) : (
         <>
-          <div className="flex flex-col gap-2">
-            <AuthLabel htmlFor="code">{method === "backup" ? "Backup code" : "Code"}</AuthLabel>
-            <AuthInput
-              id="code"
+          {method === "backup" ? (
+            <div className="flex flex-col gap-2">
+              <AuthLabel htmlFor="code">Backup code</AuthLabel>
+              <AuthInput
+                id="code"
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+                inputMode="text"
+                autoComplete="one-time-code"
+                className="text-center font-mono text-lg tracking-[0.2em]"
+                required
+                autoFocus
+                aria-invalid={Boolean(error) || undefined}
+              />
+            </div>
+          ) : (
+            <OtpInput
               value={code}
-              onChange={(event) => setCode(event.target.value)}
-              inputMode={method === "backup" ? "text" : "numeric"}
-              autoComplete="one-time-code"
-              className={cn(method !== "backup" && "text-center font-mono text-xl tracking-[0.5em]")}
-              required
+              onChange={setCode}
+              onComplete={() => void verify()}
+              label={method === "authenticator" ? "Authenticator code" : "Emailed code"}
               autoFocus
-              aria-invalid={Boolean(error) || undefined}
+              disabled={pending}
             />
-          </div>
+          )}
           <label className="flex items-center gap-2 text-sm text-foreground-muted">
             <input type="checkbox" checked={trust} onChange={(event) => setTrust(event.target.checked)} className="size-4 accent-[var(--brand)]" />
             Trust this device for 30 days
@@ -113,8 +128,8 @@ export function TwoFactorForm({ methods, next }: Props) {
             Verify
           </PrimaryButton>
           {method === "email" && (
-            <TextButton onClick={sendEmail} disabled={pending} className="self-center">
-              Send a new code
+            <TextButton onClick={() => void emailResend.resend()} disabled={emailResend.disabled || pending} className="self-center">
+              {emailResend.label}
             </TextButton>
           )}
         </>

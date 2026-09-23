@@ -91,7 +91,7 @@ export function findOrphans(appRoot: string, all: LoadedResource[]): { path: str
   for (const dir of list("app/api", () => true)) {
     for (const file of [`${dir}/route.ts`, `${dir}/[id]/route.ts`]) if (existsSync(join(appRoot, file))) candidates.push(file);
   }
-  for (const dir of list("app/admin", () => true)) {
+  for (const dir of list("app/dashboard", () => true)) {
     for (const file of [`${dir}/page.tsx`, `${dir}/new/page.tsx`, `${dir}/[id]/edit/page.tsx`]) {
       if (existsSync(join(appRoot, file))) candidates.push(file);
     }

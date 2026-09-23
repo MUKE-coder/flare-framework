@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { SecuritySettings } from "@/components/account/security-settings";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { getDb } from "@/db";
 import { account } from "@/db/auth-schema";
 import { enabledSocialProviders } from "@/lib/auth";
@@ -18,10 +19,11 @@ export default async function AccountPage() {
 
   return (
     <>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl">Account</h1>
-        <p className="text-foreground-muted">Your profile, how you sign in, and where you&apos;re signed in.</p>
-      </div>
+      <PageHeader
+        title="Account"
+        description="Your profile, how you sign in, and where you're signed in."
+        crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Account" }]}
+      />
       <SecuritySettings
         user={{
           name: user.name,

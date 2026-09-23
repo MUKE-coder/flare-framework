@@ -72,14 +72,14 @@ paths read it:
 - **API** — `authorize()` in `lib/api.ts`, which every generated route
   calls first: `401` with no session, `403` when the role isn't listed
   for that action.
-- **Admin UI** — `lib/admin.ts` (`requireAccess`, `adminPermissions`,
+- **Admin UI** — `lib/dashboard.ts` (`requireAccess`, `adminPermissions`,
   `visibleResources`):
-  - the sidebar and `/admin` dashboard list only resources the role can
+  - the sidebar and `/dashboard` dashboard list only resources the role can
     read
   - `<ResourceTable>` requires read access, and hides the **New** button
     and row actions the role can't use
   - the create/edit pages require create/update access
-  - every server action in `app/admin/actions.ts` re-checks before
+  - every server action in `app/dashboard/actions.ts` re-checks before
     touching the store
 
 ## Verify it's not UI-only

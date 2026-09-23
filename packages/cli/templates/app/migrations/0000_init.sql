@@ -87,11 +87,23 @@ CREATE TABLE `verification` (
 );
 --> statement-breakpoint
 CREATE INDEX `verification_identifier_idx` ON `verification` (`identifier`);--> statement-breakpoint
+CREATE TABLE `audit_log` (
+	`id` text PRIMARY KEY NOT NULL,
+	`action` text NOT NULL,
+	`resource` text NOT NULL,
+	`record_id` text,
+	`record_label` text,
+	`user_id` text,
+	`user_email` text,
+	`changes` text,
+	`ip` text,
+	`created_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL
+);
+--> statement-breakpoint
+CREATE INDEX `audit_log_created_at_idx` ON `audit_log` (`created_at`);--> statement-breakpoint
+CREATE INDEX `audit_log_resource_idx` ON `audit_log` (`resource`);--> statement-breakpoint
 CREATE TABLE `role` (
 	`name` text PRIMARY KEY NOT NULL,
 	`label` text NOT NULL,
 	`created_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL
 );
---> statement-breakpoint
--- Built-in roles: lib/admin.ts lets both into /admin. Add more with `flare role:add`.
-INSERT INTO `role` (`name`, `label`) VALUES ('admin', 'Admin'), ('staff', 'Staff');

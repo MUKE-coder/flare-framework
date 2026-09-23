@@ -11,6 +11,7 @@ import { twoFactor } from "better-auth/plugins/two-factor";
 import { hashPassword, verifyPassword } from "@flaredev/core";
 import { getDb, schema } from "@/db";
 import { authConfig, type SocialProvider } from "./auth-config";
+import { checkPassword, isBreachedPassword, PASSWORD_MAX_LENGTH } from "./password-rules";
 import { sendEmailCode, sendMagicLink, sendPasswordReset, sendTwoFactorCode, sendVerificationEmail } from "./auth-emails";
 
 const vars = env as unknown as Record<string, string | undefined>;
@@ -49,6 +50,38 @@ function disabledPath(path: string): boolean {
   if (!authenticator && (path === "/two-factor/get-totp-uri" || path === "/two-factor/verify-totp")) return true;
   if (!email && (path === "/two-factor/send-otp" || path === "/two-factor/verify-otp")) return true;
   return false;
+}
+
+/** Where a new password arrives, and what it's called in the body. */
+const NEW_PASSWORD_FIELDS: Record<string, string> = {
+  "/sign-up/email": "password",
+  "/reset-password": "newPassword",
+  "/change-password": "newPassword",
+};
+
+/**
+ * The same password rules the sign-up and reset forms show as you type
+ * (lib/password-rules.ts), enforced here so the API agrees with the screens.
+ * Checked on the way in, before the password is hashed or stored.
+ */
+async function guardPassword(path: string, body: Record<string, unknown> | undefined) {
+  const field = NEW_PASSWORD_FIELDS[path];
+  if (!field) return;
+  const password = body?.[field];
+  if (typeof password !== "string") return;
+
+  if (password.length > PASSWORD_MAX_LENGTH) {
+    throw new APIError("BAD_REQUEST", { message: `Passwords can be at most ${PASSWORD_MAX_LENGTH} characters.` });
+  }
+  const check = checkPassword(password, [body?.email as string | undefined, body?.name as string | undefined]);
+  if (!check.valid) throw new APIError("BAD_REQUEST", { message: check.advice ?? "That password is too short." });
+
+  // A password in a public breach list is already guessed, however strong it looks.
+  if (authConfig.checkBreachedPasswords && (await isBreachedPassword(password))) {
+    throw new APIError("BAD_REQUEST", {
+      message: "That password has appeared in a data breach, so it isn't safe to use here. Pick a different one.",
+    });
+  }
 }
 
 export const auth = betterAuth({
@@ -90,6 +123,7 @@ export const auth = betterAuth({
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
       if (disabledPath(ctx.path)) throw new APIError("NOT_FOUND", { message: "This sign-in method isn't enabled." });
+      await guardPassword(ctx.path, ctx.body as Record<string, unknown> | undefined);
     }),
   },
   plugins: [

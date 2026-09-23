@@ -25,6 +25,11 @@ export const authConfig = {
   social: ["google", "github", "apple", "microsoft"] as SocialProvider[],
   /** Refuse password sign-in until the email address is verified. */
   requireEmailVerification: false,
+  /**
+   * Check new passwords against Have I Been Pwned's breach list. Only the first five
+   * characters of the password's hash are sent, and an outage lets the password through.
+   */
+  checkBreachedPasswords: true,
 };
 
 export type SocialProvider = "google" | "github" | "apple" | "microsoft";

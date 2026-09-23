@@ -4,6 +4,8 @@ import { useState } from "react";
 import { MailIcon } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import type { SocialProvider } from "@/lib/auth-config";
+import { checkPassword } from "@/lib/password-rules";
+import { PasswordField } from "./password-field";
 import { authErrorMessage } from "./sign-in-flow";
 import { SocialButtons } from "./social-buttons";
 import { AuthInput, AuthLabel, Divider, FormMessage, PrimaryButton } from "./ui";
@@ -27,7 +29,8 @@ export function SignUpForm({ providers, socialPlacement, socialStyle, next, veri
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
-    if (values.password.length < 8) return setError("Use at least 8 characters for your password.");
+    const check = checkPassword(values.password, [values.email, values.name]);
+    if (!check.valid) return setError(check.advice ?? "That password is too short.");
     setPending(true);
     const { error } = await authClient.signUp.email({ ...values, callbackURL: next });
     setPending(false);
@@ -68,23 +71,12 @@ export function SignUpForm({ providers, socialPlacement, socialStyle, next, veri
           <AuthLabel htmlFor="email">Email</AuthLabel>
           <AuthInput id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={values.email} onChange={set("email")} required />
         </div>
-        <div className="flex flex-col gap-2">
-          <AuthLabel htmlFor="password">Password</AuthLabel>
-          <AuthInput
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            value={values.password}
-            onChange={set("password")}
-            required
-            minLength={8}
-            aria-describedby="password-hint"
-          />
-          <p id="password-hint" className="text-xs text-foreground-muted">
-            At least 8 characters.
-          </p>
-        </div>
+        <PasswordField
+          id="password"
+          value={values.password}
+          onChange={(password) => setValues({ ...values, password })}
+          avoid={[values.email, values.name]}
+        />
         <FormMessage>{error}</FormMessage>
         <PrimaryButton type="submit" pending={pending}>
           Create account

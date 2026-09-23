@@ -27,7 +27,7 @@ function app() {
   mkdirSync(join(root, "lib"), { recursive: true });
   writeFileSync(join(root, "package.json"), JSON.stringify({ name: "shop", dependencies: { vinext: "1" } }));
   writeFileSync(join(root, "wrangler.jsonc"), WRANGLER);
-  for (const file of ["lib/security.ts", "lib/admin-nav.ts"]) copyFileSync(join(template, file), join(root, file));
+  for (const file of ["lib/security.ts", "lib/dashboard-nav.ts"]) copyFileSync(join(template, file), join(root, file));
   return root;
 }
 
@@ -69,11 +69,11 @@ describe("flare gen security", () => {
     expect(guard).toContain(`const APP = "shop"`);
     expect(guard).toContain("export function protect(");
 
-    expect(read(root, "app/admin/security/page.tsx")).toContain("security().bans()");
-    expect(read(root, "app/admin/security/actions.ts")).toMatch(/^\/\/ Generated[\s\S]*"use server"/);
-    expect(read(root, "lib/admin-nav.ts")).toContain(`href: "/admin/security"`);
+    expect(read(root, "app/dashboard/security/page.tsx")).toContain("security().bans()");
+    expect(read(root, "app/dashboard/security/actions.ts")).toMatch(/^\/\/ Generated[\s\S]*"use server"/);
+    expect(read(root, "lib/dashboard-nav.ts")).toContain(`href: "/dashboard/security"`);
     // The hand-written part after the block stays.
-    expect(read(root, "lib/admin-nav.ts")).toContain(`export const adminLinks: AdminLink[] = [...generatedAdminLinks, { label: "API reference", href: "/api/reference", icon: "book" }];`);
+    expect(read(root, "lib/dashboard-nav.ts")).toContain(`export const dashboardLinks: DashboardLink[] = [...generatedDashboardLinks, { label: "API reference", href: "/api/reference", icon: "book" }];`);
     expect(result.bindings).toHaveLength(4);
     expect(existsSync(join(root, "db/schema/security-events.ts")) || existsSync(join(root, "db/schema/securityEvents.ts")) || read(root, "db/schema.ts").includes("security")).toBe(true);
   });

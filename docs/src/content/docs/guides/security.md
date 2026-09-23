@@ -4,7 +4,7 @@ description: "Ban lists, rate limits, abuse detection and a security dashboard, 
 ---
 
 `flare gen security` protects every request before your app code runs. It also
-adds a dashboard at `/admin/security` where you can see what was blocked and ban
+adds a dashboard at `/dashboard/security` where you can see what was blocked and ban
 or unban IPs by hand.
 
 ```sh
@@ -31,7 +31,7 @@ reaching the Worker at all.
   manual ban or unban. Admin and staff can read events; only admins can
   change them, which includes banning.
 - **`lib/security.ts`**: the guard `worker/index.ts` calls on every request.
-- **`/admin/security`**: active bans with their blocked-request counts, recent
+- **`/dashboard/security`**: active bans with their blocked-request counts, recent
   events, zone firewall activity, and the ban and unban controls. A
   **Security** link is added to the admin sidebar.
 - **Bindings in `wrangler.jsonc`**, added without touching your other settings:
@@ -95,7 +95,7 @@ such header, it passes through unchecked.
 
 ## Banning by hand
 
-On `/admin/security`, an admin enters an IP (IPv4 or IPv6), a reason and a
+On `/dashboard/security`, an admin enters an IP (IPv4 or IPv6), a reason and a
 duration: 1 hour, 24 hours, 7 days, or until unbanned. **Unban** lifts the ban
 from both layers and resets that IP's counters. Both actions are logged as
 SecurityEvents that name the admin.

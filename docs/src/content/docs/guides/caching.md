@@ -38,7 +38,7 @@ Generated API routes and the admin's server actions both pass
 `revalidateResource` already, so a write through **either** path
 invalidates the cache without your app code remembering to call anything.
 The admin's own record counts go through `cached()` too
-(`recordCount()` in `lib/admin.ts`). The `/admin` pages themselves are
+(`recordCount()` in `lib/dashboard.ts`). The `/dashboard` pages themselves are
 never cached: they sit behind auth and read the session, so they render
 dynamically on every request, and in production they are served with
 `cache-control: no-store, must-revalidate`. That header comes from the

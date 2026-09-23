@@ -72,7 +72,7 @@ export function cached<Args extends unknown[], Value>(
 
 /**
  * Drop everything cached for a resource (and for the record that changed).
- * `lib/admin.ts` and `lib/api.ts` pass this to the store, so writes through the
+ * `lib/dashboard.ts` and `lib/api.ts` pass this to the store, so writes through the
  * admin or the REST API invalidate without anyone remembering to call it.
  */
 export function revalidateResource({ resource, action, id }: ChangeEvent) {

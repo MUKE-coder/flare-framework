@@ -47,7 +47,7 @@ myapp/
 │  ├─ auth.ts                  # Better Auth instance (server)
 │  ├─ auth-client.ts           # Better Auth client (browser)
 │  ├─ session.ts               # getSession() / requireSession()
-│  ├─ admin.ts                 # /admin access, policy checks, admin stores, record counts
+│  ├─ admin.ts                 # /dashboard access, policy checks, admin stores, record counts
 │  ├─ api.ts                   # authorize(): every generated API route calls it first
 │  ├─ storage.ts               # R2 signed URL helpers
 │  ├─ mail.ts                  # Resend mailer + sendTransactionalEmail()
@@ -85,7 +85,7 @@ yours — re-running `gen resource` never touches it. See the
 rules, and [`sync-types`](/concepts/sync-types/) for how drift between the
 descriptor and the generated files is detected and reported.
 
-`components/ui` and `components/admin` are copied in as plain source, not
+`components/ui` and `components/dashboard` are copied in as plain source, not
 hidden inside a package — if you need to change how `<ResourceTable>`
 renders a cell, you edit the file directly, the same way you'd edit any
 shadcn/ui component.

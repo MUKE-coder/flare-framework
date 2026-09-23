@@ -62,7 +62,7 @@ npx flare migrate
 npx flare dev
 ```
 
-Open `/admin` and sign up — the first account can see the new **Contacts**
+Open `/dashboard` and sign up — the first account can see the new **Contacts**
 resource in the sidebar immediately, with a working list, create, and edit
 flow, form validation, and empty/error states, all generated.
 
@@ -92,7 +92,7 @@ Sign-up creates a user with no elevated role. Grant yourself `admin`:
 npx flare user:role you@example.com admin --remote
 ```
 
-Reload `/admin` — you now see every action the `admin` role allows. See
+Reload `/dashboard` — you now see every action the `admin` role allows. See
 [roles & policies](/guides/roles-and-policies/) to restrict what other
 roles can do.
 

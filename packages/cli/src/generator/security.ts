@@ -5,7 +5,7 @@ import { parseFields } from "./grammar.js";
 /**
  * `flare gen security` scaffolding: security.config.ts, the SecurityEvent resource,
  * lib/security.ts (the Worker-layer guard, wired into worker/index.ts), the
- * /admin/security dashboard, and the wrangler bindings the guard needs.
+ * /dashboard/security dashboard, and the wrangler bindings the guard needs.
  */
 
 export const SECURITY_EVENT_FIELDS =
@@ -134,13 +134,13 @@ export function protect(request: Request, _env: unknown, ctx: SecurityContext, n
 }
 `;
 
-/** `app/admin/security/actions.ts`: manual ban and unban (admins only). */
+/** `app/dashboard/security/actions.ts`: manual ban and unban (admins only). */
 export const renderSecurityActions = (): string => `"use server";
 
 import { revalidatePath } from "next/cache";
 import { can } from "@flaredev/core";
 import { isIp } from "@flaredev/core/security";
-import { adminSession, policyFor } from "@/lib/admin";
+import { dashboardSession, policyFor } from "@/lib/dashboard";
 import { logSecurityEvent, security } from "@/lib/security";
 
 /** On failure the submitted values come back, so the form (which React resets) keeps them. */
@@ -149,7 +149,7 @@ export type BanResult = { ok: true } | { ok: false; error: string; ip?: string; 
 const DURATIONS: Record<string, number | null> = { "1h": 3600, "24h": 86_400, "7d": 604_800, permanent: null };
 
 async function adminOnly(): Promise<{ email: string } | { error: string }> {
-  const { session, role } = await adminSession();
+  const { session, role } = await dashboardSession();
   if (!session) return { error: "Sign in required." };
   if (!can(policyFor("SecurityEvent"), role, "create")) return { error: "Only admins can ban or unban." };
   return { email: session.user.email };
@@ -170,8 +170,8 @@ export async function banAction(_previous: BanResult | null, form: FormData): Pr
   } catch (error) {
     return { ok: false, error: \`The ban didn't reach every layer: \${error instanceof Error ? error.message : String(error)}\`, ip, reason };
   }
-  await logSecurityEvent({ kind: "manual-ban", severity: "medium", ip, path: "/admin/security", userAgent: null, count: 0, banned: true, detail: \`\${reason} (by \${admin.email})\` });
-  revalidatePath("/admin/security");
+  await logSecurityEvent({ kind: "manual-ban", severity: "medium", ip, path: "/dashboard/security", userAgent: null, count: 0, banned: true, detail: \`\${reason} (by \${admin.email})\` });
+  revalidatePath("/dashboard/security");
   return { ok: true };
 }
 
@@ -184,13 +184,13 @@ export async function unbanAction(ip: string): Promise<BanResult> {
   } catch (error) {
     return { ok: false, error: \`The unban didn't reach every layer: \${error instanceof Error ? error.message : String(error)}\` };
   }
-  await logSecurityEvent({ kind: "manual-unban", severity: "low", ip, path: "/admin/security", userAgent: null, count: 0, banned: false, detail: \`by \${admin.email}\` });
-  revalidatePath("/admin/security");
+  await logSecurityEvent({ kind: "manual-unban", severity: "low", ip, path: "/dashboard/security", userAgent: null, count: 0, banned: false, detail: \`by \${admin.email}\` });
+  revalidatePath("/dashboard/security");
   return { ok: true };
 }
 `;
 
-/** `app/admin/security/ban-controls.tsx`: the client-side ban form and unban buttons. */
+/** `app/dashboard/security/ban-controls.tsx`: the client-side ban form and unban buttons. */
 export const renderBanControls = (): string => `"use client";
 
 import { useActionState, useState, useTransition } from "react";
@@ -273,7 +273,7 @@ export function UnbanButton({ ip }: { ip: string }) {
 }
 `;
 
-/** `app/admin/security/page.tsx`: bans, recent events, and the zone's firewall activity. */
+/** `app/dashboard/security/page.tsx`: bans, recent events, and the zone's firewall activity. */
 export const renderSecurityPage = (): string => `import Link from "next/link";
 import { can } from "@flaredev/core";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -282,7 +282,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { adminStore, policyFor, requireAdmin } from "@/lib/admin";
+import { dashboardStore, policyFor, requireDashboard } from "@/lib/dashboard";
 import { security, zoneClient } from "@/lib/security";
 import { BanForm, UnbanButton } from "./ban-controls";
 
@@ -291,7 +291,7 @@ const when = (value: string | number | Date | null) =>
   value ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "Until unbanned";
 
 export default async function SecurityPage() {
-  const { role } = await requireAdmin("/admin/security");
+  const { role } = await requireDashboard("/dashboard/security");
   if (!can(policyFor("SecurityEvent"), role, "read")) {
     return (
       <Alert>
@@ -304,7 +304,7 @@ export default async function SecurityPage() {
 
   const [bans, events, edge] = await Promise.all([
     security().bans(),
-    adminStore("SecurityEvent").list(new URLSearchParams({ sort: "-createdAt", perPage: "20" })),
+    dashboardStore("SecurityEvent").list(new URLSearchParams({ sort: "-createdAt", perPage: "20" })),
     zone
       ? Promise.all([zone.bans(), zone.firewallEvents(new Date(Date.now() - 24 * 3600 * 1000))]).then(
           ([zoneBans, firewall]) => ({ ok: true as const, zoneBans, firewall }),
@@ -415,7 +415,7 @@ export default async function SecurityPage() {
         <CardHeader>
           <CardTitle>Recent events</CardTitle>
           <CardDescription>
-            Detectors that tripped, and manual bans. <Link href="/admin/security-events" className="underline underline-offset-4">All events</Link>
+            Detectors that tripped, and manual bans. <Link href="/dashboard/security-events" className="underline underline-offset-4">All events</Link>
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -535,13 +535,13 @@ export function addSecurityBindings(source: string): { text: string; added: stri
   return { text, added };
 }
 
-/** The generated block of lib/admin-nav.ts, with the Security link. */
-export const renderAdminNavBlock = (): string => `export interface AdminLink {
+/** The generated block of lib/dashboard-nav.ts, with the Security link. */
+export const renderAdminNavBlock = (): string => `export interface DashboardLink {
   label: string;
   href: string;
-  /** A resource icon name, e.g. "shield" (see components/admin/resource-icon.tsx). */
+  /** A resource icon name, e.g. "shield" (see components/dashboard/resource-icon.tsx). */
   icon: string;
 }
 
-export const generatedAdminLinks: AdminLink[] = [{ label: "Security", href: "/admin/security", icon: "shield" }];
+export const generatedDashboardLinks: DashboardLink[] = [{ label: "Security", href: "/dashboard/security", icon: "shield" }];
 `;

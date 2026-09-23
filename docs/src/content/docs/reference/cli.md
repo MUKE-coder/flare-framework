@@ -98,7 +98,7 @@ npx flare gen billing --provider stripe --mode subscriptions
 
 Add [security](/guides/security/): `security.config.ts`, the SecurityEvent
 resource and policy, the request guard in `lib/security.ts`, the
-`/admin/security` dashboard, and the KV, Durable Object and rate-limit
+`/dashboard/security` dashboard, and the KV, Durable Object and rate-limit
 bindings in `wrangler.jsonc`.
 
 | Flag | |

@@ -170,8 +170,8 @@ describe("seedRows", () => {
   it("names people and companies from the field and resource name", () => {
     const company = defineResource({ name: "Company", fields: { name: field.string(), city: field.string() } });
     const [row] = rowsOf(company, 1);
-    expect(String(row.name)).toMatch(/(Labs|Works|Group|Studio|Systems|Partners|Supply|Analytics|Foods|Logistics)$/);
-    expect(String(row.city).length).toBeGreaterThan(2);
+    expect(String(row!.name)).toMatch(/(Labs|Works|Group|Studio|Systems|Partners|Supply|Analytics|Foods|Logistics)$/);
+    expect(String(row!.city).length).toBeGreaterThan(2);
   });
 });
 

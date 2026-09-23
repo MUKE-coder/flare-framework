@@ -46,6 +46,40 @@ Every method's tables exist whatever you choose, so switching one on or off
 needs no migration. A method that's off is refused by the API with
 `404 This sign-in method isn't enabled.`, not just hidden from the screens.
 
+## Passwords
+
+The sign-up, reset and change-password forms check as you type: the rules
+appear before you can fail them, a meter reads the strength, and the eye shows
+what you've typed.
+
+Only the length is enforced — at least 8 characters. The rest is advice,
+because length beats punctuation, and a form that refuses
+`correct horse battery staple` while accepting `P@ssw0rd` has its rules the
+wrong way round. What it says:
+
+| | |
+| --- | --- |
+| At least 8 characters | Required; the API refuses anything shorter |
+| Letters and something else | A number, a symbol or a space |
+| Not a password everyone tries first | Common passwords, and keyboard runs like `qwerty` |
+| Nothing from your name or email | Anyone who knows the address can guess the rest |
+
+The same rules run on the server for every new password
+(`lib/password-rules.ts`, enforced in `lib/auth.ts`), so the API and the
+screens always agree.
+
+New passwords are also checked against
+[Have I Been Pwned](https://haveibeenpwned.com/Passwords): only the first five
+characters of the password's SHA-1 leave the Worker, the password itself never
+does, and an outage lets the password through rather than blocking sign-up.
+Turn it off in `lib/auth-config.ts`:
+
+```ts
+checkBreachedPasswords: false,
+```
+
+Change the rules themselves in `lib/password-rules.ts` — it's your app's file.
+
 ## The screens
 
 | Route | What it's for |
@@ -53,6 +87,7 @@ needs no migration. A method that's off is refused by the API with
 | `/sign-in` | Two steps: the email first (with passkey and social sign-in beside it), then the password, or an emailed link or code |
 | `/sign-up` | Name, email, password, and social sign-up |
 | `/forgot-password`, `/reset-password` | Reset by emailed link; a reset signs every other device out |
+| `/verify-email` | Confirm an email address by the code in the message, or ask for a fresh link |
 | `/two-factor` | The second step after a password: authenticator code, email code or backup code, with "trust this device for 30 days" |
 | `/dashboard/account` | Profile and email verification, password, two-factor setup (QR code and backup codes), passkeys, connected accounts, signed-in devices |
 
@@ -71,6 +106,17 @@ accounts have two-factor.
 
 People who signed up with a social account have no password. They can still
 set up two-factor, and the account page doesn't ask them for one.
+
+## Codes and links
+
+Every code box — sign-in, two-factor, email verification — is one input with
+the cells drawn behind it, so pasting a code works, iOS and Android autofill
+work, and so does backspacing across cells. A code submits itself as soon as
+the last digit lands.
+
+"Send a new code" waits 30 seconds between sends, and sending another doesn't
+invalidate the one already in the inbox: people press resend, then find the
+first email.
 
 ## Emails
 
@@ -158,7 +204,7 @@ production the first time you deploy. It never reuses the local value.
 ## Admin access
 
 The `admin` plugin adds `user.role` (default `"user"`) and ban fields.
-`adminSession()` in `lib/admin.ts` decides who reaches `/admin`:
+`dashboardSession()` in `lib/dashboard.ts` decides who reaches `/dashboard`:
 
 - any role in `ADMIN_ROLES` (`admin` and `staff` by default), or
 - any role that may **read** at least one resource under its

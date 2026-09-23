@@ -63,7 +63,7 @@ one exists).
 
 ## The `<FileField>` widget
 
-`components/admin/fields/file-field.tsx` checks type, size (10 MB default,
+`components/dashboard/fields/file-field.tsx` checks type, size (10 MB default,
 configurable via `maxBytes`), and content in the browser first, for
 instant feedback — then the server repeats every check regardless. It
 supports drag-and-drop, upload progress and cancel, and previews images

@@ -19,7 +19,7 @@ Every new app is wired for it:
 - `lib/realtime.ts` holds `authorizeRealtime` (who may join which channel)
   and `realtimeChannel(name)` (publish from server code).
 
-The demo ships a working live deal board at `/admin/realtime`.
+The demo ships a working live deal board at `/dashboard/realtime`.
 
 ## Imports
 

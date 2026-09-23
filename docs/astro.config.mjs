@@ -56,7 +56,7 @@ export default defineConfig({
             { label: "File storage (R2)", slug: "guides/storage" },
             { label: "Email (Resend)", slug: "guides/mail" },
             { label: "Roles & policies", slug: "guides/roles-and-policies" },
-            { label: "The admin dashboard", slug: "guides/admin-dashboard" },
+            { label: "The dashboard", slug: "guides/dashboard" },
             { label: "Caching", slug: "guides/caching" },
             { label: "Realtime", slug: "guides/realtime" },
             { label: "Billing (Stripe)", slug: "guides/billing" },

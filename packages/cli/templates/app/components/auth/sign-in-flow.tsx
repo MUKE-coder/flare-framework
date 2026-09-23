@@ -6,7 +6,9 @@ import { FingerprintIcon, MailIcon, KeyRoundIcon } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import type { SocialProvider } from "@/lib/auth-config";
 import { AuthInput, AuthLabel, Divider, FormMessage, PrimaryButton, SecondaryButton, TextButton } from "./ui";
+import { OtpInput } from "./otp-input";
 import { SocialButtons } from "./social-buttons";
+import { useResend } from "./use-resend";
 
 export interface SignInMethods {
   magicLink: boolean;
@@ -124,6 +126,9 @@ export function SignInFlow({ providers, socialPlacement, socialStyle, methods, n
       setStep("code");
     });
 
+  // Resending leaves the code already in their inbox working; it just sends another.
+  const codeResend = useResend(sendCode);
+
   const signInWithCode = () =>
     run("verify", async () => {
       const { error } = await authClient.signIn.emailOtp({ email, otp: code.trim() });
@@ -182,29 +187,15 @@ export function SignInFlow({ providers, socialPlacement, socialStyle, methods, n
         <p className="text-sm text-foreground-muted">
           Enter the 6-digit code we sent to <span className="font-medium text-foreground">{email}</span>.
         </p>
-        <div className="flex flex-col gap-2">
-          <AuthLabel htmlFor="code">Code</AuthLabel>
-          <AuthInput
-            id="code"
-            name="code"
-            value={code}
-            onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="\d{6}"
-            placeholder="123456"
-            className="text-center font-mono text-xl tracking-[0.5em]"
-            autoFocus
-            required
-            aria-invalid={Boolean(error) || undefined}
-          />
-        </div>
+        <OtpInput value={code} onChange={setCode} onComplete={() => void signInWithCode()} label="Sign-in code" autoFocus disabled={pending === "verify"} />
         <FormMessage>{error}</FormMessage>
         <PrimaryButton type="submit" pending={pending === "verify"} disabled={code.length !== 6}>
           Sign in
         </PrimaryButton>
         <div className="flex justify-center gap-4">
-          <TextButton onClick={sendCode} disabled={pending !== null}>Send a new code</TextButton>
+          <TextButton onClick={() => void codeResend.resend()} disabled={codeResend.disabled || pending !== null}>
+            {codeResend.label}
+          </TextButton>
           <TextButton onClick={() => setStep("email")}>Use another email</TextButton>
         </div>
       </form>

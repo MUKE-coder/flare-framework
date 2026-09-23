@@ -14,6 +14,11 @@ export const site = {
    * overrides it when the app is built or run with `flare dev`.
    */
   theme: "default" as ThemeName,
+  /** How the dashboard behaves. */
+  dashboard: {
+    /** Where records are created and edited: in a dialog over the list, or on their own page. */
+    forms: "modal" as "modal" | "page",
+  },
   /** The small pill above the home page headline; set to null to hide it. */
   announcement: { label: "New", text: "Passkeys and two-factor sign-in are here", href: "/sign-up" } as { label: string; text: string; href: string } | null,
   /** The home page's feature grid (icon names from lucide.dev). */

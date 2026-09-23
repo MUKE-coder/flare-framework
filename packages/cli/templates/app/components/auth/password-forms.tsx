@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { checkPassword } from "@/lib/password-rules";
+import { PasswordField } from "./password-field";
 import { authErrorMessage } from "./sign-in-flow";
 import { AuthInput, AuthLabel, FormMessage, PrimaryButton } from "./ui";
 
@@ -48,7 +50,8 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (password.length < 8) return setError("Use at least 8 characters.");
+    const check = checkPassword(password);
+    if (!check.valid) return setError(check.advice ?? "That password is too short.");
     if (password !== confirm) return setError("The two passwords don't match.");
     setPending(true);
     setError(null);
@@ -62,14 +65,8 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
   return (
     <form className="flex flex-col gap-4" onSubmit={submit}>
-      <div className="flex flex-col gap-2">
-        <AuthLabel htmlFor="password">New password</AuthLabel>
-        <AuthInput id="password" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} autoFocus />
-      </div>
-      <div className="flex flex-col gap-2">
-        <AuthLabel htmlFor="confirm">Confirm it</AuthLabel>
-        <AuthInput id="confirm" type="password" autoComplete="new-password" value={confirm} onChange={(event) => setConfirm(event.target.value)} required />
-      </div>
+      <PasswordField id="password" label="New password" value={password} onChange={setPassword} autoFocus />
+      <PasswordField id="confirm" label="Confirm it" name="confirm" value={confirm} onChange={setConfirm} showRules={false} />
       <FormMessage>{error}</FormMessage>
       <PrimaryButton type="submit" pending={pending}>
         Set new password

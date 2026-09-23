@@ -214,7 +214,7 @@ generated client exports them: `import type { Contact, ContactCreate } from "@/r
 | `prisma migrate deploy` | `flare deploy` applies pending migrations before the new code goes live |
 | `prisma db push` | `flare gen migration <name> --from-schema`, then `flare migrate` |
 | `prisma db seed` | `flare seed` ([Migrations & seeds](/guides/migrations-and-seeds/)) |
-| `prisma studio` | the admin dashboard at `/admin` |
+| `prisma studio` | the admin dashboard at `/dashboard` |
 
 ## Things that trip people up
 

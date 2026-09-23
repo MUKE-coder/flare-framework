@@ -22,7 +22,7 @@ writes or updates:
 | `resources/index.ts` | The registry of every descriptor, for the admin and seeders |
 | `lib/api.ts` | Created once, if missing: the `authorize` hook every resource API calls |
 | `db/relations.ts` | Drizzle `relations()` for every resource, regenerated on every `gen` |
-| `app/admin/<slug>/page.tsx`, `new/page.tsx`, `[id]/edit/page.tsx` | Thin wrappers over `<ResourceTable>` / `<ResourceFormPage>` |
+| `app/dashboard/<slug>/page.tsx`, `new/page.tsx`, `[id]/edit/page.tsx` | Thin wrappers over `<ResourceTable>` / `<ResourceFormPage>` |
 
 Route files are thin: they call `createResourceHandlers()` from
 `@flaredev/core/server`, which reads the descriptor at runtime. There's no
