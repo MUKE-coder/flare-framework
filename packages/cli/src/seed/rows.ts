@@ -20,7 +20,7 @@ export interface RowSourceOptions {
 const has = (key: string, ...words: string[]) => words.some((word) => key.includes(word));
 
 /** Value for a string field, chosen from its format first and its name second. */
-function stringValue(key: string, def: Extract<StoredField, { kind: "string" }>, fake: Fake, resource: Resource): string {
+function stringValue(key: string, def: Extract<StoredField, { kind: "string" }>, fake: Fake, resource: Resource, index: number): string {
   switch (def.format) {
     case "email":
       return fake.email();
@@ -53,7 +53,7 @@ function stringValue(key: string, def: Extract<StoredField, { kind: "string" }>,
   else if (has(name, "website", "url", "link")) value = fake.url();
   else if (has(name, "slug", "handle", "username")) value = fake.slug();
   else if (has(name, "colour", "color")) value = fake.color();
-  else if (has(name, "code", "sku", "reference", "number")) value = `${fake.words(1).slice(0, 3).toUpperCase()}-${String(fake.count).padStart(6, "0")}`;
+  else if (has(name, "code", "sku", "reference", "number")) value = `${fake.words(1).slice(0, 3).toUpperCase()}-${String(index + 1).padStart(6, "0")}`;
   else if (has(name, "title", "position", "role", "job")) value = fake.jobTitle();
   else if (has(name, "name")) value = organisation ? fake.company() : fake.fullName();
   else if (has(name, "description", "summary", "note", "bio", "about", "message", "comment")) value = fake.sentence();
@@ -88,14 +88,14 @@ function numberValue(key: string, def: Extract<StoredField, { kind: "int" | "flo
 }
 
 /** A field's value, or undefined to leave the column out (its database default applies). */
-function fieldValue(key: string, def: StoredField, fake: Fake, resource: Resource, parentIds: ParentIds): SqlValue {
+function fieldValue(key: string, def: StoredField, fake: Fake, resource: Resource, parentIds: ParentIds, index: number): SqlValue {
   const name = key.toLowerCase();
   // Optional fields are sometimes empty, the way real data is.
   if (!def.required && def.kind !== "belongsTo" && fake.bool(0.15)) return null;
 
   switch (def.kind) {
     case "string":
-      return stringValue(key, def, fake, resource);
+      return stringValue(key, def, fake, resource, index);
     case "text":
       return fake.paragraph(fake.int(1, 3));
     case "int":
@@ -128,6 +128,18 @@ function fieldValue(key: string, def: StoredField, fake: Fake, resource: Resourc
   }
 }
 
+/**
+ * Make a value unique for its row. A unique column that repeats fails the whole batch,
+ * so the row number goes in whatever the value looks like: before the @ of an address,
+ * after a hyphen in a slug or code, and after a space in anything else.
+ */
+function uniquify(value: string, row: number): string {
+  const at = value.indexOf("@");
+  if (at > 0) return `${value.slice(0, at)}.${row}${value.slice(at)}`;
+  if (/^[a-z0-9.-]+$/.test(value)) return `${value}-${row}`;
+  return `${value} ${row}`;
+}
+
 /** Columns a seeded insert writes, in order: id, the resource's own fields, then the timestamps. */
 export function seedColumns(resource: Resource): string[] {
   return ["id", ...storedFields(resource).map(([key]) => columnName(key)), "created_at", "updated_at"];
@@ -147,9 +159,8 @@ export function* seedRows(resource: Resource, count: number, options: RowSourceO
   for (let i = 0; i < count; i++) {
     const row: Row = { id: fake.id() };
     for (const [key, def] of fields) {
-      let value = fieldValue(key, def, fake, resource, parentIds);
-      // Unique columns that aren't unique by construction get the row number.
-      if (typeof value === "string" && "unique" in def && def.unique && !/\d/.test(value)) value = `${value} ${i + 1}`;
+      let value = fieldValue(key, def, fake, resource, parentIds, i);
+      if (typeof value === "string" && "unique" in def && def.unique) value = uniquify(value, i + 1);
       row[columnName(key)] = value;
     }
     // Spread over the past year so lists, charts and "newest first" look real.

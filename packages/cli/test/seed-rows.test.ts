@@ -125,9 +125,23 @@ describe("seedRows", () => {
     }
   });
 
-  it("keeps unique columns unique", () => {
+  it("keeps unique columns unique, whatever the field looks like", () => {
     const emails = rowsOf(contact, 2000).map((row) => row.email);
     expect(new Set(emails).size).toBe(2000);
+
+    // A reference, a slug and a plain name: none of these carry a counter of their own.
+    const order = defineResource({
+      name: "Order",
+      fields: {
+        reference: field.string({ unique: true }),
+        handle: field.string({ format: "slug", unique: true }),
+        title: field.string({ unique: true }),
+      },
+    });
+    const rows = rowsOf(order, 1000);
+    for (const key of ["reference", "handle", "title"]) {
+      expect(new Set(rows.map((row) => row[key])).size, key).toBe(1000);
+    }
   });
 
   it("gives every row its own sortable id", () => {
