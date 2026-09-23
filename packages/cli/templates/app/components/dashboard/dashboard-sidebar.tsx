@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ActivityIcon, LayoutDashboardIcon, UserCircleIcon } from "lucide-react";
+import { ChevronsUpDownIcon } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -15,6 +18,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { resourceIcon } from "./resource-icon";
+import { UserAvatar, UserMenuItems, type DashboardUser } from "./user-menu";
 
 export interface NavResource {
   name: string;
@@ -55,6 +59,7 @@ export function DashboardSidebar({
   resources,
   links = [],
   isAdmin = false,
+  user,
 }: {
   appName: string;
   resources: NavResource[];
@@ -62,6 +67,7 @@ export function DashboardSidebar({
   links?: Array<{ label: string; href: string; icon: string }>;
   /** Whether to show the sections that manage the app itself. */
   isAdmin?: boolean;
+  user: DashboardUser;
 }) {
   const pathname = usePathname();
   const manage = [...ACCOUNT_LINKS, ...(isAdmin ? ADMIN_LINKS : [])];
@@ -175,6 +181,28 @@ export function DashboardSidebar({
           </SidebarGroup>
         )}
       </SidebarContent>
+
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton size="lg" tooltip={user.email}>
+                  <UserAvatar user={user} className="size-8 rounded-md" />
+                  <span className="grid min-w-0 flex-1 text-left leading-tight">
+                    <span className="truncate text-sm font-medium">{user.name || "Signed in"}</span>
+                    <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                  </span>
+                  <ChevronsUpDownIcon className="ml-auto" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" className="w-60">
+                <UserMenuItems user={user} />
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

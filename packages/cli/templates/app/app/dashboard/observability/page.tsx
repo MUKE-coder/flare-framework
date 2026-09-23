@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { LocalTime } from "@/components/dashboard/local-time";
 import { StatCards, type Stat } from "@/components/dashboard/stat-card";
 import { TrafficChart } from "@/components/dashboard/traffic-chart";
 import { auditCount, recentAudit } from "@/lib/audit";
@@ -22,8 +23,6 @@ const ACTION_TONE: Record<string, "secondary" | "destructive" | "outline"> = {
   "bulk-delete": "destructive",
   import: "secondary",
 };
-
-const when = (date: Date) => new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
 
 /** How the app is behaving: traffic from Cloudflare, size from the database, and who changed what. */
 export default async function ObservabilityPage() {
@@ -151,7 +150,9 @@ export default async function ObservabilityPage() {
                         </TableCell>
                         <TableCell className="max-w-56 truncate">{entry.recordLabel ?? describeBulk(entry.changes)}</TableCell>
                         <TableCell className="max-w-48 truncate text-muted-foreground">{entry.userEmail ?? "—"}</TableCell>
-                        <TableCell className="text-right whitespace-nowrap text-muted-foreground tabular-nums">{when(entry.createdAt)}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap text-muted-foreground tabular-nums">
+                          <LocalTime value={entry.createdAt} />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

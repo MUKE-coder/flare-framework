@@ -8,6 +8,16 @@ export default defineConfig(({ mode }) => ({
   define: { __FLARE_THEME__: JSON.stringify(loadEnv(mode, process.cwd(), "FLARE_").FLARE_THEME ?? "") },
   // `flare dev --tunnel` serves the dev server on a https://*.trycloudflare.com URL.
   server: { allowedHosts: [".trycloudflare.com"] },
+  optimizeDeps: {
+    /*
+     * Packages that ship their own "use client" components are left out of dependency
+     * pre-bundling. Bundled, the browser and the server each end up with their own copy
+     * of the same module, and a client-side navigation lands on the wrong one — which is
+     * the "Cannot read properties of null (reading 'useSyncExternalStore')" you get once
+     * and never again after a reload.
+     */
+    exclude: ["lucide-react", "vinext", "radix-ui", "@radix-ui/react-slot", "sonner", "cmdk", "react-day-picker", "@flaredev/core"],
+  },
   plugins: [
     vinext({
       cache: {

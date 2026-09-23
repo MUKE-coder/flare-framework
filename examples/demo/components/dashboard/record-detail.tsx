@@ -7,12 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { recentAudit } from "@/lib/audit";
 import { adminPermissions, allResources, dashboardStore, requireAccess, resourcePath } from "@/lib/dashboard";
 import { site } from "@/lib/site";
+import { LocalTime } from "./local-time";
 import { PageHeader } from "./page-header";
 import { RecordActions } from "./record-actions";
 import type { RelationMeta } from "./fields/field-widget";
-
-const when = (value: unknown) =>
-  value instanceof Date ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(value) : String(value ?? "—");
 
 /** How many of a record's children to show before pointing at the filtered list. */
 const RELATED_LIMIT = 5;
@@ -75,7 +73,7 @@ export async function RecordDetail({ resource, id }: { resource: Resource; id: s
     <>
       <PageHeader
         title={title}
-        description={`Created ${when(record.createdAt)}`}
+        description={<>Created <LocalTime value={record.createdAt as string | number | Date} /></>}
         crumbs={[
           { label: "Dashboard", href: "/dashboard" },
           { label: resource.pluralLabel, href: resourcePath(resource) },
@@ -105,7 +103,9 @@ export async function RecordDetail({ resource, id }: { resource: Resource; id: s
             {fields.map(([key, def]) => {
               const value = record[key];
               let content: React.ReactNode = formatValue(def, value);
-              if (def.kind === "enum" && value != null) {
+              if ((def.kind === "datetime") && value != null) {
+                content = <LocalTime value={value as string | number | Date} />;
+              } else if (def.kind === "enum" && value != null) {
                 const tone = statusTone(value);
                 content = <Badge variant={tone === "neutral" ? "secondary" : tone}>{content}</Badge>;
               } else if (def.kind === "multiselect" && Array.isArray(value) && value.length > 0) {
@@ -154,7 +154,7 @@ export async function RecordDetail({ resource, id }: { resource: Resource; id: s
                       <Badge variant={entry.action === "delete" ? "destructive" : "secondary"}>{entry.action}</Badge>
                       <span className="ml-2 text-muted-foreground">{entry.userEmail ?? "someone"}</span>
                     </span>
-                    <span className="text-xs text-muted-foreground tabular-nums">{when(entry.createdAt)}</span>
+                    <LocalTime value={entry.createdAt} className="text-xs text-muted-foreground tabular-nums" />
                   </div>
                 ))
               )}

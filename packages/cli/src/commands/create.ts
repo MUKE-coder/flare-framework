@@ -7,11 +7,11 @@ import { FLARE_VERSION } from "@flaredev/core";
 import { devVarsEntries, devVarsExampleEntries, parseAuthMethods, parseAuthProviders, renderAuthConfig } from "../auth-providers.js";
 import { parseTheme } from "../themes.js";
 import { APP_DEPENDENCIES, APP_DEV_DEPENDENCIES } from "../versions.js";
-import { formatDuration } from "../terminal.js";
 import { copyTemplate, findUp, templatesDir, writeJson } from "../utils/fs.js";
-import { detectPackageManager, installArgs, isPackageManager, run, type PackageManager } from "../utils/pm.js";
+import { detectPackageManager, isPackageManager, type PackageManager } from "../utils/pm.js";
 
 export interface CreateOptions {
+  /** Kept for callers that only want the files; installing is `installDependencies`. */
   install?: boolean;
   pm?: string;
   /** Comma-separated OAuth providers, e.g. "google,github". */
@@ -22,11 +22,6 @@ export interface CreateOptions {
   theme?: string;
   /** Progress lines (default: console.log). */
   log?: (message: string) => void;
-  /**
-   * Run the install yourself, and report it: the CLI passes one that shows a spinner.
-   * Only the exit code is read here. Default: inherit this process's output.
-   */
-  installer?: (packageManager: PackageManager, args: string[], dir: string) => number;
   /** Override "today" for the wrangler compatibility date (used by tests). */
   compatibilityDate?: string;
 }
@@ -138,12 +133,6 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
 
   const log = options.log ?? ((message: string) => console.log(message));
   log(`${pc.green("✔")} Wrote ${files} files to ${relative(process.cwd(), dir) || "."}`);
-  if (options.install !== false) {
-    const started = Date.now();
-    const code = (options.installer ?? run)(packageManager, installArgs(packageManager), dir);
-    if (code !== 0) throw new Error(`${packageManager} install failed (exit code ${code}).`);
-    if (!options.installer) log(`${pc.green("✔")} Installed dependencies ${pc.dim(`(${formatDuration(Date.now() - started)})`)}`);
-  }
 
   return { dir, name, packageManager, inWorkspace };
 }

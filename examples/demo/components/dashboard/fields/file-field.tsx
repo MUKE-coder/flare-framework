@@ -185,12 +185,12 @@ export function FileField({ id, value, onChange, invalid, disabled, field, resou
   };
 
   const thumbnail = (
-    <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
+    <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
       {preview ? (
         // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL
-        <img src={preview} alt="" width={40} height={40} className="size-full object-cover" />
+        <img src={preview} alt="" width={64} height={64} className="size-full object-cover" />
       ) : (
-        <FileIcon aria-hidden="true" className="size-5 text-muted-foreground" />
+        <FileIcon aria-hidden="true" className="size-6 text-muted-foreground" />
       )}
     </div>
   );
@@ -220,7 +220,7 @@ export function FileField({ id, value, onChange, invalid, disabled, field, resou
             <div className="flex items-baseline justify-between gap-2 text-sm">
               <span className="truncate font-medium">{upload.name}</span>
               <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                {formatBytes(upload.loaded)} of {formatBytes(upload.total)}
+                {percent}% · {formatBytes(upload.loaded)} of {formatBytes(upload.total)}
               </span>
             </div>
             <Progress value={percent} aria-label={`Uploading ${upload.name}`} />
@@ -270,21 +270,25 @@ export function FileField({ id, value, onChange, invalid, disabled, field, resou
           aria-describedby={`${instructionId} ${helpId}`}
           aria-invalid={invalid || Boolean(error) || undefined}
           className={cn(
-            "flex w-full items-center gap-3 rounded-lg border border-dashed p-3 text-left transition-colors outline-none motion-reduce:transition-none",
-            "hover:bg-muted focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
-            dragging ? "border-primary bg-muted" : (invalid || error) && "border-destructive",
+            "flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-8 text-center transition-colors outline-none motion-reduce:transition-none",
+            "hover:border-primary/50 hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
+            dragging ? "border-primary bg-primary/5" : (invalid || error) && "border-destructive",
           )}
         >
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted">
-            <UploadIcon aria-hidden="true" className="size-5 text-muted-foreground" />
-          </div>
-          <span className="flex flex-col">
-            <span id={instructionId} className="text-sm font-medium">
-              {dragging ? "Drop to upload" : "Choose a file or drop it here"}
-            </span>
-            <span id={helpId} className="text-xs text-muted-foreground">
-              {help}
-            </span>
+          <span className="grid size-10 place-items-center rounded-full bg-muted text-muted-foreground">
+            <UploadIcon aria-hidden="true" className="size-5" />
+          </span>
+          <span id={instructionId} className="text-sm font-medium">
+            {dragging ? (
+              "Drop to upload"
+            ) : (
+              <>
+                Drop a file here <span className="text-muted-foreground">or click to choose</span>
+              </>
+            )}
+          </span>
+          <span id={helpId} className="text-xs text-muted-foreground">
+            {help}
           </span>
         </button>
       )}

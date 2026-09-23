@@ -1,4 +1,5 @@
 import { cac } from "cac";
+import pc from "picocolors";
 import * as prompts from "@clack/prompts";
 import { FLARE_VERSION } from "@flaredev/core";
 import { createApp, printNextSteps, toAppName } from "./commands/create.js";
@@ -19,7 +20,8 @@ import { syncTypes } from "./commands/sync.js";
 import { setUserRole } from "./commands/user-role.js";
 import { DELEGATED_COMMANDS } from "./commands/run.js";
 import { openTunnel, toLocalUrl, tunnelBanner } from "./tunnel.js";
-import { runQuiet } from "./utils/pm.js";
+import { expectedPackages, install } from "./utils/install.js";
+import { formatCount, formatDuration } from "./terminal.js";
 
 export function createCli() {
   const cli = cac("flare");
@@ -35,30 +37,34 @@ export function createCli() {
     .example("flare create shop")
     .example("flare create shop --theme mono --auth passkeys,2fa-app --auth-providers google,github --yes")
     .action(async (dir: string, options: { pm?: string; skipInstall?: boolean; authProviders?: string; auth?: string; theme?: string; yes?: boolean }) => {
-      const install = !options.skipInstall;
+      const wanted = !options.skipInstall;
       let answers: CreateAnswers = { theme: options.theme, auth: options.auth, authProviders: options.authProviders };
       if (canPrompt(options.yes)) answers = await askCreateQuestions(answers, toAppName(dir));
-      const result = createApp(dir, {
-        pm: options.pm,
-        install,
-        ...answers,
-        log: (message) => prompts.log.message(message),
-        // The install is the long part of `flare create`, so it gets a timer rather
-        // than a wall of package manager output. Output is kept for when it fails.
-        installer: (packageManager, args, cwd) => {
-          const spin = prompts.spinner({ indicator: "timer" });
-          spin.start(`Installing dependencies with ${packageManager}`);
-          const { code, output } = runQuiet(packageManager, args, cwd);
-          if (code === 0) {
-            spin.stop(`Installed dependencies with ${packageManager}`);
-          } else {
-            spin.error(`${packageManager} install failed`);
-            process.stderr.write(output);
-          }
-          return code;
-        },
-      });
-      printNextSteps(result, install);
+      const result = createApp(dir, { pm: options.pm, install: false, ...answers, log: (message) => prompts.log.message(message) });
+
+      let installed = false;
+      if (wanted) {
+        const spin = prompts.spinner({ indicator: "timer" });
+        spin.start(`Installing dependencies with ${result.packageManager}`);
+        const outcome = await install(result.packageManager, result.dir, ({ installed: done, expected, percent }) => {
+          // Counting what's landed in node_modules beats parsing four package managers'
+          // output, and it's the number people actually want: how much is left.
+          spin.message(
+            percent === undefined
+              ? `Installing dependencies with ${result.packageManager} · ${formatCount(done)} packages`
+              : `Installing dependencies with ${result.packageManager} · ${percent}% (${formatCount(done)} of ${formatCount(expected)})`,
+          );
+        });
+        installed = outcome.code === 0;
+        if (installed) {
+          spin.stop(`Installed ${formatCount(expectedPackages(result.dir) || 0)} packages with ${result.packageManager} ${pc.dim(`(${formatDuration(outcome.ms)})`)}`);
+        } else {
+          spin.error(`${result.packageManager} install failed`);
+          process.stderr.write(outcome.output);
+          process.exitCode = 1;
+        }
+      }
+      printNextSteps(result, installed);
     });
 
   cli

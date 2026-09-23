@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { ExportButton } from "./export-button";
 import type { RelationMeta } from "./fields/field-widget";
 import { ImportDialog } from "./import-dialog";
+import { LocalTime } from "./local-time";
 import { hrefWith, toSearchParams, type SearchParams } from "./query";
 import { NewRecordButton } from "./resource-form-dialog";
 import { ResourceTableToolbar } from "./resource-table-toolbar";
@@ -187,7 +188,11 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
                     {columns.map((column, index) => {
                       const value = row[column.key];
                       let content: React.ReactNode = formatValue(column.def, value);
-                      if (column.def.kind === "enum" && value != null) {
+                      // Timestamps are formatted in the browser: the Worker's clock is UTC,
+                      // so a date rendered here would be in nobody's timezone.
+                      if ((column.def.kind === "timestamp" || column.def.kind === "datetime") && value != null) {
+                        content = <LocalTime value={value as string | number | Date} />;
+                      } else if (column.def.kind === "enum" && value != null) {
                         const tone = statusTone(value);
                         content = <Badge variant={tone === "neutral" ? "secondary" : tone}>{content}</Badge>;
                       } else if (column.def.kind === "multiselect" && Array.isArray(value) && value.length) {

@@ -26,11 +26,48 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Field, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toCsv } from "@/lib/csv";
+import { Dropzone } from "./dropzone";
+import { downloadCsv } from "./table-selection";
+
+/** What a column looks like in the downloadable template. */
+function exampleFor(key: string, def: StoredField & { label: string }): string {
+  switch (def.kind) {
+    case "string":
+      if (def.format === "email") return "ada@example.com";
+      if (def.format === "tel") return "+256772123456";
+      if (def.format === "url") return "https://example.com";
+      if (def.format === "domain") return "example.com";
+      if (def.format === "country") return "UG";
+      if (def.format === "color") return "#f2541d";
+      if (def.format === "slug") return "my-first-" + key.toLowerCase();
+      return def.label;
+    case "text":
+      return "A longer note about this record.";
+    case "int":
+      return "42";
+    case "float":
+      return "9.99";
+    case "boolean":
+      return "true";
+    case "date":
+      return new Date().toISOString().slice(0, 10);
+    case "datetime":
+      return new Date().toISOString();
+    case "enum":
+      return String((def as EnumField).options[0] ?? "");
+    case "multiselect":
+      return ((def as MultiSelectField).options.slice(0, 2) as string[]).join("; ");
+    case "belongsTo":
+      return "id of an existing " + (def as { target: string }).target;
+    default:
+      return "";
+  }
+}
 
 /** Sentinel for "don't import this field": a SelectItem can't carry an empty value. */
 const SKIP = "__skip__";
@@ -186,6 +223,13 @@ export function ImportDialog({ resource }: { resource: Resource }) {
   const unmapped = fields.filter(([key, def]) => needsColumn(def) && (mapping[key] === undefined || mapping[key] === SKIP));
   const ready = rows.length > 0 && mapped.length > 0 && unmapped.length === 0;
 
+  /** A starter file: the header this import wants, and one row of what each column holds. */
+  function downloadTemplate() {
+    const columns = fields.map(([key, def]) => ({ key, label: def.label }));
+    const example = Object.fromEntries(fields.map(([key, def]) => [key, exampleFor(key, def)]));
+    downloadCsv(`${resource.slug}-template.csv`, toCsv([example], columns));
+  }
+
   function reset() {
     setFileName("");
     setHeaders([]);
@@ -197,8 +241,8 @@ export function ImportDialog({ resource }: { resource: Resource }) {
     setSummary(null);
   }
 
-  async function onFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+  async function onFile(files: File[]) {
+    const file = files[0];
     if (!file) return;
     reset();
 
@@ -319,10 +363,19 @@ export function ImportDialog({ resource }: { resource: Resource }) {
         </DialogHeader>
 
         <div className="grid gap-6">
-          <Field data-invalid={fileError ? true : undefined}>
-            <FieldLabel htmlFor="import-file">CSV file</FieldLabel>
-            <Input id="import-file" type="file" accept=".csv,text/csv" disabled={running} onChange={onFile} />
-          </Field>
+          <div className="flex flex-col gap-2">
+            <Dropzone
+              onFiles={onFile}
+              accept=".csv,text/csv"
+              disabled={running}
+              label={fileName ? fileName : "Drop a CSV here"}
+              hint={fileName ? `${rows.length.toLocaleString()} rows ready to map` : "One row per " + resource.label.toLowerCase() + ", with a header row on top"}
+            />
+            <Button type="button" variant="link" size="sm" className="h-auto w-fit p-0" onClick={downloadTemplate}>
+              <DownloadIcon data-icon="inline-start" />
+              Download a template with an example row
+            </Button>
+          </div>
 
           {fileError && (
             <Alert variant="destructive">
