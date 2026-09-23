@@ -137,9 +137,13 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   return { dir, name, packageManager, inWorkspace };
 }
 
-/** The lockfile shipped for this package manager, if there is one (yarn and bun have none). */
+/**
+ * The lockfile shipped for this package manager, if there is one. Bun reads npm's, so it
+ * gets that one; only bun and npm share a file.
+ */
 export function copyLockfile(packageManager: PackageManager, dir: string): boolean {
-  const file = packageManager === "npm" ? "package-lock.json" : packageManager === "pnpm" ? "pnpm-lock.yaml" : undefined;
+  const file =
+    packageManager === "pnpm" ? "pnpm-lock.yaml" : packageManager === "yarn" ? "yarn.lock" : "package-lock.json";
   if (!file) return false;
   const source = join(templatesDir, "locks", file);
   if (!existsSync(source)) return false;

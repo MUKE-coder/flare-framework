@@ -1,7 +1,19 @@
+import { headers } from "next/headers";
 import { can, type Policy } from "@flaredev/core";
 import type { Authorize } from "@flaredev/core/server";
 import { policies } from "@/policies";
 import { auth } from "./auth";
+
+/**
+ * Who is making this request, for a resource's hooks (`hooks.beforeCreate` and friends
+ * in the descriptor). Reads the session the same way everything else does.
+ */
+export async function currentUser() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return null;
+  const { id, email } = session.user;
+  return { id, email, role: (session.user as { role?: string | null }).role ?? null };
+}
 
 /**
  * Authorization for every generated resource API (`app/api/<resource>/...`).

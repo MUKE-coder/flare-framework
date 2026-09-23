@@ -72,6 +72,11 @@ export interface ChangeEvent {
 
 export interface ResourceStoreOptions {
   resource: Resource;
+  /**
+   * Who is making the write, for the descriptor's hooks. The dashboard and the API both
+   * know; a seed doesn't, and passes nothing.
+   */
+  currentUser?: () => Promise<{ id: string; email: string; role?: string | null } | null> | { id: string; email: string; role?: string | null } | null;
   table: SQLiteTable;
   getDb: () => AnyDatabase;
   /**
@@ -173,6 +178,25 @@ export function createResourceStore(options: ResourceStoreOptions) {
   const byId = (id: string) => eq(idColumn, id);
   const notFound = () => fail(404, `${resource.label} not found.`);
 
+  const computed = Object.entries(resource.computed ?? {});
+  /** Add the descriptor's computed values to a row on its way out. */
+  const withComputed = (row: Record<string, unknown>): Record<string, unknown> => {
+    if (computed.length === 0) return row;
+    const result = { ...row };
+    for (const [key, compute] of computed) {
+      try {
+        result[key] = compute(row);
+      } catch {
+        // A computed value that throws shouldn't take the record with it.
+        result[key] = null;
+      }
+    }
+    return result;
+  };
+
+  const hooks = resource.hooks ?? {};
+  const hookContext = async () => ({ db: getDb(), user: (await options.currentUser?.()) ?? null });
+
   return {
     resource,
     table,
@@ -227,7 +251,7 @@ export function createResourceStore(options: ResourceStoreOptions) {
 
       // The extra row only tells us another page exists; it isn't part of this one.
       const hasMore = found.length > perPage;
-      const rows = (hasMore ? found.slice(0, perPage) : found) as Record<string, unknown>[];
+      const rows = ((hasMore ? found.slice(0, perPage) : found) as Record<string, unknown>[]).map(withComputed);
       if (backwards) rows.reverse();
 
       const counting = counted[0]?.total ?? 0;
@@ -260,7 +284,7 @@ export function createResourceStore(options: ResourceStoreOptions) {
 
     async get(id: string): Promise<Result<Record<string, unknown>>> {
       const [record] = await getDb().select().from(table).where(byId(id)).limit(1);
-      return record ? { ok: true, data: record as Record<string, unknown> } : notFound();
+      return record ? { ok: true, data: withComputed(record as Record<string, unknown>) } : notFound();
     },
 
     /** Title-field values for a set of ids (for showing relations). Missing ids are omitted. */
@@ -279,12 +303,16 @@ export function createResourceStore(options: ResourceStoreOptions) {
       const result = validators.create.safeParse(input);
       if (!result.success) return Promise.resolve(invalid(result.error.issues));
       return writing("create", async () => {
+        const context = await hookContext();
+        const input = hooks.beforeCreate ? await hooks.beforeCreate({ ...(result.data as object) }, context) : (result.data as Record<string, unknown>);
         const now = new Date();
         const [record] = await getDb()
           .insert(table)
-          .values({ ...(result.data as object), id: crypto.randomUUID(), createdAt: now, updatedAt: now })
+          .values({ ...input, id: crypto.randomUUID(), createdAt: now, updatedAt: now })
           .returning();
-        return { ok: true, data: record as Record<string, unknown> };
+        const saved = withComputed(record as Record<string, unknown>);
+        await hooks.afterCreate?.(saved, context);
+        return { ok: true, data: saved };
       });
     },
 
@@ -293,12 +321,19 @@ export function createResourceStore(options: ResourceStoreOptions) {
       const result = validators.update.safeParse(input);
       if (!result.success) return Promise.resolve(invalid(result.error.issues));
       return writing("update", async () => {
+        const context = await hookContext();
+        const [existing] = hooks.beforeUpdate || hooks.afterUpdate ? await getDb().select().from(table).where(byId(id)).limit(1) : [];
+        const current = (existing as Record<string, unknown> | undefined) ?? null;
+        const input = hooks.beforeUpdate ? await hooks.beforeUpdate({ ...(result.data as object) }, { ...context, id, current }) : (result.data as Record<string, unknown>);
         const [record] = await getDb()
           .update(table)
-          .set({ ...(result.data as object), updatedAt: new Date() })
+          .set({ ...input, updatedAt: new Date() })
           .where(byId(id))
           .returning();
-        return record ? { ok: true, data: record as Record<string, unknown> } : notFound();
+        if (!record) return notFound();
+        const saved = withComputed(record as Record<string, unknown>);
+        await hooks.afterUpdate?.(saved, { ...context, previous: current });
+        return { ok: true, data: saved };
       });
     },
 
@@ -313,14 +348,21 @@ export function createResourceStore(options: ResourceStoreOptions) {
         }
         Object.assign(values, result.data, { updatedAt: new Date() });
         const [record] = await getDb().update(table).set(values).where(byId(id)).returning();
-        return record ? { ok: true, data: record as Record<string, unknown> } : notFound();
+        return record ? { ok: true, data: withComputed(record as Record<string, unknown>) } : notFound();
       });
     },
 
     delete(id: string): Promise<Result<{ id: string }>> {
       return writing("delete", async () => {
+        const context = await hookContext();
+        if (hooks.beforeDelete) {
+          const [existing] = await getDb().select().from(table).where(byId(id)).limit(1);
+          await hooks.beforeDelete({ ...context, id, current: (existing as Record<string, unknown> | undefined) ?? null });
+        }
         const deleted = await getDb().delete(table).where(byId(id)).returning({ id: idColumn });
-        return deleted.length ? { ok: true, data: { id } } : notFound();
+        if (deleted.length === 0) return notFound();
+        await hooks.afterDelete?.({ ...context, id });
+        return { ok: true, data: { id } };
       });
     },
   };

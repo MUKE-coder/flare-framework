@@ -7,6 +7,7 @@ import { createResourceStore, type ResourceStore } from "@flaredev/core/server";
 import { getDb } from "@/db";
 import { policies } from "@/policies";
 import { resourceTables } from "@/resources/server";
+import { currentUser } from "./api";
 import { auth } from "./auth";
 import { cached, resourceTag, revalidateResource, TTL } from "./cache";
 
@@ -65,7 +66,7 @@ export function dashboardStore(name: string): ResourceStore {
   if (!entry) notFound();
   let store = stores.get(name);
   if (!store) {
-    store = createResourceStore({ resource: entry.resource, table: entry.table, getDb, onChange: revalidateResource });
+    store = createResourceStore({ resource: entry.resource, table: entry.table, getDb, onChange: revalidateResource, currentUser });
     stores.set(name, store);
   }
   return store;

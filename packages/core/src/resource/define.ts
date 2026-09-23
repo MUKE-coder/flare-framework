@@ -27,6 +27,41 @@ export interface ResourceConfig<Fields extends Record<string, Field>> {
   defaultSort?: { field: FieldKey<Fields> | "createdAt" | "updatedAt"; direction: "asc" | "desc" };
   /** Page size for list endpoints and tables. Default 25. */
   perPage?: number;
+  /**
+   * Your logic, beside the fields it belongs to. Every write — the REST API, the
+   * dashboard's forms, a seed, an import — goes through the same store, so a hook here
+   * runs for all of them, and there's one place to read to know what happens on a write.
+   */
+  hooks?: ResourceHooks;
+  /**
+   * Values worked out from the record rather than stored: a total from a quantity and a
+   * price, a full name from two columns. They're added to every record the API and the
+   * dashboard return, and there's no column and no migration behind them.
+   */
+  computed?: Record<string, (record: Record<string, unknown>) => unknown>;
+}
+
+/** What a hook is handed: the request's own database and who is making it. */
+export interface HookContext {
+  /** Drizzle, already bound to this request. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any;
+  /** The signed-in user, when the write came from somewhere that has one. */
+  user?: { id: string; email: string; role?: string | null } | null;
+}
+
+export interface ResourceHooks {
+  /** Change or check the input before it's written. Return the input (changed or not), or throw to refuse. */
+  beforeCreate?: (input: Record<string, unknown>, context: HookContext) => Promise<Record<string, unknown>> | Record<string, unknown>;
+  afterCreate?: (record: Record<string, unknown>, context: HookContext) => Promise<void> | void;
+  beforeUpdate?: (
+    input: Record<string, unknown>,
+    context: HookContext & { id: string; current: Record<string, unknown> | null },
+  ) => Promise<Record<string, unknown>> | Record<string, unknown>;
+  afterUpdate?: (record: Record<string, unknown>, context: HookContext & { previous: Record<string, unknown> | null }) => Promise<void> | void;
+  /** Throw to refuse the delete. */
+  beforeDelete?: (context: HookContext & { id: string; current: Record<string, unknown> | null }) => Promise<void> | void;
+  afterDelete?: (context: HookContext & { id: string }) => Promise<void> | void;
 }
 
 export interface Resource<Fields extends Record<string, Field> = Record<string, Field>> {
@@ -37,6 +72,8 @@ export interface Resource<Fields extends Record<string, Field> = Record<string, 
   pluralLabel: string;
   icon: string | undefined;
   group: string | undefined;
+  hooks: ResourceHooks;
+  computed: Record<string, (record: Record<string, unknown>) => unknown>;
   titleField: string;
   defaultSort: { field: string; direction: "asc" | "desc" };
   perPage: number;
@@ -124,6 +161,8 @@ export function defineResource<const Fields extends Record<string, Field>>(confi
     pluralLabel: config.pluralLabel ?? humanize(pluralName),
     icon: config.icon,
     group: config.group,
+    hooks: config.hooks ?? {},
+    computed: config.computed ?? {},
     titleField,
     defaultSort,
     perPage,

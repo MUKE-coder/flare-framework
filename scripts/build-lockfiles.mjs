@@ -50,6 +50,14 @@ try {
   run("pnpm", ["install", "--lockfile-only", "--config.minimum-release-age=0"], app);
   cpSync(join(app, "pnpm-lock.yaml"), join(locksDir, "pnpm-lock.yaml"));
   console.log("✔ templates/locks/pnpm-lock.yaml");
+
+  // Yarn 1 has no lockfile-only mode, so this one really installs — a few minutes, once
+  // per release. Without it a yarn user waits eight minutes for their first app while
+  // yarn resolves all 340 packages itself; with it, about as long as npm.
+  console.log("\nResolving with yarn (this one actually installs)…");
+  run("yarn", ["install", "--ignore-scripts", "--non-interactive"], app);
+  cpSync(join(app, "yarn.lock"), join(locksDir, "yarn.lock"));
+  console.log("✔ templates/locks/yarn.lock");
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }

@@ -1,6 +1,14 @@
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import type { Resource } from "../resource/define.js";
-import { createResourceStore, type AnyDatabase, type ChangeEvent, type Failure, type ResourceAction, type Result } from "./store.js";
+import {
+  createResourceStore,
+  type AnyDatabase,
+  type ChangeEvent,
+  type Failure,
+  type ResourceAction,
+  type ResourceStoreOptions,
+  type Result,
+} from "./store.js";
 
 export type { ResourceAction } from "./store.js";
 
@@ -19,6 +27,8 @@ export interface ResourceHandlerOptions {
   table: SQLiteTable;
   getDb: () => AnyDatabase;
   authorize: Authorize;
+  /** Who is making the request, for the descriptor's hooks. */
+  currentUser?: ResourceStoreOptions["currentUser"];
   /** Called after a write succeeds, for cache invalidation. */
   onChange?: (event: ChangeEvent) => void | Promise<void>;
 }

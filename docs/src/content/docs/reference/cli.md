@@ -49,6 +49,21 @@ Generate (or update) a resource — see
 npx flare gen resource Contact --fields 'name:string, email:string!, company:belongsTo(Company)?'
 ```
 
+## `flare gen endpoint <resource> <name>`
+
+An endpoint of your own beside the generated CRUD routes, with the session check, the
+policy check and the store already wired. No generated block: the file is yours.
+
+```bash
+npx flare gen endpoint Order publish --method POST --record
+```
+
+| Flag | |
+| --- | --- |
+| `--method <verb>` | `GET` (default), `POST`, `PATCH`, `PUT`, `DELETE` |
+| `--action <action>` | Policy action to require (default: `read` for GET, `update` otherwise) |
+| `--record` | Put it under one record: `/api/orders/[id]/<name>` |
+
 ## `flare gen migration <name>`
 
 Scaffold a migration by hand, or diff the current schema.

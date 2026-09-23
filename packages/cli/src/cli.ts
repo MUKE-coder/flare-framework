@@ -8,6 +8,7 @@ import { genSecurity } from "./commands/gen-security.js";
 import { setTheme } from "./commands/theme.js";
 import { askCreateQuestions, canPrompt, type CreateAnswers } from "./commands/create-prompts.js";
 import { genResource } from "./commands/gen.js";
+import { genEndpoint } from "./commands/gen-endpoint.js";
 import { genMigration } from "./commands/gen-migration.js";
 import { genPolicy } from "./commands/gen-policy.js";
 import { migrate, rollback } from "./commands/migrate.js";
@@ -68,10 +69,13 @@ export function createCli() {
     });
 
   cli
-    .command("gen <generator> [name]", "Generate code. Generators: resource, migration, policy, billing, security")
+    .command("gen <generator> [name] [second]", "Generate code. Generators: resource, endpoint, migration, policy, billing, security")
     .option("--fields <fields>", "resource: fields, e.g. 'name:string, email:string!, status:enum(lead,customer)' (single quotes: bash treats ! in double quotes as history)")
     .option("--group <name>", "resource: sidebar heading to file it under, e.g. Sales")
     .option("--icon <name>", "resource: lucide icon for the sidebar, e.g. users")
+    .option("--method <verb>", "endpoint: GET (default), POST, PATCH, PUT or DELETE")
+    .option("--action <action>", "endpoint: policy action to require (read, create, update, delete)")
+    .option("--record", "endpoint: put it under one record, /api/<resource>/[id]/<name>")
     .option("--force", "resource/policy/billing/security: overwrite hand-edited generated blocks")
     .option("--from-schema", "migration: diff the current tables instead of a blank migration")
     .option("--roles <roles>", "policy: roles allowed to read, create and update, e.g. admin,staff")
@@ -81,6 +85,7 @@ export function createCli() {
     .option("--skip-install", "billing: write files without installing the stripe dependency")
     .option("--skip-migration", "billing/security: skip generating the schema migration")
     .example("flare gen resource Contact --fields 'name:string, email:string!, company:belongsTo(Company)?'")
+    .example("flare gen endpoint Order publish --method POST --record")
     .example("flare gen migration backfill_contact_status")
     .example("flare gen migration add_phone_to_contacts --from-schema")
     .example("flare gen policy Invoice --roles admin,staff --delete-roles admin")
@@ -90,10 +95,14 @@ export function createCli() {
       async (
         generator: string,
         name: string | undefined,
+        second: string | undefined,
         options: {
           fields?: string;
           group?: string;
           icon?: string;
+          method?: string;
+          action?: string;
+          record?: boolean;
           force?: boolean;
           fromSchema?: boolean;
           roles?: string;
@@ -111,6 +120,10 @@ export function createCli() {
           throw new Error(`flare gen ${generator} needs a name, e.g. flare gen ${generator} ${generator === "migration" ? "add_phone_to_contacts" : "Contact"}`);
         }
         if (generator === "resource") return genResource(name!, { fields: options.fields, force: options.force, group: options.group, icon: options.icon });
+        if (generator === "endpoint") {
+          if (!name || !second) throw new Error("flare gen endpoint needs a resource and a name, e.g. flare gen endpoint Order publish");
+          return genEndpoint(name, second, { method: options.method, action: options.action, record: options.record });
+        }
         if (generator === "migration") return genMigration(name!, { fromSchema: options.fromSchema });
         if (generator === "policy") return genPolicy(name!, { roles: options.roles, deleteRoles: options.deleteRoles, force: options.force });
         throw new Error(`Unknown generator "${generator}". Available: resource, migration, policy, billing, security.`);

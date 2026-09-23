@@ -57,6 +57,7 @@ export default defineConfig({
             { label: "Email (Resend)", slug: "guides/mail" },
             { label: "Roles & policies", slug: "guides/roles-and-policies" },
             { label: "The dashboard", slug: "guides/dashboard" },
+            { label: "Where your code goes", slug: "guides/your-code" },
             { label: "Caching", slug: "guides/caching" },
             { label: "Realtime", slug: "guides/realtime" },
             { label: "Billing (Stripe)", slug: "guides/billing" },
