@@ -10,6 +10,7 @@ import { authConfig, twoFactorAvailable } from "@/lib/auth-config";
 import { dashboardLinks } from "@/lib/dashboard-nav";
 import { ADMIN_ROLES, visibleResources } from "@/lib/dashboard";
 import { requireSession } from "@/lib/session";
+import { listViews } from "@/lib/views";
 
 /**
  * The frame around every signed-in page: the app's resources in the sidebar, the
@@ -26,12 +27,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const collapsed = jar.get("sidebar_state")?.value === "false";
   const role = (user as { role?: string | null }).role ?? "";
 
+  const views = await listViews();
   const resources = (await visibleResources()).map((resource) => ({
     name: resource.name,
     pluralLabel: resource.pluralLabel,
     slug: resource.slug,
     icon: resource.icon,
     group: resource.group,
+    views: views.filter((view) => view.resource === resource.name).map(({ id, name, query }) => ({ id, name, query })),
   }));
 
   // What the bell has to say: the things about this account that aren't done yet.

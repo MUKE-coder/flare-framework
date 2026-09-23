@@ -45,3 +45,25 @@ export const auditLog = sqliteTable(
   },
   (table) => [index("audit_log_created_at_idx").on(table.createdAt), index("audit_log_resource_idx").on(table.resource)],
 );
+
+/**
+ * A filtered, sorted, column-picked view of a resource that someone wanted to keep, like
+ * "Overdue invoices". The query is the table's own URL query string, so saving a view is
+ * saving what's in the address bar — nothing about the table has to know views exist.
+ */
+export const savedView = sqliteTable(
+  "saved_view",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id").notNull(),
+    /** The resource's descriptor name, e.g. "Invoice". */
+    resource: text("resource").notNull(),
+    name: text("name").notNull(),
+    /** "q=ada&filter[status]=lead&sort=-createdAt", without the leading "?". */
+    query: text("query").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`),
+  },
+  (table) => [index("saved_view_user_idx").on(table.userId, table.resource)],
+);

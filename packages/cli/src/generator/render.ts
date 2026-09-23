@@ -220,6 +220,7 @@ export function renderAdminListPage(entry: LoadedResource): string {
   const local = resourceLocal(entry.stem);
   return [
     `import { PageHeader } from "@/components/dashboard/page-header";`,
+    `import { ResourceChart } from "@/components/dashboard/resource-chart";`,
     `import { ResourceStats } from "@/components/dashboard/resource-stats";`,
     `import { ResourceTable } from "@/components/dashboard/resource-table";`,
     `import type { SearchParams } from "@/components/dashboard/query";`,
@@ -235,6 +236,7 @@ export function renderAdminListPage(entry: LoadedResource): string {
     `        crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: ${local}.pluralLabel }]}`,
     "      />",
     `      <ResourceStats resource={${local}} />`,
+    `      <ResourceChart resource={${local}} />`,
     `      <ResourceTable resource={${local}} searchParams={await searchParams} />`,
     "    </>",
     "  );",

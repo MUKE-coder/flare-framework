@@ -18,13 +18,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { resourcePath, adminPermissions, allResources, dashboardStore, requireAccess } from "@/lib/dashboard";
 import { site } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import { ColumnMenu } from "./column-menu";
 import { ExportButton } from "./export-button";
+import { isInlineEditable } from "./editable";
+import { InlineCell } from "./inline-cell";
 import type { RelationMeta } from "./fields/field-widget";
 import { ImportDialog } from "./import-dialog";
 import { LocalTime } from "./local-time";
 import { hrefWith, toSearchParams, type SearchParams } from "./query";
 import { NewRecordButton } from "./resource-form-dialog";
 import { ResourceTableToolbar } from "./resource-table-toolbar";
+import { SaveViewButton } from "./save-view-button";
 import { RowActions } from "./row-actions";
 import { RowCheckbox, SelectAllCheckbox, SelectionBar, TableSelection } from "./table-selection";
 
@@ -55,10 +59,13 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
   const { data: rows, meta } = result.data;
 
   const fields = storedFields(resource);
-  const columns: Column[] = [
+  const allColumns: Column[] = [
     ...fields.filter(([, def]) => def.list !== false).map(([key, def]) => ({ key, label: def.label, def })),
-    { key: "createdAt", label: "Created", def: { kind: "timestamp" } },
+    { key: "createdAt", label: "Created", def: { kind: "timestamp" as const } },
   ];
+  // ?columns=name,email narrows the table; anything unknown in it is ignored.
+  const chosen = (params.get("columns") ?? "").split(",").filter(Boolean);
+  const columns = chosen.length > 0 ? allColumns.filter((column) => chosen.includes(column.key)) : allColumns;
 
   // Resolve belongsTo ids to their related record titles, one query per relation.
   const byName = new Map(allResources().map((r) => [r.name, r]));
@@ -97,6 +104,8 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
       <div className="flex flex-wrap items-center justify-between gap-2">
         <ResourceTableToolbar resource={resource} />
         <div className="flex flex-wrap items-center gap-2">
+          <SaveViewButton resourceName={resource.name} label={resource.pluralLabel} />
+          <ColumnMenu columns={allColumns.map(({ key, label }) => ({ key, label }))} visible={columns.map((column) => column.key)} />
           <ExportButton resourceName={resource.name} pluralLabel={resource.pluralLabel} />
           {permissions.create && <ImportDialog resource={resource} />}
           {permissions.create &&
@@ -239,6 +248,21 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
                           <Link href={resourcePath(resource, id)} className="font-medium hover:underline">
                             {content}
                           </Link>
+                        );
+                      }
+                      // The first column is the link to the record; the rest of the simple
+                      // ones can be changed where they are.
+                      if (index !== 0 && permissions.update && column.def.kind !== "timestamp" && isInlineEditable(column.def)) {
+                        content = (
+                          <InlineCell
+                            resourceName={resource.name}
+                            id={id}
+                            fieldKey={column.key}
+                            def={column.def as StoredField & { label: string }}
+                            value={value}
+                          >
+                            {content}
+                          </InlineCell>
                         );
                       }
                       return (

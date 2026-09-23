@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createObjectKey, fileKeyPrefix, fileMaxBytes, matchesContentType, mimeTypesFor, type FileField } from "@flaredev/core";
 import type { FieldIssue } from "@flaredev/core/server";
 import { diffFields, recordAudit } from "@/lib/audit";
+import { listViews, MAX_VIEWS } from "@/lib/views";
+import { and, eq } from "drizzle-orm";
+import { getDb } from "@/db";
+import { savedView } from "@/db/flare-schema";
 import { toCsv } from "@/lib/csv";
 import { storage } from "@/lib/storage";
 import { can, storedFields, type PolicyAction } from "@flaredev/core";
@@ -107,6 +111,37 @@ export async function exportRecordsAction(resourceName: string, query: string): 
 
   const csv = toCsv(rows, columns.map(([key, label]) => ({ key, label })));
   return { ok: true, data: { csv, rows: rows.length, truncated } };
+}
+
+/** Keep the table's current query as a named view, for this person. */
+export async function saveViewAction(resourceName: string, name: string, query: string): Promise<ActionResult<{ id: string }>> {
+  const denied = await allowed(resourceName, "read");
+  if (denied) return denied;
+  const { session } = await dashboardSession();
+  if (!session) return { ok: false, status: 401, error: "Sign in to save a view." };
+
+  const label = name.trim().slice(0, 60);
+  if (!label) return { ok: false, status: 400, error: "Give the view a name." };
+  const existing = await listViews(resourceName);
+  if (existing.length >= MAX_VIEWS) {
+    return { ok: false, status: 400, error: `That's ${MAX_VIEWS} views for ${resourceName}. Delete one first.` };
+  }
+
+  const [row] = await getDb()
+    .insert(savedView)
+    .values({ userId: session.user.id, resource: resourceName, name: label, query: query.replace(/^\?/, "").slice(0, 2000) })
+    .returning({ id: savedView.id });
+  revalidatePath("/dashboard", "layout");
+  return { ok: true, data: { id: row!.id } };
+}
+
+/** Views belong to the person who saved them, so only they can remove one. */
+export async function deleteViewAction(id: string): Promise<ActionResult<{ id: string }>> {
+  const { session } = await dashboardSession();
+  if (!session) return { ok: false, status: 401, error: "Sign in first." };
+  await getDb().delete(savedView).where(and(eq(savedView.id, id), eq(savedView.userId, session.user.id)));
+  revalidatePath("/dashboard", "layout");
+  return { ok: true, data: { id } };
 }
 
 export async function createRecordAction(resourceName: string, input: unknown): Promise<ActionResult<Record<string, unknown>>> {

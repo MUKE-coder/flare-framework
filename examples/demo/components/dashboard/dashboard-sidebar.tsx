@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { ActivityIcon, LayoutDashboardIcon, UserCircleIcon } from "lucide-react";
 import { ChevronsUpDownIcon } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -16,6 +16,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { resourceIcon } from "./resource-icon";
 import { UserAvatar, UserMenuItems, type DashboardUser } from "./user-menu";
@@ -29,6 +32,8 @@ export interface NavResource {
   group?: string;
   /** Optional count badge (off by default). */
   badge?: number;
+  /** This person's saved views of the resource, as "?q=…&filter[…]=…". */
+  views?: { id: string; name: string; query: string }[];
 }
 
 /** Resources in the order given, under their headings; ungrouped ones come first. */
@@ -70,6 +75,8 @@ export function DashboardSidebar({
   user: DashboardUser;
 }) {
   const pathname = usePathname();
+  // A saved view is the query it was saved with, so the one you're on is the one that matches.
+  const search = useSearchParams().toString();
   const manage = [...ACCOUNT_LINKS, ...(isAdmin ? ADMIN_LINKS : [])];
 
   return (
@@ -121,6 +128,19 @@ export function DashboardSidebar({
                           <span>{resource.pluralLabel}</span>
                         </Link>
                       </SidebarMenuButton>
+                      {resource.views && resource.views.length > 0 && (
+                        <SidebarMenuSub>
+                          {resource.views.map((view) => (
+                            <SidebarMenuSubItem key={view.id}>
+                              <SidebarMenuSubButton asChild isActive={pathname === href && search === view.query}>
+                                <Link href={`${href}?${view.query}`}>
+                                  <span>{view.name}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      )}
                     </SidebarMenuItem>
                   );
                 })}
