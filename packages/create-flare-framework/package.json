@@ -1,6 +1,6 @@
 {
   "name": "create-flare-framework",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Start a new Flare app: npm create flare-framework@latest my-app",
   "license": "MIT",
   "author": "Muke Johnbaptist",
