@@ -1,11 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-/* One typeface per theme (self-hosted; only the active theme's font is downloaded). */
-@import "@fontsource-variable/inter";
-@import "@fontsource-variable/plus-jakarta-sans";
-@import "@fontsource-variable/noto-sans";
-@import "@fontsource-variable/geist";
-@import "@fontsource-variable/figtree";
 
 /*
  * Dark mode: the `dark` class on <html> (set from the theme cookie) or, with no

@@ -2,6 +2,15 @@ import type { Metadata } from "next";
 import { site } from "@/lib/site";
 import { activeTheme } from "@/lib/theme";
 import "./globals.css";
+// One typeface per theme, self-hosted; the browser only downloads the one in use.
+// These are imported here rather than from globals.css because Tailwind inlines a CSS
+// @import, and the font files' relative URLs are then resolved against the wrong file
+// and never emitted — which shows up only in a build, as every font 404ing.
+import "@fontsource-variable/inter";
+import "@fontsource-variable/plus-jakarta-sans";
+import "@fontsource-variable/noto-sans";
+import "@fontsource-variable/geist";
+import "@fontsource-variable/figtree";
 
 export const metadata: Metadata = {
   title: { default: site.name, template: `%s · ${site.name}` },
