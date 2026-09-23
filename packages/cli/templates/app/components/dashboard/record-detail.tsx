@@ -92,7 +92,7 @@ export async function RecordDetail({ resource, id }: { resource: Resource; id: s
             editHref={resourcePath(resource, id, "edit")}
             canUpdate={permissions.update}
             canDelete={permissions.delete}
-            modalForms={site.dashboard.forms === "modal"}
+            overlayForms={site.dashboard.forms === "sheet"}
           />
         }
       />

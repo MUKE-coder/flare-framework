@@ -26,11 +26,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
-import { ResourceFormDialog, type FormRelations } from "./resource-form-dialog";
+import { ResourceFormSheet, type FormRelations } from "./resource-form-sheet";
 
 /**
  * Edit and delete for one row. Edit opens a dialog when the row's record came with it
- * (site.dashboard.forms is "modal"), and otherwise goes to the form page.
+ * (site.dashboard.forms is "sheet"), and otherwise goes to the form page.
  */
 export function RowActions({
   resource,
@@ -124,7 +124,7 @@ export function RowActions({
       </DropdownMenu>
 
       {record && canUpdate && (
-        <ResourceFormDialog
+        <ResourceFormSheet
           resource={resource}
           relations={relations}
           listHref={listHref}

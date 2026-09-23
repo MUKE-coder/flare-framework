@@ -26,7 +26,7 @@ import type { RelationMeta } from "./fields/field-widget";
 import { ImportDialog } from "./import-dialog";
 import { LocalTime } from "./local-time";
 import { hrefWith, toSearchParams, type SearchParams } from "./query";
-import { NewRecordButton } from "./resource-form-dialog";
+import { NewRecordButton } from "./resource-form-sheet";
 import { ResourceTableToolbar } from "./resource-table-toolbar";
 import { SaveViewButton } from "./save-view-button";
 import { RowActions } from "./row-actions";
@@ -90,7 +90,7 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
     relations[key] = { name: target.name, label: target.label, pluralLabel: target.pluralLabel, slug: target.slug, titleField: target.titleField };
   }
 
-  const modalForms = site.dashboard.forms === "modal";
+  const overlayForms = site.dashboard.forms === "sheet";
   const rowIds = rows.map((row) => String(row.id));
   const exportColumns = [{ key: "id", label: "Id" }, ...fields.filter(([, def]) => def.kind !== "file").map(([key, def]) => ({ key, label: def.label }))];
 
@@ -112,7 +112,7 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
           <ExportButton resourceName={resource.name} pluralLabel={resource.pluralLabel} />
           {permissions.create && <ImportDialog resource={forClient} />}
           {permissions.create &&
-            (modalForms ? (
+            (overlayForms ? (
               <NewRecordButton resource={forClient} relations={relations} listHref={basePath} />
             ) : (
               <Button asChild>
@@ -286,7 +286,7 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
                       <RowActions
                         resource={forClient}
                         id={id}
-                        record={modalForms ? row : undefined}
+                        record={overlayForms ? row : undefined}
                         relations={relations}
                         listHref={basePath}
                         editHref={resourcePath(resource, id, "edit")}

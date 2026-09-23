@@ -1,12 +1,15 @@
 "use client";
 
 import { normalizeDomain, optionLabel, slugify, type FileField as FileFieldDef, type MultiSelectField as MultiSelectDef, type StoredField } from "@flaredev/core";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { groupDigits, ungroup } from "@/lib/number";
 import { DateField, DateTimeField } from "./date-field";
 import { CountryField } from "./country-field";
 import { FileField } from "./file-field";
@@ -35,13 +38,19 @@ export interface WidgetProps {
   disabled?: boolean;
   /** belongsTo: the related resource and the current value's title. */
   relation?: RelationMeta & { initialTitle?: string };
+  /**
+   * A value this field can make up for itself — a SKU, a slug, a reference. Given for
+   * unique codes, where typing one by hand is busywork, and shown as a button beside
+   * the input so whatever it suggests can still be typed over.
+   */
+  suggest?: () => string;
 }
 
 const NONE = "__none__";
 
 /** The input for a field, chosen from its kind in the descriptor. */
 export function FieldWidget(props: WidgetProps) {
-  const { id, name, field, value, onChange, invalid, disabled, relation, resourceName, fieldKey } = props;
+  const { id, name, field, value, onChange, invalid, disabled, relation, resourceName, fieldKey, suggest } = props;
   const text = typeof value === "string" ? value : "";
   const common = { id, name, disabled, "aria-invalid": invalid || undefined, placeholder: field.placeholder };
 
@@ -51,14 +60,16 @@ export function FieldWidget(props: WidgetProps) {
 
     case "int":
     case "float":
+      // Shown grouped (2,000) and stored plain (2000), so a price can be read at a glance
+      // and nothing downstream has to strip a comma back out.
       return (
         <Input
           {...common}
           type="text"
           inputMode={field.kind === "int" ? "numeric" : "decimal"}
           className="tabular-nums"
-          value={text}
-          onChange={(event) => onChange(event.target.value)}
+          value={groupDigits(text)}
+          onChange={(event) => onChange(ungroup(event.target.value, field.kind === "float"))}
         />
       );
 
@@ -166,7 +177,9 @@ export function FieldWidget(props: WidgetProps) {
           );
         case "slug":
           return (
-            <Input {...common} className="font-mono" placeholder={field.placeholder ?? "my-first-post"} value={text} onChange={(event) => onChange(event.target.value)} onBlur={() => text && onChange(slugify(text))} />
+            <WithSuggestion suggest={suggest} disabled={disabled} onChange={onChange}>
+              <InputGroupInput {...common} className="font-mono" placeholder={field.placeholder ?? "my-first-post"} value={text} onChange={(event) => onChange(event.target.value)} onBlur={() => text && onChange(slugify(text))} />
+            </WithSuggestion>
           );
         case "domain":
           return (
@@ -177,10 +190,48 @@ export function FieldWidget(props: WidgetProps) {
         case "url":
           return <Input {...common} type="url" placeholder={field.placeholder ?? "https://"} value={text} onChange={(event) => onChange(event.target.value)} />;
         default:
-          return <Input {...common} value={text} onChange={(event) => onChange(event.target.value)} />;
+          return (
+            <WithSuggestion suggest={suggest} disabled={disabled} onChange={onChange}>
+              <InputGroupInput {...common} value={text} onChange={(event) => onChange(event.target.value)} />
+            </WithSuggestion>
+          );
       }
 
     default:
       return <Input {...common} value={text} onChange={(event) => onChange(event.target.value)} />;
   }
+}
+
+/**
+ * An input with a "Generate" button, when the form offered one for this field.
+ *
+ * Without a suggestion it stays an ordinary input, so the same branch serves a field
+ * that can make up its own value and one that can't.
+ */
+function WithSuggestion({
+  suggest,
+  disabled,
+  onChange,
+  children,
+}: {
+  suggest?: () => string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+  children: React.ReactElement;
+}) {
+  if (!suggest) {
+    // InputGroupInput outside an InputGroup would lose its border; hand back a plain one.
+    const { className, ...rest } = children.props as { className?: string } & Record<string, unknown>;
+    return <Input {...rest} className={className} />;
+  }
+  return (
+    <InputGroup>
+      {children}
+      <InputGroupAddon align="inline-end">
+        <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => onChange(suggest())}>
+          Generate
+        </Button>
+      </InputGroupAddon>
+    </InputGroup>
+  );
 }

@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { ResourceFormDialog, type FormRelations } from "./resource-form-dialog";
+import { ResourceFormSheet, type FormRelations } from "./resource-form-sheet";
 
 interface Props {
   resource: ClientResource;
@@ -29,12 +29,12 @@ interface Props {
   editHref: string;
   canUpdate: boolean;
   canDelete: boolean;
-  /** Whether editing opens a dialog (site.dashboard.forms) or goes to the form page. */
-  modalForms: boolean;
+  /** Whether editing opens a sheet (site.dashboard.forms) or goes to the form page. */
+  overlayForms: boolean;
 }
 
 /** Edit and delete, at the top of a record's own page. Deleting goes back to the list. */
-export function RecordActions({ resource, id, record, relations, listHref, editHref, canUpdate, canDelete, modalForms }: Props) {
+export function RecordActions({ resource, id, record, relations, listHref, editHref, canUpdate, canDelete, overlayForms }: Props) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -57,7 +57,7 @@ export function RecordActions({ resource, id, record, relations, listHref, editH
   return (
     <>
       {canUpdate &&
-        (modalForms ? (
+        (overlayForms ? (
           <Button variant="outline" onClick={() => setEditing(true)}>
             <PencilIcon data-icon="inline-start" />
             Edit
@@ -77,8 +77,8 @@ export function RecordActions({ resource, id, record, relations, listHref, editH
         </Button>
       )}
 
-      {canUpdate && modalForms && (
-        <ResourceFormDialog
+      {canUpdate && overlayForms && (
+        <ResourceFormSheet
           resource={resource}
           relations={relations}
           listHref={listHref}
