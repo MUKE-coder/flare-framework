@@ -87,6 +87,30 @@ export interface Resource<Fields extends Record<string, Field> = Record<string, 
   $types: { create: CreateInput<Fields>; update: UpdateInput<Fields>; record: RecordOf<Fields> };
 }
 
+/**
+ * A resource as a client component can receive it: everything that describes the fields,
+ * without the code.
+ *
+ * `hooks` and `computed` hold functions, and a function can't cross from the server to
+ * the browser — React refuses a prop it wasn't told to expose, and the page fails to
+ * render. So a server component hands a client one `clientResource(resource)` instead.
+ * The `never` types below turn passing the whole resource into a type error, which is
+ * cheaper to find than the runtime one.
+ */
+export type ClientResource<Fields extends Record<string, Field> = Record<string, Field>> = Omit<
+  Resource<Fields>,
+  "hooks" | "computed" | "$types"
+> & { hooks?: never; computed?: never };
+
+/** The parts of a resource that are safe to send to the browser. */
+export function clientResource<Fields extends Record<string, Field>>(resource: Resource<Fields>): ClientResource<Fields> {
+  const { hooks, computed, $types, ...rest } = resource;
+  void hooks;
+  void computed;
+  void $types;
+  return rest;
+}
+
 export class ResourceDefinitionError extends Error {
   constructor(resource: string, message: string) {
     super(`Resource "${resource}": ${message}`);
@@ -176,7 +200,7 @@ export function defineResource<const Fields extends Record<string, Field>>(confi
 }
 
 /** Stored (column-backed) fields of a resource, in declaration order. */
-export function storedFields(resource: Resource): [string, StoredField & { label: string }][] {
+export function storedFields(resource: Pick<Resource, "fields">): [string, StoredField & { label: string }][] {
   return Object.entries(resource.fields).filter(([, def]) => def.kind !== "hasMany") as [
     string,
     StoredField & { label: string },

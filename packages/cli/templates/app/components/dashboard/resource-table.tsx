@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
-import { formatValue, optionLabel, statusTone, storedFields, type Resource, type StoredField } from "@flaredev/core";
+import { clientResource, formatValue, optionLabel, statusTone, storedFields, type Resource, type StoredField } from "@flaredev/core";
 import { isSortable } from "@flaredev/core/server";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +44,9 @@ const NUMERIC = new Set(["int", "float"]);
  */
 export async function ResourceTable({ resource, searchParams }: { resource: Resource; searchParams: SearchParams }) {
   await requireAccess(resource, "read");
+  // Hooks and computed values are functions, and a function can't be sent to the browser.
+  // This is the same resource without them, for the client components below.
+  const forClient = clientResource(resource);
   const basePath = resourcePath(resource);
   const permissions = await adminPermissions(resource.name);
   const params = toSearchParams(searchParams);
@@ -102,15 +105,15 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
     <TableSelection ids={rowIds}>
       <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <ResourceTableToolbar resource={resource} />
+        <ResourceTableToolbar resource={forClient} />
         <div className="flex flex-wrap items-center gap-2">
           <SaveViewButton resourceName={resource.name} label={resource.pluralLabel} />
           <ColumnMenu columns={allColumns.map(({ key, label }) => ({ key, label }))} visible={columns.map((column) => column.key)} />
           <ExportButton resourceName={resource.name} pluralLabel={resource.pluralLabel} />
-          {permissions.create && <ImportDialog resource={resource} />}
+          {permissions.create && <ImportDialog resource={forClient} />}
           {permissions.create &&
             (modalForms ? (
-              <NewRecordButton resource={resource} relations={relations} listHref={basePath} />
+              <NewRecordButton resource={forClient} relations={relations} listHref={basePath} />
             ) : (
               <Button asChild>
                 <Link href={resourcePath(resource, "new")}>
@@ -281,7 +284,7 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
                     })}
                     <TableCell className="text-right">
                       <RowActions
-                        resource={resource}
+                        resource={forClient}
                         id={id}
                         record={modalForms ? row : undefined}
                         relations={relations}

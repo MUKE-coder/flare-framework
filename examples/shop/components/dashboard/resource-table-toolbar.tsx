@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { SearchIcon, XIcon } from "lucide-react";
-import { optionLabel, storedFields, type Resource } from "@flaredev/core";
+import { optionLabel, storedFields, type ClientResource } from "@flaredev/core";
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,7 +12,7 @@ import { hrefWith } from "./query";
 const ALL = "__all__";
 
 /** Search box and enum/boolean filters for ResourceTable; all state goes into the URL. */
-export function ResourceTableToolbar({ resource }: { resource: Resource }) {
+export function ResourceTableToolbar({ resource }: { resource: ClientResource }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = new URLSearchParams(useSearchParams().toString());

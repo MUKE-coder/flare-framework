@@ -10,7 +10,7 @@ import {
   storedFields,
   type EnumField,
   type MultiSelectField,
-  type Resource,
+  type ClientResource,
   type StoredField,
 } from "@flaredev/core";
 import { importRecordsAction } from "@/app/dashboard/import-actions";
@@ -202,7 +202,7 @@ function guessMapping(fields: MappedField[], headers: string[]): Record<string, 
  * schemas and again on the server, and sent in batches so a long file reports progress
  * and never depends on one very long request.
  */
-export function ImportDialog({ resource }: { resource: Resource }) {
+export function ImportDialog({ resource }: { resource: ClientResource }) {
   const router = useRouter();
   const validators = useMemo(() => createValidators(resource), [resource]);
   // Uploads need a signed URL per file, which a CSV cell can't stand in for.

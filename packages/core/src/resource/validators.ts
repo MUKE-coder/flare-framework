@@ -103,14 +103,14 @@ export function fieldSchema(def: StoredField): z.ZodType {
  */
 export const fileKeyPrefix = (resource: Pick<Resource, "table">, fieldKey: string) => `${resource.table}/${fieldKey}/`;
 
-export function createValidators<Fields extends Record<string, Field>>(resource: Resource<Fields>): ResourceValidators<Fields> {
+export function createValidators<Fields extends Record<string, Field>>(resource: Pick<Resource<Fields>, "fields" | "table">): ResourceValidators<Fields> {
   const create: Record<string, z.ZodType> = {};
   const update: Record<string, z.ZodType> = {};
 
-  for (const [key, def] of storedFields(resource as unknown as Resource)) {
+  for (const [key, def] of storedFields(resource)) {
     let base = fieldSchema(def);
     if (def.kind === "file") {
-      const prefix = fileKeyPrefix(resource as unknown as Resource, key);
+      const prefix = fileKeyPrefix(resource, key);
       // Malformed keys already fail the format check; report one problem at a time.
       base = base.refine(
         (value) => typeof value !== "string" || !OBJECT_KEY.test(value) || value.startsWith(prefix),

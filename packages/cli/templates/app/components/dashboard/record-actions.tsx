@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { PencilIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
-import type { Resource } from "@flaredev/core";
+import type { ClientResource } from "@flaredev/core";
 import { deleteRecordAction } from "@/app/dashboard/actions";
 import {
   AlertDialog,
@@ -21,7 +21,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { ResourceFormDialog, type FormRelations } from "./resource-form-dialog";
 
 interface Props {
-  resource: Resource;
+  resource: ClientResource;
   id: string;
   record: Record<string, unknown>;
   relations: FormRelations;

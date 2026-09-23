@@ -15,6 +15,7 @@ import { migrate, rollback } from "./commands/migrate.js";
 import { rmResource } from "./commands/rm.js";
 import { addRole } from "./commands/role.js";
 import { makeSeed, runSeeds } from "./commands/seed.js";
+import { dbPush } from "./commands/db-push.js";
 import { seedResourceCommand, type SeedResourceOptions } from "./commands/seed-resource.js";
 import { syncPlans } from "./commands/billing-sync.js";
 import { syncTypes } from "./commands/sync.js";
@@ -200,6 +201,18 @@ export function createCli() {
     .example("flare seed:resource Contact 5k --remote --yes")
     .action(async (resource: string, count: string | undefined, options: SeedResourceOptions & { count?: string }) => {
       await seedResourceCommand(resource, { ...options, count: options.count ?? count });
+    });
+
+  cli
+    .command("db:push [...tables]", "Copy rows from the local database to the deployed one (seeded catalogues, reference data)")
+    .option("--truncate", "Delete the remote rows of those tables first")
+    .option("--database <binding>", "D1 binding, when the app has several")
+    .option("--env <name>", "Wrangler environment")
+    .option("-y, --yes", "Confirm writing to the deployed database")
+    .example("flare db:push products categories --yes")
+    .example("flare db:push plans --truncate --yes")
+    .action(async (tables: string[], options: { truncate?: boolean; database?: string; env?: string; yes?: boolean }) => {
+      await dbPush(tables, options);
     });
 
   cli

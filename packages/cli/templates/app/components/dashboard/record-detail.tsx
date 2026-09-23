@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatValue, optionLabel, relationGraph, statusTone, storedFields, type Resource } from "@flaredev/core";
+import { clientResource, formatValue, optionLabel, relationGraph, statusTone, storedFields, type Resource } from "@flaredev/core";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,9 @@ const RELATED_LIMIT = 5;
  */
 export async function RecordDetail({ resource, id }: { resource: Resource; id: string }) {
   await requireAccess(resource, "read");
+  // Hooks and computed values are functions, and a function can't be sent to the browser.
+  // This is the same resource without them, for the client components below.
+  const forClient = clientResource(resource);
   const store = dashboardStore(resource.name);
   const result = await store.get(id);
   if (!result.ok) notFound();
@@ -81,7 +84,7 @@ export async function RecordDetail({ resource, id }: { resource: Resource; id: s
         ]}
         actions={
           <RecordActions
-            resource={resource}
+            resource={forClient}
             id={id}
             record={record}
             relations={relations}

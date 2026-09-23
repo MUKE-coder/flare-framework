@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ExternalLinkIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
-import type { Resource } from "@flaredev/core";
+import type { ClientResource } from "@flaredev/core";
 import { deleteRecordAction } from "@/app/dashboard/actions";
 import {
   AlertDialog,
@@ -43,7 +43,7 @@ export function RowActions({
   canUpdate = true,
   canDelete = true,
 }: {
-  resource: Resource;
+  resource: ClientResource;
   id: string;
   /** The record itself, when the form opens in a dialog. */
   record?: Record<string, unknown>;

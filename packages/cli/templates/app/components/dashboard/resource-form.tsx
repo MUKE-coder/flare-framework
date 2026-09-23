@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition, type FormEvent } from "react";
-import { createValidators, formValuesToInput, initialFormValues, issuesByField, storedFields, type Resource } from "@flaredev/core";
+import { createValidators, formValuesToInput, initialFormValues, issuesByField, storedFields, type ClientResource } from "@flaredev/core";
 import { toast } from "sonner";
 import { createRecordAction, updateRecordAction } from "@/app/dashboard/actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -14,7 +14,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { FieldWidget, type RelationMeta } from "./fields/field-widget";
 
 export interface ResourceFormProps {
-  resource: Resource;
+  resource: ClientResource;
   mode: "create" | "edit";
   /** Record id (edit mode). */
   id?: string;

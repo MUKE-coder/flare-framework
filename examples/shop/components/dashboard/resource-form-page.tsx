@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { formatValue, storedFields, type Resource } from "@flaredev/core";
+import { clientResource, formatValue, storedFields, type Resource } from "@flaredev/core";
 import { resourcePath, allResources, dashboardStore, requireAccess } from "@/lib/dashboard";
 import type { RelationMeta } from "./fields/field-widget";
 import { PageHeader } from "./page-header";
@@ -8,6 +8,9 @@ import { ResourceForm } from "./resource-form";
 /** Server wrapper for create/edit pages: loads the record and relation titles, renders the heading and form. */
 export async function ResourceFormPage({ resource, id }: { resource: Resource; id?: string }) {
   await requireAccess(resource, id ? "update" : "create");
+  // Hooks and computed values are functions, and a function can't be sent to the browser.
+  // This is the same resource without them, for the client components below.
+  const forClient = clientResource(resource);
   let record: Record<string, unknown> | null = null;
   if (id) {
     const result = await dashboardStore(resource.name).get(id);
@@ -49,7 +52,7 @@ export async function ResourceFormPage({ resource, id }: { resource: Resource; i
         ]}
       />
       <ResourceForm
-        resource={resource}
+        resource={forClient}
         mode={record ? "edit" : "create"}
         id={id}
         record={record}

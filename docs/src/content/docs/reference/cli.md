@@ -238,6 +238,28 @@ npx flare seed:resource Contact 5k --remote --yes
 | `--database <binding>` | D1 binding, when the app has several |
 | `--env <name>` | Wrangler environment |
 
+## `flare db:push <table...>`
+
+Copy rows from your local database to the deployed one. Seeds run locally, so
+the first deploy leaves a gap: the catalogue, the price list, the countries
+table — the reference data the app needs before anyone can use it — exists on
+your machine and nowhere else. This sends it up.
+
+It only writes to the remote database. Nothing is read back, and nothing local
+changes.
+
+```bash
+npx flare db:push categories products --yes
+npx flare db:push countries --truncate --yes
+```
+
+| Flag | |
+| --- | --- |
+| `--yes` | Required: this writes to production |
+| `--truncate` | Delete each table's remote rows first |
+| `--database <binding>` | D1 binding, when the app has several |
+| `--env <name>` | Wrangler environment |
+
 ## `flare seed:make <name>`
 
 Create `seeds/<name>.seed.ts`, with example rows if the name matches a

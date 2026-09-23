@@ -9,7 +9,7 @@ import { storedFields, type Resource } from "./define.js";
 export type FormValues = Record<string, string | boolean>;
 
 /** Initial form state: the record's values (edit) or the descriptor's defaults (create). */
-export function initialFormValues(resource: Resource, record?: Record<string, unknown> | null): FormValues {
+export function initialFormValues(resource: Pick<Resource, "fields">, record?: Record<string, unknown> | null): FormValues {
   const values: FormValues = {};
   for (const [key, def] of storedFields(resource)) {
     const source = record ? record[key] : "default" in def ? def.default : undefined;
@@ -27,7 +27,7 @@ export function initialFormValues(resource: Resource, record?: Record<string, un
  * empty fields that have a default are omitted on create so the default applies;
  * empty required fields are left for validation to report as "Required".
  */
-export function formValuesToInput(resource: Resource, values: FormValues, mode: "create" | "edit"): Record<string, unknown> {
+export function formValuesToInput(resource: Pick<Resource, "fields">, values: FormValues, mode: "create" | "edit"): Record<string, unknown> {
   const input: Record<string, unknown> = {};
   for (const [key, def] of storedFields(resource)) {
     const raw = values[key];

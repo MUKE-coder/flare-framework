@@ -2,6 +2,7 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 import {
   camelCase,
   createValidators,
+  clientResource,
   defineResource,
   field,
   humanize,
@@ -251,5 +252,31 @@ describe("relationGraph", () => {
     });
     const plainCompany = defineResource({ name: "Company", fields: { name: field.string() } });
     expect(() => relationGraph([plainCompany, clash])).toThrow(/collides with the Deal.company field/);
+  });
+});
+
+describe("clientResource", () => {
+  const order = defineResource({
+    name: "Order",
+    fields: { reference: field.string(), quantity: field.int() },
+    hooks: { beforeCreate: (input) => input },
+    computed: { doubled: (record) => Number(record.quantity) * 2 },
+  });
+
+  it("leaves nothing behind that a client component can't be sent", () => {
+    // React refuses a function it wasn't told to expose, so a resource with hooks would
+    // break every dashboard page that hands one to a client component.
+    const forClient = clientResource(order);
+    const functions = Object.entries(forClient).filter(([, value]) => typeof value === "function");
+    expect(functions).toEqual([]);
+    expect(JSON.parse(JSON.stringify(forClient))).toMatchObject({ name: "Order", slug: "orders" });
+  });
+
+  it("keeps everything that describes the resource", () => {
+    const forClient = clientResource(order);
+    expect(forClient.fields.reference!.label).toBe("Reference");
+    expect(forClient.titleField).toBe("reference");
+    expect(forClient.perPage).toBe(order.perPage);
+    expect(forClient.defaultSort).toEqual(order.defaultSort);
   });
 });

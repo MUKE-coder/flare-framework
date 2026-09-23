@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { PlusIcon } from "lucide-react";
-import type { Resource } from "@flaredev/core";
+import type { ClientResource } from "@flaredev/core";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import type { RelationMeta } from "./fields/field-widget";
@@ -11,7 +11,7 @@ import { ResourceForm } from "./resource-form";
 export type FormRelations = Record<string, RelationMeta & { initialTitle?: string }>;
 
 interface Props {
-  resource: Resource;
+  resource: ClientResource;
   relations: FormRelations;
   listHref: string;
   mode: "create" | "edit";
@@ -62,7 +62,7 @@ export function ResourceFormDialog({ resource, relations, listHref, mode, id, re
 }
 
 /** The list page's "New …" button, when forms open in a dialog. */
-export function NewRecordButton({ resource, relations, listHref }: { resource: Resource; relations: FormRelations; listHref: string }) {
+export function NewRecordButton({ resource, relations, listHref }: { resource: ClientResource; relations: FormRelations; listHref: string }) {
   return (
     <ResourceFormDialog
       resource={resource}

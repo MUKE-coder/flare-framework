@@ -29,12 +29,14 @@ export {
 } from "./fields.js";
 export {
   defineResource,
+  clientResource,
   storedFields,
   columnName,
   defaultFieldLabel,
   RESERVED_FIELD_NAMES,
   ResourceDefinitionError,
   type Resource,
+  type ClientResource,
   type ResourceConfig,
 } from "./define.js";
 export { createValidators, fieldSchema, fileKeyPrefix, type ResourceValidators } from "./validators.js";
