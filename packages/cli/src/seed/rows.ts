@@ -134,11 +134,15 @@ function fieldValue(key: string, def: StoredField, fake: Fake, resource: Resourc
  * after a hyphen in a slug or code, and after a space in anything else.
  */
 function uniquify(value: string, row: number): string {
+  // A reference or code already ends in its row number; numbering it twice reads as a typo.
+  const trailing = /(\d+)$/.exec(value)?.[1];
+  if (trailing && Number(trailing) === row) return value;
   const at = value.indexOf("@");
   if (at > 0) return `${value.slice(0, at)}.${row}${value.slice(at)}`;
   if (/^[a-z0-9.-]+$/.test(value)) return `${value}-${row}`;
   return `${value} ${row}`;
 }
+
 
 /** Columns a seeded insert writes, in order: id, the resource's own fields, then the timestamps. */
 export function seedColumns(resource: Resource): string[] {
