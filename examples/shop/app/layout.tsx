@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { site } from "@/lib/site";
 import { activeTheme } from "@/lib/theme";
+import { CartProvider } from "@/components/store/cart";
+import { StoreToaster } from "@/components/store/store-toaster";
 import "./globals.css";
 // One typeface per theme, self-hosted; the browser only downloads the one in use.
 // These are imported here rather than from globals.css because Tailwind inlines a CSS
@@ -31,7 +33,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body>{children}</body>
+      <body>
+        {/* The basket is read from localStorage, so it lives above every page that
+            shows it: the shop front, the product pages, the basket itself. */}
+        <CartProvider>{children}</CartProvider>
+        {/* The dashboard has its own themed toaster; this one is for the shop front. */}
+        <StoreToaster />
+      </body>
     </html>
   );
 }
