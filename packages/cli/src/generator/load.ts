@@ -16,8 +16,10 @@ export async function loadResources(root: string): Promise<LoadedResource[]> {
   const appRoot = resolve(root);
   const dir = join(appRoot, "resources");
   if (!existsSync(dir)) return [];
-  // A fresh loader each time, so edited descriptors are re-read.
-  const jiti = createJiti(join(appRoot, "package.json"), { moduleCache: false, fsCache: false });
+  // A fresh loader each time, so edited descriptors are re-read. "@" is the app's own
+  // alias (tsconfig paths), and a descriptor with hooks imports through it — "@/db/schema"
+  // for the tables a hook reads.
+  const jiti = createJiti(join(appRoot, "package.json"), { alias: { "@": appRoot }, moduleCache: false, fsCache: false });
 
   const loaded: LoadedResource[] = [];
   for (const file of readdirSync(dir).filter((name) => name.endsWith(".resource.ts")).sort()) {

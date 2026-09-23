@@ -6,7 +6,7 @@ import pc from "picocolors";
 import { FLARE_VERSION } from "@flaredev/core";
 import { devVarsEntries, devVarsExampleEntries, parseAuthMethods, parseAuthProviders, renderAuthConfig } from "../auth-providers.js";
 import { parseTheme } from "../themes.js";
-import { APP_DEPENDENCIES, APP_DEV_DEPENDENCIES } from "../versions.js";
+import { APP_DEPENDENCIES, APP_DEV_DEPENDENCIES, COMPATIBILITY_DATE } from "../versions.js";
 import { copyTemplate, findUp, templatesDir, writeJson } from "../utils/fs.js";
 import { detectPackageManager, isPackageManager, type PackageManager } from "../utils/pm.js";
 
@@ -22,7 +22,7 @@ export interface CreateOptions {
   theme?: string;
   /** Progress lines (default: console.log). */
   log?: (message: string) => void;
-  /** Override "today" for the wrangler compatibility date (used by tests). */
+  /** Override the Workers compatibility date (used by tests). */
   compatibilityDate?: string;
 }
 
@@ -86,7 +86,7 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   // the app joins that workspace instead of becoming its own root.
   const inWorkspace = findUp("pnpm-workspace.yaml", dirname(dir)) !== undefined;
 
-  const compatibilityDate = options.compatibilityDate ?? new Date().toISOString().slice(0, 10);
+  const compatibilityDate = options.compatibilityDate ?? COMPATIBILITY_DATE;
   const files = copyTemplate(join(templatesDir, "app"), dir, {
     APP_NAME: name,
     COMPAT_DATE: compatibilityDate,

@@ -49,6 +49,15 @@ const WORDS = [
   "follow-up", "handover", "kickoff", "milestone", "rollout", "shortfall", "surplus", "threshold", "variance", "workflow",
 ];
 
+/** Things a shop might sell: a material or finish, a thing, and sometimes a size. */
+const PRODUCT_QUALITIES = ["Oak", "Walnut", "Brushed steel", "Canvas", "Merino", "Recycled", "Matte black", "Linen", "Copper", "Frosted glass"];
+const PRODUCT_THINGS = [
+  "desk lamp", "office chair", "notebook", "water bottle", "backpack", "keyboard", "mouse mat", "coffee grinder",
+  "travel mug", "wall clock", "storage box", "cable tidy", "monitor stand", "planter", "door mat", "tote bag",
+];
+/** What a digital product tends to be. */
+const DIGITAL_THINGS = ["starter kit", "source code licence", "icon pack", "template bundle", "course", "font family", "preset pack", "e-book"];
+
 const DOMAINS = ["example.com", "example.org", "example.net", "mail.example.com"];
 const TLDS = ["com", "io", "co", "org", "net"];
 const COLORS = ["#f2541d", "#2563eb", "#16a34a", "#d97706", "#7c3aed", "#0891b2", "#db2777", "#4b5563"];
@@ -72,6 +81,8 @@ export interface Fake {
   email(name?: string): string;
   company(): string;
   jobTitle(): string;
+  /** "Brushed steel desk lamp", or a digital one: "Starter kit licence". */
+  product(digital?: boolean): string;
   city(): string;
   /** ISO 3166-1 alpha-2, e.g. "UG". */
   country(): string;
@@ -164,6 +175,8 @@ export function createFake(seed = 20260101): Fake {
       return `${slugify(local).replace(/-/g, ".")}${step()}@${pick(DOMAINS)}`;
     },
     company: () => `${pick(COMPANY_HEADS)} ${pick(COMPANY_TAILS)}`,
+    product: (digital = false) =>
+      digital ? `${pick(PRODUCT_QUALITIES)} ${pick(DIGITAL_THINGS)}` : `${pick(PRODUCT_QUALITIES)} ${pick(PRODUCT_THINGS)}`,
     jobTitle: () => `${pick(["Head of", "Senior", "Lead", "Regional", "Junior"])} ${pick(["Operations", "Sales", "Support", "Engineering", "Finance", "Logistics"])}`,
     city: () => pick(CITIES),
     country: () => pick(COUNTRIES)[0],

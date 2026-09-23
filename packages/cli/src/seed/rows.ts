@@ -45,8 +45,10 @@ function stringValue(key: string, def: Extract<StoredField, { kind: "string" }>,
   }
 
   const name = key.toLowerCase();
-  // An organisation's "name" is a company; a person's is a person.
-  const organisation = has(resource.name.toLowerCase(), "company", "vendor", "supplier", "organisation", "organization", "account", "team", "store", "brand");
+  // What a "name" is depends on what the thing is: a company's, a product's or a person's.
+  const resourceName = resource.name.toLowerCase();
+  const organisation = has(resourceName, "company", "vendor", "supplier", "organisation", "organization", "account", "team", "store", "brand");
+  const catalogue = has(resourceName, "product", "item", "article", "sku", "listing", "merch", "book", "course", "plan", "service");
   let value: string;
   if (has(name, "email")) value = fake.email();
   else if (has(name, "phone", "mobile", "tel", "whatsapp")) value = fake.phone();
@@ -61,7 +63,7 @@ function stringValue(key: string, def: Extract<StoredField, { kind: "string" }>,
   else if (has(name, "colour", "color")) value = fake.color();
   else if (has(name, "code", "sku", "reference", "number")) value = `${fake.words(1).slice(0, 3).toUpperCase()}-${String(index + 1).padStart(6, "0")}`;
   else if (has(name, "title", "position", "role", "job")) value = fake.jobTitle();
-  else if (has(name, "name")) value = organisation ? fake.company() : fake.fullName();
+  else if (has(name, "name")) value = organisation ? fake.company() : catalogue ? fake.product(digitalish(resource)) : fake.fullName();
   else if (has(name, "description", "summary", "note", "bio", "about", "message", "comment")) value = fake.sentence();
   else value = `${fake.words(2)}`.replace(/^./, (letter) => letter.toUpperCase());
 
@@ -149,6 +151,13 @@ function uniquify(value: string, row: number): string {
   return `${value} ${row}`;
 }
 
+
+/** A resource whose own fields say it sells downloads rather than things in boxes. */
+function digitalish(resource: Resource): boolean {
+  return Object.entries(resource.fields).some(
+    ([key, def]) => def.kind === "enum" && /kind|type/.test(key) && def.options.some((option) => /digital|download|licence|license/i.test(option)),
+  );
+}
 
 /** Columns a seeded insert writes, in order: id, the resource's own fields, then the timestamps. */
 export function seedColumns(resource: Resource): string[] {

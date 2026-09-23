@@ -1,4 +1,15 @@
 /**
+ * The Workers compatibility date a new app is created with.
+ *
+ * Deliberately a fixed date rather than today's: workerd only understands dates up to
+ * the day its own build was cut, so an app stamped with today refuses to start with
+ * "requires compatibility date X, but the newest date supported by this server binary
+ * is Y". Bump it when the pinned wrangler version moves, and never past the date that
+ * version's runtime supports.
+ */
+export const COMPATIBILITY_DATE = "2026-09-15";
+
+/**
  * Dependency versions written into scaffolded apps. Pinned to a set verified to
  * build together (vinext is pre-1.0, so ranges are kept tight on purpose).
  */

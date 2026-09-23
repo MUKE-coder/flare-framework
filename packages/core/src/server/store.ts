@@ -299,12 +299,15 @@ export function createResourceStore(options: ResourceStoreOptions) {
       return Object.fromEntries(rows.map((row) => [row.id, row.title == null ? row.id : String(row.title)]));
     },
 
-    create(input: unknown): Promise<Result<Record<string, unknown>>> {
-      const result = validators.create.safeParse(input);
-      if (!result.success) return Promise.resolve(invalid(result.error.issues));
+    create(raw: unknown): Promise<Result<Record<string, unknown>>> {
       return writing("create", async () => {
         const context = await hookContext();
-        const input = hooks.beforeCreate ? await hooks.beforeCreate({ ...(result.data as object) }, context) : (result.data as Record<string, unknown>);
+        // The hook runs first so it can fill in what the caller couldn't know — an order
+        // number, a slug, a tenant — and whatever it returns is validated like any input.
+        const supplied = hooks.beforeCreate ? await hooks.beforeCreate({ ...((raw ?? {}) as object) }, context) : raw;
+        const result = validators.create.safeParse(supplied);
+        if (!result.success) return invalid(result.error.issues);
+        const input = result.data as Record<string, unknown>;
         const now = new Date();
         const [record] = await getDb()
           .insert(table)
@@ -317,14 +320,15 @@ export function createResourceStore(options: ResourceStoreOptions) {
     },
 
     /** Partial update (PATCH semantics). */
-    update(id: string, input: unknown): Promise<Result<Record<string, unknown>>> {
-      const result = validators.update.safeParse(input);
-      if (!result.success) return Promise.resolve(invalid(result.error.issues));
+    update(id: string, raw: unknown): Promise<Result<Record<string, unknown>>> {
       return writing("update", async () => {
         const context = await hookContext();
         const [existing] = hooks.beforeUpdate || hooks.afterUpdate ? await getDb().select().from(table).where(byId(id)).limit(1) : [];
         const current = (existing as Record<string, unknown> | undefined) ?? null;
-        const input = hooks.beforeUpdate ? await hooks.beforeUpdate({ ...(result.data as object) }, { ...context, id, current }) : (result.data as Record<string, unknown>);
+        const supplied = hooks.beforeUpdate ? await hooks.beforeUpdate({ ...((raw ?? {}) as object) }, { ...context, id, current }) : raw;
+        const result = validators.update.safeParse(supplied);
+        if (!result.success) return invalid(result.error.issues);
+        const input = result.data as Record<string, unknown>;
         const [record] = await getDb()
           .update(table)
           .set({ ...input, updatedAt: new Date() })

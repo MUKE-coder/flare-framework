@@ -51,7 +51,11 @@ export interface HookContext {
 }
 
 export interface ResourceHooks {
-  /** Change or check the input before it's written. Return the input (changed or not), or throw to refuse. */
+  /**
+   * Change or check the input before it's written. Return the input (changed or not), or
+   * throw to refuse. It runs *before* validation, so it can fill in a field the caller
+   * couldn't supply — an order number, a slug — and what it returns is then validated.
+   */
   beforeCreate?: (input: Record<string, unknown>, context: HookContext) => Promise<Record<string, unknown>> | Record<string, unknown>;
   afterCreate?: (record: Record<string, unknown>, context: HookContext) => Promise<void> | void;
   beforeUpdate?: (

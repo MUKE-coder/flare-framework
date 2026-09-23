@@ -50,6 +50,34 @@ describe("resource hooks", () => {
     expect(seen[0]!.reference).toBe("A-1-u1");
   });
 
+  it("lets beforeCreate supply a required field the caller didn't send", async () => {
+    // The order number is the shop's business, not the caller's: validation has to come
+    // after the hook or a required field could never be filled in for them.
+    const order = defineResource({
+      name: "Order",
+      fields: { reference: field.string(), quantity: field.int(), price: field.float() },
+      hooks: {
+        beforeCreate: (input) => ({ ...input, reference: "SHOP-000001" }),
+      },
+    });
+    const result = await store(order).create({ quantity: 1, price: 3 });
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.data.reference).toBe("SHOP-000001");
+  });
+
+  it("still validates what a hook returns", async () => {
+    const order = defineResource({
+      name: "Order",
+      fields: { reference: field.string(), quantity: field.int(), price: field.float() },
+      hooks: {
+        beforeCreate: (input) => ({ ...input, quantity: "two" }),
+      },
+    });
+    const result = await store(order).create(base);
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.status).toBe(422);
+  });
+
   it("refuses a write when a hook throws, and writes nothing", async () => {
     const order = defineResource({
       name: "Order",

@@ -1,0 +1,52 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "shop",
+  "compatibility_date": "2026-09-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./worker/index.ts",
+  "assets": {
+    "directory": "dist/client",
+    "not_found_handling": "none",
+    "binding": "ASSETS"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        // Realtime channels (see lib/realtime.ts). Each channel is one Durable
+        // Object instance created on demand; wrangler provisions nothing upfront.
+        "name": "FLARE_REALTIME",
+        "class_name": "RealtimeChannel"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["RealtimeChannel"]
+    }
+  ],
+  "d1_databases": [
+    {
+      // No database_id: wrangler creates the database on first deploy and
+      // uses a local SQLite file during development.
+      "binding": "DB",
+      "database_name": "shop-db",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      // Data cache (see `cache.data` in vite.config.ts). No id: wrangler creates
+      // the namespace on first deploy; locally it's simulated on disk.
+      "binding": "VINEXT_KV_CACHE"
+    }
+  ],
+  "r2_buckets": [
+    {
+      // Simulated locally. No bucket needs creating first: wrangler provisions
+      // missing resources on deploy.
+      "binding": "STORAGE",
+      "bucket_name": "shop-storage"
+    }
+  ]
+}

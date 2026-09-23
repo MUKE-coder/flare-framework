@@ -148,6 +148,9 @@ export function parseField(spec: string): ParsedField {
     }
     if (new Set(options).size !== options.length) throw new FieldGrammarError(`"${spec}": duplicate ${choice} options.`);
     field.options = options;
+  } else if (/^file\[/.test(type)) {
+    // "file[image]" is the shape people write first; the colon is easy to miss.
+    throw new FieldGrammarError(`"${spec}": file fields need a colon before the list, e.g. "${field.key}:file:[${type.slice(5, -1) || "image"}]".`);
   } else if ((match = /^file(?::\[(.*)\])?$/.exec(type))) {
     field.kind = "file";
     if (match[1] === undefined) {
