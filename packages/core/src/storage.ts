@@ -72,6 +72,7 @@ export function matchesContentType(contentType: string, allowed: string[]): bool
   if (!/^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/.test(type)) return false;
   return allowed.some((pattern) => {
     const p = pattern.trim().toLowerCase();
+    if (p === "*/*") return true;
     return p.endsWith("/*") ? type.startsWith(p.slice(0, -1)) : type === p;
   });
 }

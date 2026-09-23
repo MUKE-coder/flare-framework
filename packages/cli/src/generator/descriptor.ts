@@ -21,6 +21,7 @@ function options(field: ParsedField): Record<string, unknown> {
   if (field.format) opts.format = field.format;
   if (field.widget) opts.widget = field.widget;
   if (field.kind === "belongsTo" && !field.required) opts.onDelete = "set null";
+  if (field.maxBytes !== undefined) opts.maxBytes = field.maxBytes;
   return opts;
 }
 

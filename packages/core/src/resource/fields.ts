@@ -144,6 +144,9 @@ export type StoredField = Exclude<Field, HasManyField>;
 
 /** File categories usable in `file:[...]` and the MIME types each allows. */
 export const FILE_CATEGORIES = {
+  // For a field that holds whatever someone has: a drive, an attachment, a backup.
+  // Nothing is checked beyond the size limit, so don't reach for it out of convenience.
+  any: ["*/*"],
   image: ["image/png", "image/jpeg", "image/gif", "image/webp", "image/avif"],
   pdf: ["application/pdf"],
   video: ["video/*"],

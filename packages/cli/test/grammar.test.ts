@@ -80,6 +80,25 @@ describe("parseField", () => {
   });
 });
 
+describe("file size limits", () => {
+  it("takes a limit written the way a person says it", () => {
+    expect(parseField("doc:file:[pdf]:5mb")).toMatchObject({ key: "doc", kind: "file", accept: ["pdf"], maxBytes: 5 * 1024 * 1024 });
+    expect(parseField("doc:file:[any]:512kb")).toMatchObject({ maxBytes: 512 * 1024 });
+    expect(parseField("doc:file:[any]:100MB")).toMatchObject({ maxBytes: 100 * 1024 * 1024 });
+  });
+
+  it("still parses a file field with no limit, and keeps the suffixes working", () => {
+    expect(parseField("doc:file:[pdf]")).toMatchObject({ accept: ["pdf"] });
+    expect(parseField("doc:file:[pdf]:5mb")).toMatchObject({ required: true });
+    expect(parseField("doc:file:[pdf]:5mb?")).toMatchObject({ required: false, maxBytes: 5 * 1024 * 1024 });
+  });
+
+  it("refuses a size it can't read, and one bigger than a request can carry", () => {
+    expect(() => parseField("doc:file:[pdf]:huge")).toThrow(/isn't a size/);
+    expect(() => parseField("doc:file:[pdf]:2gb")).toThrow(/the most is 100mb/);
+  });
+});
+
 describe("parseFields", () => {
   it("parses the exit-criteria example", () => {
     expect(parseFields("name:string, email:string")).toEqual([

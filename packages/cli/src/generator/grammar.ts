@@ -40,6 +40,8 @@ export interface ParsedField {
   widget?: "radio";
   /** file categories */
   accept?: FileCategory[];
+  /** file upload limit in bytes, from a size written as "5mb" */
+  maxBytes?: number;
   /** relation target (PascalCase resource name) */
   target?: string;
   format?: StringFormat;
@@ -73,6 +75,28 @@ export function splitTopLevel(input: string): string[] {
   }
   parts.push(current);
   return parts.map((part) => part.trim()).filter(Boolean);
+}
+
+/**
+ * "50mb" → 52428800. The limit a file field will take, written the way a person says it.
+ *
+ * Workers stream an upload through the Worker itself, so there's no point accepting more
+ * than the platform will carry; the cap here is the request body limit.
+ */
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+const SIZE_UNITS: Record<string, number> = { b: 1, kb: 1024, mb: 1024 * 1024, gb: 1024 * 1024 * 1024 };
+
+function parseSize(text: string, spec: string): number {
+  const match = /^(\d+(?:\.\d+)?)\s*(b|kb|mb|gb)$/i.exec(text.trim());
+  if (!match) {
+    throw new FieldGrammarError(`"${spec}": "${text}" isn't a size. Write it like "file:[image]:5mb".`);
+  }
+  const bytes = Math.round(Number(match[1]) * SIZE_UNITS[match[2]!.toLowerCase()]!);
+  if (bytes < 1) throw new FieldGrammarError(`"${spec}": a size limit has to be at least one byte.`);
+  if (bytes > MAX_UPLOAD_BYTES) {
+    throw new FieldGrammarError(`"${spec}": ${text} is more than a Worker will carry in one request; the most is 100mb.`);
+  }
+  return bytes;
 }
 
 function editDistance(a: string, b: string): number {
@@ -151,11 +175,12 @@ export function parseField(spec: string): ParsedField {
   } else if (/^file\[/.test(type)) {
     // "file[image]" is the shape people write first; the colon is easy to miss.
     throw new FieldGrammarError(`"${spec}": file fields need a colon before the list, e.g. "${field.key}:file:[${type.slice(5, -1) || "image"}]".`);
-  } else if ((match = /^file(?::\[(.*)\])?$/.exec(type))) {
+  } else if ((match = /^file(?::\[(.*)\])?(?::([^:]*))?$/.exec(type))) {
     field.kind = "file";
     if (match[1] === undefined) {
       throw new FieldGrammarError(`"${spec}": file fields list accepted types, e.g. "file:[image,pdf]".`);
     }
+    if (match[2] !== undefined) field.maxBytes = parseSize(match[2], spec);
     const categories = Object.keys(FILE_CATEGORIES);
     const accept = list(match[1], "file type", spec).map((category) => category.toLowerCase());
     for (const category of accept) {

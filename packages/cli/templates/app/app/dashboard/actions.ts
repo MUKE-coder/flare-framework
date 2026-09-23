@@ -10,7 +10,7 @@ import { getDb } from "@/db";
 import { savedView } from "@/db/flare-schema";
 import { toCsv } from "@/lib/csv";
 import { storage } from "@/lib/storage";
-import { can, storedFields, type PolicyAction } from "@flaredev/core";
+import { can, storedFields, type PolicyAction, type Resource } from "@flaredev/core";
 import { resourcePath, dashboardSession, dashboardStore, policyFor } from "@/lib/dashboard";
 
 export type ActionResult<T = unknown> =
@@ -26,6 +26,23 @@ async function allowed(resourceName: string, action: PolicyAction): Promise<Acti
   if (!can(policyFor(resourceName), role, action)) return forbidden(`Your role can't ${action} this record.`);
 }
 
+/**
+ * Take a deleted record's uploads out of storage.
+ *
+ * The row is gone, so nothing can point at those objects again, and an app that never
+ * removes them pays to keep files no one can reach. A failure here is swallowed on
+ * purpose: the record is already deleted, and a stray object is a smaller problem than
+ * an action that reports failure after having done the work.
+ */
+async function removeUploads(resource: Resource, record: Record<string, unknown> | null | undefined): Promise<void> {
+  if (!record) return;
+  for (const [key, def] of storedFields(resource)) {
+    if (def.kind !== "file") continue;
+    const value = record[key];
+    if (typeof value === "string" && value) await storage.delete(value).catch(() => undefined);
+  }
+}
+
 export async function deleteRecordAction(resourceName: string, id: string): Promise<ActionResult<{ id: string }>> {
   const denied = await allowed(resourceName, "delete");
   if (denied) return denied;
@@ -34,6 +51,7 @@ export async function deleteRecordAction(resourceName: string, id: string): Prom
   const existing = await store.get(id);
   const result = await store.delete(id);
   if (result.ok) {
+    await removeUploads(store.resource, existing.ok ? existing.data : null);
     await recordAudit({
       action: "delete",
       resource: resourceName,
@@ -67,10 +85,15 @@ export async function deleteManyAction(resourceName: string, ids: string[]): Pro
   // at it) shouldn't take the rest of the batch with it.
   let deleted = 0;
   let failed = 0;
+  const hasFiles = storedFields(store.resource).some(([, def]) => def.kind === "file");
   for (const id of ids) {
+    // Only read the record first when there's an upload to clean up afterwards.
+    const existing = hasFiles ? await store.get(id) : null;
     const result = await store.delete(id);
-    if (result.ok) deleted++;
-    else failed++;
+    if (result.ok) {
+      deleted++;
+      if (existing?.ok) await removeUploads(store.resource, existing.data);
+    } else failed++;
   }
   if (deleted > 0) {
     await recordAudit({ action: "bulk-delete", resource: resourceName, changes: { deleted, failed } });
@@ -233,7 +256,17 @@ export async function createUploadUrlAction(
  * field's prefix are signed, and only for roles that can work with the resource, so a
  * guessed or borrowed key can't be read through a resource the role can't see.
  */
-export async function createReadUrlAction(resourceName: string, fieldKey: string, key: string): Promise<ActionResult<{ url: string }>> {
+export async function createReadUrlAction(
+  resourceName: string,
+  fieldKey: string,
+  key: string,
+  /**
+   * Serve the file as a download with this name instead of showing it in the tab. Object
+   * keys carry an id to keep them unique, so without this a download arrives called
+   * `3f1c…-invoice.pdf` — pass the name the record holds.
+   */
+  downloadAs?: string,
+): Promise<ActionResult<{ url: string }>> {
   const denied = await allowed(resourceName, "read");
   // Someone creating or editing a record can view what they just uploaded.
   if (denied && (await allowed(resourceName, "create")) && (await allowed(resourceName, "update"))) return denied;
@@ -242,5 +275,5 @@ export async function createReadUrlAction(resourceName: string, fieldKey: string
   if ("failure" in target) return target.failure;
   if (!key.startsWith(target.prefix)) return { ok: false, status: 403, error: "That file doesn't belong to this field.", field: fieldKey };
 
-  return { ok: true, data: { url: await storage.createReadUrl({ key }) } };
+  return { ok: true, data: { url: await storage.createReadUrl({ key, downloadAs: downloadAs || undefined }) } };
 }

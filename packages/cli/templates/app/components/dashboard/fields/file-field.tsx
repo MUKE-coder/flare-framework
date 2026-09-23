@@ -48,6 +48,7 @@ function formatBytes(bytes: number): string {
 
 /** ["image", "pdf"] → "image or PDF" (acronyms stay upper case). */
 function describeAccept(accept: readonly string[]): string {
+  if (accept.includes("any")) return "any file";
   const names = accept.map((category) => (category === "pdf" || category === "csv" ? category.toUpperCase() : category));
   return names.length > 1 ? `${names.slice(0, -1).join(", ")} or ${names.at(-1)}` : names[0]!;
 }
@@ -129,6 +130,9 @@ export function FileField({ id, value, onChange, invalid, disabled, field, resou
     const problem = await check(file);
     if (problem) return setError(problem);
 
+    // A browser leaves `type` empty for an extension it doesn't know, and an upload has
+    // to say what it is sending, so fall back to the type that means "bytes".
+    const contentType = file.type || "application/octet-stream";
     const signal: { abort?: () => void } = {};
     const localPreview = IMAGE_TYPES.has(file.type) ? URL.createObjectURL(file) : null;
     setUpload({ name: file.name, loaded: 0, total: file.size, abort: () => signal.abort?.() });
@@ -136,7 +140,7 @@ export function FileField({ id, value, onChange, invalid, disabled, field, resou
     setStatus(`Uploading ${file.name}…`);
 
     try {
-      const signed = await createUploadUrlAction(resourceName, fieldKey, { name: file.name, type: file.type, size: file.size });
+      const signed = await createUploadUrlAction(resourceName, fieldKey, { name: file.name, type: contentType, size: file.size });
       if (!signed.ok) throw new Error(signed.error);
       await put(signed.data.url, file, (loaded) => setUpload((current) => current && { ...current, loaded }), signal);
       onChange(signed.data.key);
