@@ -73,7 +73,11 @@ describe("flare gen security", () => {
     expect(read(root, "app/dashboard/security/actions.ts")).toMatch(/^\/\/ Generated[\s\S]*"use server"/);
     expect(read(root, "lib/dashboard-nav.ts")).toContain(`href: "/dashboard/security"`);
     // The hand-written part after the block stays.
-    expect(read(root, "lib/dashboard-nav.ts")).toContain(`export const dashboardLinks: DashboardLink[] = [...generatedDashboardLinks, { label: "API reference", href: "/api/reference", icon: "book" }];`);
+    // The app's own links sit around the generated block; a generator adds to the block.
+    const nav = read(root, "lib/dashboard-nav.ts");
+    expect(nav).toContain(`{ label: "Costs", href: "/dashboard/costs", icon: "wallet" }`);
+    expect(nav).toContain(`...generatedDashboardLinks,`);
+    expect(nav).toContain(`{ label: "API reference", href: "/api/reference", icon: "book" },`);
     expect(result.bindings).toHaveLength(4);
     expect(existsSync(join(root, "db/schema/security-events.ts")) || existsSync(join(root, "db/schema/securityEvents.ts")) || read(root, "db/schema.ts").includes("security")).toBe(true);
   });
