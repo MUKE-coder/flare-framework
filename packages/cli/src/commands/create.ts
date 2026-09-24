@@ -116,7 +116,9 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   }
 
   writeFileSync(join(dir, "lib", "auth-config.ts"), renderAuthConfig(authMethods, authProviders));
-  appendFileSync(join(dir, ".dev.vars.example"), devVarsExampleEntries(authProviders));
+  // The committed example of the secrets file, which is a different file per stack —
+  // and on Next.js .dev.vars.example was just removed, so appending would bring it back.
+  appendFileSync(join(dir, stack === "next" ? ".env.example" : ".dev.vars.example"), devVarsExampleEntries(authProviders));
 
   const shared = { react: APP_DEPENDENCIES.react, "react-dom": APP_DEPENDENCIES["react-dom"] };
   const uiOnly = Object.fromEntries(

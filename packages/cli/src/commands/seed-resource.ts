@@ -9,6 +9,7 @@ import type { Resource } from "@flaredev/core";
 import pc from "picocolors";
 import { loadResources } from "../generator/load.js";
 import { openLocalD1, type D1Binding } from "../seed/local-d1.js";
+import { readStack } from "../stack.js";
 import { bulkInsert, insertStatements, type SqlSink } from "../seed/bulk.js";
 import { seedColumns, seedRows, type ParentIds } from "../seed/rows.js";
 import { formatCount, formatDuration, formatRate, progressLine } from "../terminal.js";
@@ -122,6 +123,14 @@ export async function seedResourceCommand(name: string, options: SeedResourceOpt
 export async function seedResource(name: string, options: SeedResourceOptions = {}): Promise<SeedResourceResult> {
   const log = options.log ?? ((message: string) => console.log(message));
   const appRoot = findAppRoot(options.cwd ?? process.cwd());
+  // This one writes to D1 directly, through wrangler; there is no Postgres path yet.
+  if (readStack(appRoot) === "next") {
+    throw new Error(
+      "flare seed:resource is Cloudflare-only so far. On this stack, write a seed with `flare seed:make <name> --resource " +
+        name +
+        "` — it comes with rows already filled in — and run it with `flare seed`.",
+    );
+  }
   const resources = (await loadResources(appRoot)).map(({ resource }) => resource);
   const resource = pickResource(resources, name);
   const total = parseCount(options.count);

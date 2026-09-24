@@ -129,6 +129,45 @@ describe("createApp", () => {
     expect(auth).toContain("hash: hashPassword");
   });
 
+  it("scaffolds the Next.js stack without anything Cloudflare-only", () => {
+    const dir = join(tempDir(), "shop");
+    createApp(dir, { install: false, pm: "pnpm", stack: "next", authProviders: "google" });
+
+    for (const file of [
+      "next.config.ts",
+      "prisma.config.ts",
+      "prisma/schema/base.prisma",
+      "lib/db.ts",
+      "app/dashboard/page.tsx",
+      "components/dashboard/resource-form.tsx",
+      ".env",
+      ".env.example",
+      "README.md",
+    ]) {
+      expect(existsSync(join(dir, file)), file).toBe(true);
+    }
+    // Removed by CLOUDFLARE_ONLY, and nothing later may put them back.
+    for (const file of ["wrangler.jsonc", "vite.config.ts", "drizzle.config.ts", "db", "migrations", "worker", ".dev.vars.example", ".dev.vars"]) {
+      expect(existsSync(join(dir, file)), file).toBe(false);
+    }
+
+    // The provider's keys belong in the file this stack actually reads.
+    const env = readFileSync(join(dir, ".env.example"), "utf8");
+    expect(env).toContain("DATABASE_URL=");
+    expect(env).toContain("GOOGLE_CLIENT_ID=");
+
+    const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
+    expect(pkg.flare.stack).toBe("next");
+    expect(pkg.scripts).toMatchObject({ dev: "next dev", build: "prisma generate && next build", deploy: "vercel deploy --prod" });
+    expect(pkg.dependencies.vinext).toBeUndefined();
+    expect(pkg.dependencies["drizzle-orm"]).toBeUndefined();
+    expect(pkg.dependencies["@prisma/adapter-pg"]).toBeDefined();
+
+    const readme = readFileSync(join(dir, "README.md"), "utf8");
+    expect(readme).not.toMatch(/__[A-Z_]+__/);
+    expect(readme).not.toMatch(/Cloudflare Workers|wrangler/);
+  });
+
   it("generates a different auth secret per app", () => {
     const root = tempDir();
     createApp(join(root, "a"), { install: false, pm: "pnpm" });
