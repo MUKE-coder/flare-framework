@@ -1,17 +1,19 @@
-import { PrismaNeon } from "@prisma/adapter-neon";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/lib/generated/prisma/client";
 
 /**
  * The Prisma client, one per process.
  *
- * Prisma 7 needs a driver adapter rather than a connection string in the schema, and
- * Neon's is an HTTP driver — no pooling to arrange, which is what makes it work in a
- * serverless function that may only live for one request.
+ * Prisma 7 needs a driver adapter rather than a connection string in the schema. This
+ * one is the ordinary Postgres driver, which talks to anything that speaks Postgres:
+ * Neon's pooled endpoint, Supabase, RDS, or the container you run while developing.
+ * Next runs on Node, so there is nothing to gain from a serverless HTTP driver and a
+ * great deal to lose — `@prisma/adapter-neon` can't reach a database on localhost.
  *
  * Next reloads modules on every edit in development, and a fresh client each time would
  * exhaust the connection limit within a few saves; hence the global.
  */
-const makeClient = () => new PrismaClient({ adapter: new PrismaNeon({ connectionString: process.env.DATABASE_URL! }) });
+const makeClient = () => new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 const globalForPrisma = globalThis as unknown as { prisma?: ReturnType<typeof makeClient> };
 

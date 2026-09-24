@@ -81,7 +81,8 @@ export function delegatedArgv(appRoot: string, command: DelegatedCommand, forwar
   return [resolveBin(appRoot, spec.pkg, spec.bin), ...spec.args, ...forwarded];
 }
 
-function runNode(argv: string[], cwd: string): Promise<number> {
+/** Run a package's bin with our own Node, inheriting stdio. */
+export function runNode(argv: string[], cwd: string): Promise<number> {
   return new Promise((resolvePromise, reject) => {
     // Running the bin's JS with our own Node avoids the shell (and Windows .cmd shims),
     // so forwarded arguments keep their exact values.

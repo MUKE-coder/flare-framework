@@ -38,19 +38,35 @@ const codeOf = (error: unknown): string | undefined =>
   typeof error === "object" && error !== null && "code" in error ? String((error as { code: unknown }).code) : undefined;
 
 /**
- * Prisma reports a unique violation with the fields involved, which may be given as
- * field names, as a list, or as a constraint name like `products_sku_key`.
+ * Which column a unique violation was about.
+ *
+ * Prisma reports this two different ways. Without a driver adapter it is `meta.target`,
+ * a list of field names. With one — which Prisma 7 requires for SQL databases — the
+ * driver's own error is passed through instead, and the only clue is the name of the
+ * index Postgres rejected: `products_sku_key`, which is `<table>_<column>_key`.
+ *
+ * Getting this right is what puts "Sku is already taken" under the SKU field instead of
+ * a bare "Value is already taken" at the top of the form.
  */
 function uniqueColumn(error: unknown): string | undefined {
-  const meta = (error as { meta?: { target?: unknown; modelName?: string } }).meta;
-  const target = meta?.target;
+  const meta = (error as { meta?: Record<string, unknown> }).meta;
+  if (!meta) return undefined;
+
+  const target = meta.target;
   if (Array.isArray(target) && target.length > 0) return String(target[0]);
-  if (typeof target === "string") {
-    // `<table>_<column>_key` is the name Postgres gives the index Prisma created.
-    const match = /^(.*)_(.+)_key$/.exec(target);
-    return match ? match[2] : target;
-  }
+  if (typeof target === "string") return fromIndexName(target);
+
+  const cause = (meta.driverAdapterError as { cause?: { constraint?: { index?: string; fields?: string[] } } } | undefined)?.cause;
+  const constraint = cause?.constraint;
+  if (constraint?.fields?.length) return constraint.fields[0];
+  if (constraint?.index) return fromIndexName(constraint.index);
   return undefined;
+}
+
+/** `products_sku_key` → `sku`; anything else is handed back unchanged. */
+function fromIndexName(name: string): string {
+  const match = /^.*?_(.+)_key$/.exec(name);
+  return match ? match[1]! : name;
 }
 
 export function prismaRows(delegate: PrismaDelegate, client: unknown): ResourceRows {

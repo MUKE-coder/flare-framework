@@ -70,8 +70,8 @@ export const APP_DEV_DEPENDENCIES = {
 export const NEXT_DEPENDENCIES = {
   next: "16.0.4",
   "@prisma/client": "7.10.0",
-  "@prisma/adapter-neon": "7.10.0",
-  "@neondatabase/serverless": "^1.0.2",
+  "@prisma/adapter-pg": "7.10.0",
+  pg: "^8.16.3",
   "@upstash/redis": "^1.36.0",
   "@better-auth/prisma-adapter": "1.7.5",
   // Signs S3 requests in a few kilobytes, where the AWS SDK is megabytes.

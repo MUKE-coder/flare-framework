@@ -149,6 +149,32 @@ describe("the store behaves the same over Prisma", () => {
     expect(result.field).toBe("email");
   });
 
+  it("reads a unique violation as a driver adapter reports it", async () => {
+    // The real payload from Prisma 7 with @prisma/adapter-pg: no `target` at all, and
+    // the column only recoverable from the name of the index Postgres rejected.
+    const { delegate } = fakeDelegate();
+    delegate.create = vi.fn(async () => {
+      throw Object.assign(new Error("Unique constraint failed"), {
+        code: "P2002",
+        meta: {
+          driverAdapterError: {
+            name: "DriverAdapterError",
+            cause: {
+              originalCode: "23505",
+              kind: "UniqueConstraintViolation",
+              constraint: { index: "contacts_email_key" },
+              table: "contacts",
+            },
+          },
+          modelName: "Contact",
+        },
+      });
+    });
+    const result = await storeOver(delegate).create({ name: "Ada", email: "ada@example.com", status: "lead" });
+    expect(!result.ok && result.error).toBe("Email is already taken.");
+    expect(!result.ok && result.field).toBe("email");
+  });
+
   it("reads a unique violation reported as a Postgres index name", async () => {
     const { delegate } = fakeDelegate();
     delegate.create = vi.fn(async () => {

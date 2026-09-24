@@ -4,7 +4,8 @@ import { join } from "node:path";
 import pc from "picocolors";
 import { deriveDown, splitStatements } from "../generator/down.js";
 import { extractJson, readD1Databases, runWrangler, type D1Database } from "../utils/wrangler.js";
-import { findAppRoot, resolveBin } from "./run.js";
+import { readStack } from "../stack.js";
+import { findAppRoot, resolveBin, runNode } from "./run.js";
 
 export interface MigrateOptions {
   remote?: boolean;
@@ -46,9 +47,28 @@ function context(options: MigrateOptions) {
   };
 }
 
-/** `flare migrate`: apply pending migrations (local by default). */
+/**
+ * `flare migrate`: apply pending migrations (local by default).
+ *
+ * On the Next.js stack this is Prisma's job. `migrate deploy` applies what is already
+ * written and never invents a migration, which is what you want against a database that
+ * matters; writing a new one from a changed schema is `prisma migrate dev`, and saying
+ * so is better than doing it to someone's production database on their behalf.
+ */
 export async function migrate(options: MigrateOptions = {}): Promise<number> {
-  const { appRoot, db, target, wrangler } = context(options);
+  const appRoot = findAppRoot(options.cwd ?? process.cwd());
+  const log = options.log ?? ((message: string) => console.log(message));
+
+  if (readStack(appRoot) === "next") {
+    if (options.remote) {
+      log(pc.dim("On Next.js, `--remote` is whichever database DATABASE_URL points at."));
+    }
+    const prisma = resolveBin(appRoot, "prisma", "prisma");
+    log(`${pc.cyan("prisma")} migrate deploy`);
+    return runNode([prisma, "migrate", "deploy"], appRoot);
+  }
+
+  const { db, target, wrangler } = context(options);
   const result = await runWrangler(wrangler, ["d1", "migrations", "apply", db.binding, ...target], appRoot);
   return result.code;
 }
