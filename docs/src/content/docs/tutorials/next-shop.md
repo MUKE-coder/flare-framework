@@ -14,7 +14,7 @@ last third of this tutorial adds ranked full-text search over a catalogue of
 300,000 products, with the numbers measured rather than assumed.
 
 The finished app is
-[`examples/next-shop`](https://github.com/MUKE-coder/flare/tree/main/examples/next-shop)
+[`examples/next-shop`](https://github.com/MUKE-coder/flare-framework/tree/main/examples/next-shop)
 in the repo.
 
 ## Before you start
