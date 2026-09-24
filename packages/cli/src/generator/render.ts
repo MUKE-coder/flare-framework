@@ -175,36 +175,55 @@ export function renderRelations(all: LoadedResource[]): string {
   return [`import { relations } from "drizzle-orm";`, ...imports, "", blocks.join("\n")].join("\n");
 }
 
-const handlerImports = (entry: LoadedResource) => [
-  `import { createResourceHandlers } from "@flaredev/core/server";`,
-  `import { getDb } from "@/db";`,
-  `import { ${tableExport(entry.resource)} } from "@/db/schema";`,
-  `import { authorize, currentUser } from "@/lib/api";`,
-  `import { revalidateResource } from "@/lib/cache";`,
-  `import ${resourceLocal(entry.stem)} from "@/resources/${entry.stem}.resource";`,
-  "",
-  `const handlers = createResourceHandlers({`,
-  `  resource: ${resourceLocal(entry.stem)},`,
-  `  table: ${tableExport(entry.resource)},`,
-  `  getDb,`,
-  `  authorize,`,
-  `  currentUser,`,
-  `  onChange: revalidateResource,`,
-  `});`,
-  "",
-];
+/**
+ * The top of a generated route file.
+ *
+ * Identical on both stacks but for where the rows come from: a Drizzle table and a
+ * database on Cloudflare, a Prisma delegate on Next.js. The handlers, the authorization
+ * and the cache invalidation are the same either way.
+ */
+const handlerImports = (entry: LoadedResource, stack: Stack = "cloudflare") => {
+  const local = resourceLocal(entry.stem);
+  const source =
+    stack === "next"
+      ? {
+          imports: [`import { prismaRows } from "@flaredev/core/server";`, `import { prisma } from "@/lib/db";`],
+          wiring: [`  rows: prismaRows(prisma.${camelCase(entry.resource.name)}, prisma),`],
+        }
+      : {
+          imports: [`import { getDb } from "@/db";`, `import { ${tableExport(entry.resource)} } from "@/db/schema";`],
+          wiring: [`  table: ${tableExport(entry.resource)},`, `  getDb,`],
+        };
+
+  return [
+    `import { createResourceHandlers } from "@flaredev/core/server";`,
+    ...source.imports,
+    `import { authorize, currentUser } from "@/lib/api";`,
+    `import { revalidateResource } from "@/lib/cache";`,
+    `import ${local} from "@/resources/${entry.stem}.resource";`,
+    "",
+    `const handlers = createResourceHandlers({`,
+    `  resource: ${local},`,
+    ...source.wiring,
+    `  authorize,`,
+    `  currentUser,`,
+    `  onChange: revalidateResource,`,
+    `});`,
+    "",
+  ];
+};
 
 /** `app/api/<slug>/route.ts`: GET list, POST create. */
-export function renderCollectionRoute(entry: LoadedResource): string {
-  return [...handlerImports(entry), "export const GET = handlers.collection.GET;", "export const POST = handlers.collection.POST;", ""].join(
+export function renderCollectionRoute(entry: LoadedResource, stack: Stack = "cloudflare"): string {
+  return [...handlerImports(entry, stack), "export const GET = handlers.collection.GET;", "export const POST = handlers.collection.POST;", ""].join(
     "\n",
   );
 }
 
 /** `app/api/<slug>/[id]/route.ts`: GET read, PATCH update, PUT replace, DELETE. */
-export function renderItemRoute(entry: LoadedResource): string {
+export function renderItemRoute(entry: LoadedResource, stack: Stack = "cloudflare"): string {
   return [
-    ...handlerImports(entry),
+    ...handlerImports(entry, stack),
     "export const GET = handlers.item.GET;",
     "export const PATCH = handlers.item.PATCH;",
     "export const PUT = handlers.item.PUT;",
@@ -379,8 +398,8 @@ export function resourceFiles(entry: LoadedResource, all: LoadedResource[], stac
     // The schema is the one file that belongs to a stack. On Next.js every model lives
     // in one prisma/schema.prisma, written by planFiles rather than per resource.
     ...(stack === "cloudflare" ? [{ path: `db/schema/${resource.table}.ts`, content: renderTableModule(entry, all) }] : []),
-    { path: `app/api/${resource.slug}/route.ts`, content: renderCollectionRoute(entry) },
-    { path: `app/api/${resource.slug}/[id]/route.ts`, content: renderItemRoute(entry) },
+    { path: `app/api/${resource.slug}/route.ts`, content: renderCollectionRoute(entry, stack) },
+    { path: `app/api/${resource.slug}/[id]/route.ts`, content: renderItemRoute(entry, stack) },
     { path: `resources/${stem}.client.ts`, content: renderClient(entry) },
     { path: `resources/${stem}.validators.ts`, content: renderValidators(entry) },
     { path: `app/dashboard/${resource.slug}/page.tsx`, content: renderAdminListPage(entry) },

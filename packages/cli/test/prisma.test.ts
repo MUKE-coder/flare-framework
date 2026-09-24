@@ -121,13 +121,13 @@ describe("renderPrismaModel", () => {
 describe("renderPrismaSchema", () => {
   const schema = renderPrismaSchema(all);
 
-  it("writes one schema with the datasource, the enums and every model", () => {
-    expect(schema).toContain('provider = "postgresql"');
-    // Prisma 7 moved the connection string out of the schema into prisma.config.ts.
-    expect(schema).not.toContain("url ");
+  it("writes the enums and every model, and nothing that isn't generated", () => {
     expect(schema).toContain("enum ContactStatus {");
     expect(schema).toContain("model Company {");
     expect(schema).toContain("model Contact {");
+    // The generator block and the datasource live in base.prisma, which is hand-edited.
+    expect(schema).not.toContain("datasource");
+    expect(schema).not.toContain("generator client");
   });
 
   it("orders models the same way every time, so the file doesn't churn", () => {

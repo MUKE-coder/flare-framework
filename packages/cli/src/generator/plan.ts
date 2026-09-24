@@ -46,7 +46,11 @@ export function planFiles(all: LoadedResource[], policies?: LoadedPolicy[], stac
     files.push(
       // Prisma keeps every model in one schema and writes its own migrations, so there
       // is no per-table module and no relations file to maintain.
-      { path: "prisma/schema.prisma", content: renderPrismaSchema(all) },
+      {
+        path: "prisma/schema/resources.prisma",
+        content: renderPrismaSchema(all),
+        header: "// Generated from the descriptors in resources/. Edit a descriptor, not this.\n",
+      },
       {
         path: "resources/server.ts",
         content: renderPrismaServerRegistry(all),

@@ -1,0 +1,157 @@
+// The part of the schema that is yours.
+//
+// Your resources live in resources.prisma beside this file, written by
+// `flare gen resource` from the descriptors in resources/. This file is never
+// regenerated: the generator, the datasource, the tables Better Auth needs and the two
+// Flare's own dashboard uses are all here, and yours to edit.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Better Auth: the signed-in person.
+model User {
+  id              String    @id @default(uuid())
+  name            String
+  email           String    @unique
+  emailVerified   Boolean   @default(false) @map("email_verified")
+  image           String?
+  /// Set with `flare user:role`; the dashboard's policies read it.
+  role            String?
+  banned          Boolean?
+  banReason       String?   @map("ban_reason")
+  banExpires      DateTime? @map("ban_expires")
+  twoFactorEnabled Boolean? @map("two_factor_enabled")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  sessions   Session[]
+  accounts   Account[]
+  passkeys   Passkey[]
+  twoFactors TwoFactor[]
+  auditLogs  AuditLog[]
+  savedViews SavedView[]
+
+  @@map("users")
+}
+
+model Session {
+  id             String   @id @default(uuid())
+  expiresAt      DateTime @map("expires_at")
+  token          String   @unique
+  ipAddress      String?  @map("ip_address")
+  userAgent      String?  @map("user_agent")
+  userId         String   @map("user_id")
+  impersonatedBy String?  @map("impersonated_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(uuid())
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+model Passkey {
+  id           String    @id @default(uuid())
+  name         String?
+  publicKey    String    @map("public_key")
+  userId       String    @map("user_id")
+  credentialID String    @map("credential_id")
+  counter      Int
+  deviceType   String    @map("device_type")
+  backedUp     Boolean   @map("backed_up")
+  transports   String?
+  aaguid       String?
+  createdAt    DateTime? @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("passkeys")
+}
+
+model TwoFactor {
+  id          String @id @default(uuid())
+  secret      String
+  backupCodes String @map("backup_codes")
+  userId      String @map("user_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("two_factors")
+}
+
+/// Who changed what, written by the dashboard's actions.
+model AuditLog {
+  id           String   @id @default(uuid())
+  action       String
+  resource     String
+  recordId     String?  @map("record_id")
+  recordLabel  String?  @map("record_label")
+  userId       String?  @map("user_id")
+  userEmail    String?  @map("user_email")
+  changes      Json?
+  ip           String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([resource])
+  @@index([createdAt])
+  @@map("audit_log")
+}
+
+/// A saved set of filters on a resource's table.
+model SavedView {
+  id        String   @id @default(uuid())
+  name      String
+  resource  String
+  query     String
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, resource])
+  @@map("saved_views")
+}

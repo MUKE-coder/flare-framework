@@ -31,18 +31,24 @@ export function createCli() {
   cli
     .command("create <dir>", "Scaffold a new Flare app")
     .option("--pm <manager>", "Package manager: pnpm, npm, yarn, or bun (default: detected)")
+    .option("--stack <name>", "Where it runs: cloudflare (default) or next")
     .option("--theme <name>", "Look of the app: default, coral, amber, sky, mono or emerald")
     .option("--auth <list>", "Sign-in methods: magic-link, email-otp, passkeys, 2fa-app, 2fa-email, all or none (default: all)")
     .option("--auth-providers <list>", "Social sign-in, comma-separated: google, github, apple, microsoft")
     .option("-y, --yes", "Don't ask: use the flags given and the defaults for the rest")
     .option("--skip-install", "Write files without installing dependencies")
     .example("flare create shop")
+    .example("flare create shop --stack next")
     .example("flare create shop --theme mono --auth passkeys,2fa-app --auth-providers google,github --yes")
-    .action(async (dir: string, options: { pm?: string; skipInstall?: boolean; authProviders?: string; auth?: string; theme?: string; yes?: boolean }) => {
+    .action(
+      async (
+        dir: string,
+        options: { pm?: string; stack?: string; skipInstall?: boolean; authProviders?: string; auth?: string; theme?: string; yes?: boolean },
+      ) => {
       const wanted = !options.skipInstall;
       let answers: CreateAnswers = { theme: options.theme, auth: options.auth, authProviders: options.authProviders };
       if (canPrompt(options.yes)) answers = await askCreateQuestions(answers, toAppName(dir));
-      const result = createApp(dir, { pm: options.pm, install: false, ...answers, log: (message) => prompts.log.message(message) });
+      const result = createApp(dir, { pm: options.pm, stack: options.stack, install: false, ...answers, log: (message) => prompts.log.message(message) });
 
       let installed = false;
       if (wanted) {

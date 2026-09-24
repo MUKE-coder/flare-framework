@@ -5,6 +5,7 @@ import pc from "picocolors";
 import { openTunnel, parseLocalUrl, tunnelBanner, type Tunnel } from "../tunnel.js";
 import { findUp } from "../utils/fs.js";
 import { runDeploy } from "./deploy.js";
+import { readStack } from "../stack.js";
 
 /**
  * `flare dev` / `build` / `start` / `deploy` delegate to the app's own vinext and
@@ -35,18 +36,24 @@ export function isDelegatedCommand(value: string | undefined): value is Delegate
   return value !== undefined && Object.hasOwn(DELEGATED_COMMANDS, value);
 }
 
-/** The nearest directory at or above `cwd` whose package.json depends on vinext. */
+/**
+ * The nearest directory at or above `cwd` that is a Flare app.
+ *
+ * Recognised by `@flaredev/core`, which both stacks depend on — a Next.js app has no
+ * vinext in it, and looking for that would leave half of them unrecognised.
+ */
 export function findAppRoot(cwd: string): string {
   let dir: string | undefined = resolve(cwd);
   while (dir) {
     const root: string | undefined = findUp("package.json", dir);
     if (!root) break;
     const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-    if (pkg.dependencies?.vinext || pkg.devDependencies?.vinext) return root;
+    const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+    if (deps["@flaredev/core"] || deps.vinext) return root;
     const parent = dirname(root);
     dir = parent === root ? undefined : parent;
   }
-  throw new Error("Not inside a Flare app (no package.json depending on vinext found). Run this from your app directory.");
+  throw new Error("Not inside a Flare app (no package.json depending on @flaredev/core found). Run this from your app directory.");
 }
 
 /** Absolute path to a package's bin script, resolved from the app's node_modules (works with pnpm symlinks). */
@@ -64,6 +71,12 @@ export function resolveBin(appRoot: string, pkgName: string, binName: string): s
 
 /** The full argv (after `node`) a delegated command runs, e.g. [".../vinext/dist/cli.js", "dev", "--port", "4000"]. */
 export function delegatedArgv(appRoot: string, command: DelegatedCommand, forwarded: string[]): string[] {
+  if (readStack(appRoot) === "next") {
+    // These four wrap vinext and wrangler, which a Next.js app doesn't have. Its own
+    // scripts are the ones to run, and saying so beats a missing-binary error.
+    const script = { dev: "npm run dev", build: "npm run build", start: "npm start", deploy: "npm run deploy" }[command];
+    throw new Error(`\`flare ${command}\` is for the Cloudflare stack. This app targets Next.js — run \`${script}\` instead.`);
+  }
   const spec = DELEGATED_COMMANDS[command];
   return [resolveBin(appRoot, spec.pkg, spec.bin), ...spec.args, ...forwarded];
 }

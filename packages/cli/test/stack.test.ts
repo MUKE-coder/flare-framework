@@ -42,12 +42,12 @@ describe("what each stack generates", () => {
     expect(files).toContain("db/schema/products.ts");
     expect(files).toContain("db/schema.ts");
     expect(files).toContain("db/relations.ts");
-    expect(files).not.toContain("prisma/schema.prisma");
+    expect(files).not.toContain("prisma/schema/resources.prisma");
   });
 
   it("writes one Prisma schema and no Drizzle anything on Next.js", () => {
     const files = paths("next");
-    expect(files).toContain("prisma/schema.prisma");
+    expect(files).toContain("prisma/schema/resources.prisma");
     expect(files.filter((path) => path.startsWith("db/"))).toEqual([]);
   });
 

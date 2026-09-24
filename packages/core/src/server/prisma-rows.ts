@@ -12,15 +12,24 @@
  */
 import type { ConstraintHit, ResourceRows, Row, RowsQuery } from "./rows.js";
 
-/** The part of a Prisma model delegate a resource store uses. */
+/**
+ * The part of a Prisma model delegate a resource store uses.
+ *
+ * The arguments are loose on purpose. Prisma generates a precise argument type per
+ * model — `Prisma.ProductFindManyArgs` and so on — and describing them here would mean
+ * reproducing Prisma's generics for a client this package can't import. The queries are
+ * all built in this file, so there is exactly one place to get them right.
+ */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface PrismaDelegate {
-  findMany(args: Record<string, unknown>): Promise<Row[]>;
-  findUnique(args: Record<string, unknown>): Promise<Row | null>;
-  count(args: Record<string, unknown>): Promise<number>;
-  create(args: Record<string, unknown>): Promise<Row>;
-  update(args: Record<string, unknown>): Promise<Row>;
-  delete(args: Record<string, unknown>): Promise<Row>;
+  findMany(args: any): Promise<any[]>;
+  findUnique(args: any): Promise<any>;
+  count(args: any): Promise<number>;
+  create(args: any): Promise<any>;
+  update(args: any): Promise<any>;
+  delete(args: any): Promise<any>;
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /** Prisma's "no record matched" — an expected outcome here, not an error. */
 const NOT_FOUND = "P2025";

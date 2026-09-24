@@ -1,5 +1,6 @@
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import type { Resource } from "../resource/define.js";
+import type { ResourceRows } from "./rows.js";
 import {
   createResourceStore,
   type AnyDatabase,
@@ -24,8 +25,11 @@ export type Authorize = (context: AuthorizeContext) => Response | void | Promise
 
 export interface ResourceHandlerOptions {
   resource: Resource;
-  table: SQLiteTable;
-  getDb: () => AnyDatabase;
+  /** Drizzle and D1, on the Cloudflare stack. Another stack passes `rows` instead. */
+  table?: SQLiteTable;
+  getDb?: () => AnyDatabase;
+  /** Where rows come from, when it isn't Drizzle — a Prisma-backed adapter, say. */
+  rows?: ResourceRows;
   authorize: Authorize;
   /** Who is making the request, for the descriptor's hooks. */
   currentUser?: ResourceStoreOptions["currentUser"];

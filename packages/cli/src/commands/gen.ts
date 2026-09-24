@@ -115,12 +115,19 @@ export async function genResource(rawName: string, options: GenResourceOptions):
 
   let migrations: string[] = [];
   if (!options.skipMigration) {
-    const result = await generateSchemaMigration(appRoot, `${exists ? "update" : "create"}_${table}`);
-    migrations = result.files;
-    for (const file of migrations) log(`${pc.green("create".padEnd(9))} ${file}`);
-    for (const repair of result.repairs) log(pc.dim(`repaired  ${repair}`));
-    if (migrations.length) log(`\nNext: ${pc.bold("flare migrate")} to apply it locally.`);
-    else if (exists) log(pc.dim("\nNo table changes, so no migration."));
+    if (readStack(appRoot) === "next") {
+      // Prisma writes its own migrations, by diffing the schema against the database it
+      // is pointed at. That needs a live DATABASE_URL, so it is the next thing you run
+      // rather than something to do on your behalf here.
+      log(`\nNext: ${pc.bold("npx prisma migrate dev")} to turn the schema into a migration and apply it.`);
+    } else {
+      const result = await generateSchemaMigration(appRoot, `${exists ? "update" : "create"}_${table}`);
+      migrations = result.files;
+      for (const file of migrations) log(`${pc.green("create".padEnd(9))} ${file}`);
+      for (const repair of result.repairs) log(pc.dim(`repaired  ${repair}`));
+      if (migrations.length) log(`\nNext: ${pc.bold("flare migrate")} to apply it locally.`);
+      else if (exists) log(pc.dim("\nNo table changes, so no migration."));
+    }
   }
 
   const descriptor: FileResult = { path: relativePath, status: exists ? "outdated" : "missing", outcome: exists ? "update" : "create" };

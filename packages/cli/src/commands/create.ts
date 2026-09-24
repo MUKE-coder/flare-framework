@@ -1,12 +1,20 @@
 import { randomBytes } from "node:crypto";
-import { appendFileSync, copyFileSync, existsSync, readdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, copyFileSync, existsSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import * as prompts from "@clack/prompts";
 import pc from "picocolors";
 import { FLARE_VERSION } from "@flaredev/core";
 import { devVarsEntries, devVarsExampleEntries, parseAuthMethods, parseAuthProviders, renderAuthConfig } from "../auth-providers.js";
 import { parseTheme } from "../themes.js";
-import { APP_DEPENDENCIES, APP_DEV_DEPENDENCIES, COMPATIBILITY_DATE } from "../versions.js";
+import {
+  APP_DEPENDENCIES,
+  APP_DEV_DEPENDENCIES,
+  CLOUDFLARE_ONLY,
+  COMPATIBILITY_DATE,
+  NEXT_DEPENDENCIES,
+  NEXT_DEV_DEPENDENCIES,
+} from "../versions.js";
+import { isStack, STACKS, type Stack } from "../stack.js";
 import { copyTemplate, findUp, templatesDir, writeJson } from "../utils/fs.js";
 import { detectPackageManager, isPackageManager, type PackageManager } from "../utils/pm.js";
 
@@ -24,6 +32,8 @@ export interface CreateOptions {
   log?: (message: string) => void;
   /** Override the Workers compatibility date (used by tests). */
   compatibilityDate?: string;
+  /** Which stack to target: "cloudflare" (default) or "next". */
+  stack?: string;
 }
 
 export interface CreateResult {
@@ -78,6 +88,10 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
     throw new Error(`Unknown package manager "${options.pm}". Use pnpm, npm, yarn, or bun.`);
   }
   const packageManager = options.pm ?? detectPackageManager();
+  if (options.stack !== undefined && !isStack(options.stack)) {
+    throw new Error(`Unknown stack "${options.stack}". Use ${STACKS.join(" or ")}.`);
+  }
+  const stack: Stack = (options.stack as Stack | undefined) ?? "cloudflare";
   const authProviders = parseAuthProviders(options.authProviders);
   const authMethods = parseAuthMethods(options.auth);
   const theme = parseTheme(options.theme);
@@ -93,30 +107,63 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
     PM: packageManager,
     THEME: theme,
   });
+  if (stack === "next") {
+    // The Next.js stack is the shared app plus a handful of replacements: where rows
+    // come from, where files go, and how it is built. Everything else — the dashboard,
+    // the auth screens, every component — is the same code.
+    copyTemplate(join(templatesDir, "next"), dir, { APP_NAME: name, PM: packageManager, THEME: theme });
+    for (const path of CLOUDFLARE_ONLY) rmSync(join(dir, path), { recursive: true, force: true });
+  }
+
   writeFileSync(join(dir, "lib", "auth-config.ts"), renderAuthConfig(authMethods, authProviders));
   appendFileSync(join(dir, ".dev.vars.example"), devVarsExampleEntries(authProviders));
+
+  const shared = { react: APP_DEPENDENCIES.react, "react-dom": APP_DEPENDENCIES["react-dom"] };
+  const uiOnly = Object.fromEntries(
+    Object.entries(APP_DEPENDENCIES).filter(([key]) => !["vinext", "@vinext/cloudflare", "drizzle-orm", "react-server-dom-webpack"].includes(key)),
+  );
 
   writeJson(join(dir, "package.json"), {
     name,
     version: "0.1.0",
     private: true,
     type: "module",
-    scripts: {
-      dev: "flare dev",
-      build: "flare build",
-      start: "flare start",
-      deploy: "flare deploy",
-      "cf-typegen": "wrangler types",
-      "db:generate": "drizzle-kit generate",
-      "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    // Which stack this app targets. `flare gen` reads it; don't change it by hand.
+    flare: { stack },
+    scripts:
+      stack === "next"
+        ? {
+            dev: "next dev",
+            build: "prisma generate && next build",
+            start: "next start",
+            deploy: "vercel deploy --prod",
+            "db:generate": "prisma generate",
+            "db:migrate": "prisma migrate dev",
+            "db:studio": "prisma studio",
+          }
+        : {
+            dev: "flare dev",
+            build: "flare build",
+            start: "flare start",
+            deploy: "flare deploy",
+            "cf-typegen": "wrangler types",
+            "db:generate": "drizzle-kit generate",
+            "db:migrate:local": "wrangler d1 migrations apply DB --local",
+          },
+    dependencies: {
+      "@flaredev/core": flarePackageSpec("core", dir, packageManager),
+      ...(stack === "next" ? { ...uiOnly, ...shared, ...NEXT_DEPENDENCIES } : APP_DEPENDENCIES),
     },
-    dependencies: { "@flaredev/core": flarePackageSpec("core", dir, packageManager), ...APP_DEPENDENCIES },
-    devDependencies: { "@flaredev/cli": flarePackageSpec("cli", dir, packageManager), ...APP_DEV_DEPENDENCIES },
+    devDependencies: {
+      "@flaredev/cli": flarePackageSpec("cli", dir, packageManager),
+      ...(stack === "next" ? NEXT_DEV_DEPENDENCIES : APP_DEV_DEPENDENCIES),
+    },
   });
 
-  // Local secrets (git-ignored). Production secrets are set with `wrangler secret put`.
+  // Local secrets (git-ignored). On Cloudflare production secrets are set with
+  // `wrangler secret put`; on Vercel they are project environment variables.
   writeFileSync(
-    join(dir, ".dev.vars"),
+    join(dir, stack === "next" ? ".env" : ".dev.vars"),
     `BETTER_AUTH_SECRET=${randomBytes(32).toString("base64")}\nRESEND_API_KEY=\nMAIL_FROM=\n${devVarsEntries(authProviders)}`,
   );
 

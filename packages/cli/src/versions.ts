@@ -60,3 +60,43 @@ export const APP_DEV_DEPENDENCIES = {
   vite: "^8.3.0",
   wrangler: "^4.132.0",
 } as const;
+
+/**
+ * Dependencies a Next.js-stack app gets instead of the Cloudflare ones.
+ *
+ * Pinned the same way and for the same reason: a set verified to work together beats a
+ * range that resolves to something nobody has run.
+ */
+export const NEXT_DEPENDENCIES = {
+  next: "16.0.4",
+  "@prisma/client": "7.10.0",
+  "@prisma/adapter-neon": "7.10.0",
+  "@neondatabase/serverless": "^1.0.2",
+  "@upstash/redis": "^1.36.0",
+  "@better-auth/prisma-adapter": "1.7.5",
+  // Signs S3 requests in a few kilobytes, where the AWS SDK is megabytes.
+  aws4fetch: "^1.0.20",
+  dotenv: "^17.2.3",
+} as const;
+
+export const NEXT_DEV_DEPENDENCIES = {
+  prisma: "7.10.0",
+  "@types/node": "^22.20.3",
+  "@types/react": "^19.3.0",
+  "@types/react-dom": "^19.3.0",
+  "@tailwindcss/postcss": "^4.3.3",
+  tailwindcss: "^4.3.3",
+  typescript: "~5.9.3",
+} as const;
+
+/** Cloudflare-only files a Next.js app has no use for. */
+export const CLOUDFLARE_ONLY = [
+  "wrangler.jsonc",
+  "vite.config.ts",
+  "worker",
+  "db",
+  "migrations",
+  "drizzle.config.ts",
+  ".dev.vars.example",
+  "worker-configuration.d.ts",
+] as const;
