@@ -170,8 +170,15 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   );
 
   if (packageManager === "pnpm" && !inWorkspace) {
-    // pnpm blocks dependency build scripts unless explicitly allowed.
-    writeFileSync(join(dir, "pnpm-workspace.yaml"), "allowBuilds:\n  esbuild: true\n  workerd: true\n  sharp: false\n");
+    // pnpm blocks dependency build scripts unless explicitly allowed, and stops the
+    // install with ERR_PNPM_IGNORED_BUILDS until someone decides. Deciding here means
+    // the first install just works. Prisma's postinstall fetches its engines, so the
+    // Next.js stack needs that one; the Cloudflare stack needs workerd's.
+    const allowBuilds =
+      stack === "next"
+        ? "allowBuilds:\n  '@prisma/engines': true\n  prisma: true\n  sharp: false\n"
+        : "allowBuilds:\n  esbuild: true\n  workerd: true\n  sharp: false\n";
+    writeFileSync(join(dir, "pnpm-workspace.yaml"), allowBuilds);
   }
 
   // A lockfile turns the install from "resolve 340 packages, then fetch them" into

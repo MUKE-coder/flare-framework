@@ -163,6 +163,11 @@ describe("createApp", () => {
     expect(pkg.dependencies["drizzle-orm"]).toBeUndefined();
     expect(pkg.dependencies["@prisma/adapter-pg"]).toBeDefined();
 
+    // Without this, the first `pnpm install` stops with ERR_PNPM_IGNORED_BUILDS.
+    const workspace = readFileSync(join(dir, "pnpm-workspace.yaml"), "utf8");
+    expect(workspace).toContain("prisma: true");
+    expect(workspace).not.toContain("workerd");
+
     const readme = readFileSync(join(dir, "README.md"), "utf8");
     expect(readme).not.toMatch(/__[A-Z_]+__/);
     expect(readme).not.toMatch(/Cloudflare Workers|wrangler/);
