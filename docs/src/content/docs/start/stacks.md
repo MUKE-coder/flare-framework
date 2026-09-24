@@ -64,9 +64,44 @@ Generated per stack:
 - The route handlers — Workers or Next.js Route Handlers
 - The database client and the cache adapter
 
-## Status
+## Starting a Next.js app
 
-The Cloudflare stack is what these docs describe throughout and what both
-[tutorials](/tutorials/shop/) are built on. The Next.js stack is being built
-now: this page will say so plainly when `--stack next` is ready to use, and
-until then `flare create` targets Cloudflare whatever you pass.
+```bash
+npx flare create shop --stack next
+cd shop
+cp .env.example .env          # DATABASE_URL from Neon, BETTER_AUTH_SECRET
+npx flare gen resource Product --fields 'name:string, sku:string!, price:float'
+npx prisma migrate dev        # turns the schema into a migration and applies it
+npm run dev
+```
+
+`flare gen resource` writes the same route handlers, typed client, validators
+and dashboard pages it writes on Cloudflare. What changes is the schema:
+`prisma/schema/resources.prisma` instead of a Drizzle module per table.
+
+`prisma/schema` is a folder of two files, and the split matters:
+
+- **`base.prisma`** — the generator, the datasource, and the tables Better
+  Auth and the dashboard need. Yours to edit; never regenerated.
+- **`resources.prisma`** — your resources, written from the descriptors.
+  Overwritten every time you run `flare gen resource`.
+
+Migrations are Prisma's: `npx prisma migrate dev` diffs the schema against
+your database and writes the SQL. `flare migrate` is the Cloudflare
+equivalent and doesn't apply here, and neither do `flare dev`, `build`,
+`start` or `deploy` — this app runs `next dev` and deploys with `vercel`.
+The CLI says so if you try.
+
+## What this stack is missing
+
+Being straight about it:
+
+- **Realtime.** Cloudflare gives every channel a Durable Object — one
+  address, its own storage, websockets that stay open. Vercel has no
+  equivalent, so `realtimeChannel().publish()` is a no-op. A hosted pub/sub
+  behind the same two functions is the way to add it.
+- **Traffic analytics in-app.** The observability page reads Cloudflare's
+  analytics API on the other stack; here it points you at Vercel's dashboard
+  rather than holding a token that can read your whole account.
+- **Seeds.** `flare seed` and `flare seed:resource` are Drizzle-only so far.
+  `prisma db seed` works in the meantime.
