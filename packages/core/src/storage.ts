@@ -24,6 +24,15 @@ export interface StorageBucket {
     options?: { httpMetadata?: { contentType?: string; contentDisposition?: string } },
   ): Promise<unknown>;
   delete(keys: string | string[]): Promise<void>;
+  /**
+   * The keys in the bucket, a page at a time. R2 counts this as a Class A operation —
+   * the expensive kind — so call it to answer a question, not on a page people reload.
+   */
+  list?(options?: { limit?: number; prefix?: string; cursor?: string }): Promise<{
+    objects: { key: string; size: number }[];
+    truncated: boolean;
+    cursor?: string;
+  }>;
 }
 
 export interface StorageObjectBody {

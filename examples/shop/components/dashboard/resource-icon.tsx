@@ -1,6 +1,7 @@
 import {
   BellIcon,
   BookIcon,
+  WalletIcon,
   BoxIcon,
   BriefcaseIcon,
   Building2Icon,
@@ -44,6 +45,7 @@ import {
 export const RESOURCE_ICONS: Record<string, LucideIcon> = {
   bell: BellIcon,
   book: BookIcon,
+  wallet: WalletIcon,
   box: BoxIcon,
   briefcase: BriefcaseIcon,
   building: Building2Icon,

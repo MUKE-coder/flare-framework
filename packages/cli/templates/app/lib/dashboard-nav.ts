@@ -12,4 +12,8 @@ export const generatedDashboardLinks: DashboardLink[] = [];
 // generated:end
 
 /** Links shown under "Platform" in the dashboard sidebar. */
-export const dashboardLinks: DashboardLink[] = [...generatedDashboardLinks, { label: "API reference", href: "/api/reference", icon: "book" }];
+export const dashboardLinks: DashboardLink[] = [
+  { label: "Costs", href: "/dashboard/costs", icon: "wallet" },
+  ...generatedDashboardLinks,
+  { label: "API reference", href: "/api/reference", icon: "book" },
+];

@@ -10,7 +10,7 @@ import { StatCards, type Stat } from "@/components/dashboard/stat-card";
 import { getDb } from "@/db";
 import { passkey } from "@/db/auth-schema";
 import { authConfig, twoFactorAvailable } from "@/lib/auth-config";
-import { adminPermissions, recentCounts, recordCount, resourcePath, trend, visibleResources } from "@/lib/dashboard";
+import { adminPermissions, resourcePath, resourceStats, trend, visibleResources } from "@/lib/dashboard";
 import { requireSession } from "@/lib/session";
 
 export const metadata = { title: "Dashboard" };
@@ -22,12 +22,9 @@ export default async function DashboardPage() {
 
   const cards = await Promise.all(
     resources.map(async (resource) => {
-      const [total, recent, permissions] = await Promise.all([
-        recordCount(resource.name),
-        recentCounts(resource.name),
-        adminPermissions(resource.name),
-      ]);
-      return { resource, total, recent, permissions };
+      // One query per resource for the count and the trend, not two.
+      const [stats, permissions] = await Promise.all([resourceStats(resource.name), adminPermissions(resource.name)]);
+      return { resource, total: stats.total, recent: stats, permissions };
     }),
   );
 

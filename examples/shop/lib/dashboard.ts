@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { allowedActions, can, type Policy, type PolicyAction, type Resource } from "@flaredev/core";
-import { and, count, gte, lt } from "drizzle-orm";
+import { count, sql } from "drizzle-orm";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import { createResourceStore, type ResourceStore } from "@flaredev/core/server";
 import { getDb } from "@/db";
@@ -73,74 +73,79 @@ export function dashboardStore(name: string): ResourceStore {
 }
 
 /**
- * How many records a resource has. Cached in the data cache under the resource's tag,
- * so the dashboard does not count every table on every visit, and a write through the
- * admin or the API drops the count on its way out.
+ * Every number the stats above a resource's table need, in one query.
+ *
+ * The total, how many arrived in the last week and the week before, and how many hold
+ * each value of a status field — all of it from a single grouped scan, summed up here.
+ * It was four queries and three cache entries; on the free plan the cache entries were
+ * the expensive half, because Workers KV allows a thousand writes a day and every write
+ * to a record drops the entries tagged for it.
+ *
+ * Cached under the resource's tag, so a write through the admin or the API drops it on
+ * the way out and the next view recomputes it.
  */
-export function recordCount(name: string): Promise<number> {
-  const counted = cached(
-    async (resourceName: string) => {
-      // Counted straight off the table, not through the store: a list stops counting at
-      // 10,000 so that paging stays quick, and a stat wants the real number.
-      const entry = (resourceTables as unknown as Record<string, { table: SQLiteTable } | undefined>)[resourceName];
-      if (!entry) return 0;
-      const [row] = await getDb().select({ total: count() }).from(entry.table);
-      return row?.total ?? 0;
-    },
-    ["flare", "record-count"],
-    { tags: [resourceTag(name)], revalidate: TTL.short },
-  );
-  return counted(name);
+export interface ResourceStats {
+  total: number;
+  /** Created in the last `days` days, and in the `days` before that. */
+  current: number;
+  previous: number;
+  /** Rows per value of the grouped field, when one was asked for. */
+  values: Record<string, number>;
 }
 
-/**
- * How many records hold each value of a field, in one grouped query rather than one
- * count per option. Used by the stats above a resource's table.
- */
-export function valueCounts(name: string, field: string): Promise<Record<string, number>> {
-  const counted = cached(
-    async (resourceName: string, key: string) => {
+export function resourceStats(name: string, field?: string, days = 7): Promise<ResourceStats> {
+  const read = cached(
+    async (resourceName: string, key: string | undefined, windowDays: number): Promise<ResourceStats> => {
       const entry = (resourceTables as unknown as Record<string, { table: SQLiteTable } | undefined>)[resourceName];
-      const column = entry ? (entry.table as unknown as Record<string, unknown>)[key] : undefined;
-      if (!entry || !column) return {};
-      const rows = (await getDb()
-        .select({ value: column as never, total: count() })
-        .from(entry.table)
-        .groupBy(column as never)) as { value: unknown; total: number }[];
-      return Object.fromEntries(rows.map((row) => [String(row.value ?? ""), row.total]));
-    },
-    ["flare", "value-counts"],
-    { tags: [resourceTag(name)], revalidate: TTL.short },
-  );
-  return counted(name, field);
-}
+      if (!entry) return { total: 0, current: 0, previous: 0, values: {} };
 
-/**
- * How many records a resource gained in the last `days` days, and in the `days` before
- * that, so a stat can show which way it's going. Cached like the totals.
- */
-export function recentCounts(name: string, days = 7): Promise<{ current: number; previous: number }> {
-  const counts = cached(
-    async (resourceName: string, windowDays: number) => {
-      const entry = (resourceTables as unknown as Record<string, { table: SQLiteTable } | undefined>)[resourceName];
-      const createdAt = entry ? (entry.table as unknown as Record<string, unknown>).createdAt : undefined;
-      // A resource whose table has no createdAt (a custom one) simply has no trend.
-      if (!entry || !createdAt) return { current: 0, previous: 0 };
+      const columns = entry.table as unknown as Record<string, unknown>;
+      const createdAt = columns.createdAt;
+      const grouped = key ? columns[key] : undefined;
+      // Milliseconds, not Dates: these go into a raw `sql` fragment, which doesn't pass
+      // through the column's mapper, and D1 refuses to bind an object.
       const window = windowDays * 86_400_000;
-      const since = new Date(Date.now() - window);
-      const before = new Date(Date.now() - window * 2);
-      const column = createdAt as never;
-      const [current] = await getDb().select({ total: count() }).from(entry.table).where(gte(column, since));
-      const [previous] = await getDb()
-        .select({ total: count() })
-        .from(entry.table)
-        .where(and(gte(column, before), lt(column, since)));
-      return { current: current?.total ?? 0, previous: previous?.total ?? 0 };
+      const since = Date.now() - window;
+      const before = Date.now() - window * 2;
+
+      // A resource whose table has no createdAt (a custom one) simply has no trend.
+      const windows = createdAt
+        ? {
+            current: sql<number>`sum(case when ${createdAt as never} >= ${since} then 1 else 0 end)`,
+            previous: sql<number>`sum(case when ${createdAt as never} >= ${before} and ${createdAt as never} < ${since} then 1 else 0 end)`,
+          }
+        : { current: sql<number>`0`, previous: sql<number>`0` };
+
+      const select: Record<string, unknown> = { total: count(), ...windows };
+      if (grouped) select.value = grouped;
+      const query = getDb()
+        .select(select as never)
+        .from(entry.table);
+      const rows = (await (grouped ? query.groupBy(grouped as never) : query)) as {
+        total: number;
+        current: number;
+        previous: number;
+        value?: unknown;
+      }[];
+
+      const stats: ResourceStats = { total: 0, current: 0, previous: 0, values: {} };
+      for (const row of rows) {
+        stats.total += Number(row.total ?? 0);
+        stats.current += Number(row.current ?? 0);
+        stats.previous += Number(row.previous ?? 0);
+        if (grouped) stats.values[String(row.value ?? "")] = Number(row.total ?? 0);
+      }
+      return stats;
     },
-    ["flare", "recent-count"],
-    { tags: [resourceTag(name)], revalidate: TTL.short },
+    ["flare", "resource-stats"],
+    { tags: [resourceTag(name)], revalidate: TTL.medium },
   );
-  return counts(name, days);
+  return read(name, field, days);
+}
+
+/** How many records a resource has. One field of {@link resourceStats}. */
+export async function recordCount(name: string): Promise<number> {
+  return (await resourceStats(name)).total;
 }
 
 /** Percentage change between two periods, or undefined when there's nothing to compare. */

@@ -1,5 +1,5 @@
 import { storedFields, optionLabel, type Resource } from "@flaredev/core";
-import { recentCounts, recordCount, trend, valueCounts } from "@/lib/dashboard";
+import { resourceStats, trend } from "@/lib/dashboard";
 import { resourceIcon } from "./resource-icon";
 import { StatCards, type Stat } from "./stat-card";
 
@@ -11,7 +11,10 @@ import { StatCards, type Stat } from "./stat-card";
  * in practice is the status of the thing — a deal's stage, an invoice's state.
  */
 export async function ResourceStats({ resource }: { resource: Resource }) {
-  const [total, recent] = await Promise.all([recordCount(resource.name), recentCounts(resource.name)]);
+  // The status split is asked for up front so the totals, the trend and the split all
+  // come from the one grouped query rather than three.
+  const statusField = storedFields(resource).find(([, def]) => def.kind === "enum" && def.filterable !== false);
+  const { total, current, previous, values } = await resourceStats(resource.name, statusField?.[0]);
 
   const stats: Stat[] = [
     {
@@ -21,20 +24,18 @@ export async function ResourceStats({ resource }: { resource: Resource }) {
     },
     {
       label: "New this week",
-      value: recent.current,
-      change: trend(recent.current, recent.previous),
-      hint: `${recent.previous.toLocaleString()} the week before`,
+      value: current,
+      change: trend(current, previous),
+      hint: `${previous.toLocaleString()} the week before`,
     },
   ];
 
-  const statusField = storedFields(resource).find(([, def]) => def.kind === "enum" && def.filterable !== false);
   if (statusField && total > 0) {
-    const [key, def] = statusField;
+    const [, def] = statusField;
     if (def.kind === "enum") {
-      const counts = await valueCounts(resource.name, key);
       // Two options at most: a strip of eight cards is a wall, not a summary.
       for (const option of def.options.slice(0, 2)) {
-        const value = counts[option] ?? 0;
+        const value = values[option] ?? 0;
         stats.push({
           label: optionLabel(def, option),
           value,
