@@ -1,11 +1,11 @@
-import { and, asc, count, desc, eq, getTableColumns, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
-import type { BaseSQLiteDatabase, SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
-import { storedFields, type Resource } from "../resource/define.js";
+import { columnName, storedFields, type Resource } from "../resource/define.js";
 import { createValidators } from "../resource/validators.js";
+import { drizzleRows, type AnyDatabase } from "./drizzle-rows.js";
 import { encodeCursor, isSearchable, parseListQuery, type QueryIssue } from "./query.js";
+import type { ResourceRows, Row } from "./rows.js";
+import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyDatabase = BaseSQLiteDatabase<"sync" | "async", any, any>;
+export type { AnyDatabase };
 
 export type ResourceAction = "list" | "read" | "create" | "update" | "delete";
 
@@ -77,8 +77,14 @@ export interface ResourceStoreOptions {
    * know; a seed doesn't, and passes nothing.
    */
   currentUser?: () => Promise<{ id: string; email: string; role?: string | null } | null> | { id: string; email: string; role?: string | null } | null;
-  table: SQLiteTable;
-  getDb: () => AnyDatabase;
+  /**
+   * The Drizzle table and database, for the Cloudflare stack. Another stack passes
+   * `rows` instead — a Prisma-backed one, say — and everything else is identical.
+   */
+  table?: SQLiteTable;
+  getDb?: () => AnyDatabase;
+  /** Where rows come from, when it isn't Drizzle. */
+  rows?: ResourceRows;
   /**
    * Called after a write succeeds, for cache invalidation. Runs before the
    * operation returns, so a caller that revalidates tags can't hand back a
@@ -88,21 +94,6 @@ export interface ResourceStoreOptions {
   onChange?: (event: ChangeEvent) => void | Promise<void>;
 }
 
-/** Walks an error and its causes (drizzle and D1 both wrap SQLite errors). */
-function errorText(error: unknown): string {
-  const parts: string[] = [];
-  for (let current = error, depth = 0; current && depth < 5; depth++) {
-    if (current instanceof Error) {
-      parts.push(current.message);
-      current = current.cause;
-    } else {
-      parts.push(String(current));
-      break;
-    }
-  }
-  return parts.join(" | ");
-}
-
 /**
  * CRUD operations for one resource, driven by its descriptor. Shared by the REST
  * handlers and the admin's server actions, so validation, constraint handling, and
@@ -110,36 +101,48 @@ function errorText(error: unknown): string {
  * they return `{ ok: false, status, error }`.
  */
 export function createResourceStore(options: ResourceStoreOptions) {
-  const { resource, table, getDb } = options;
+  const { resource, table } = options;
   const validators = createValidators(resource);
-  const columns = getTableColumns(table) as Record<string, SQLiteColumn>;
   const fields = storedFields(resource);
 
-  for (const key of ["id", "createdAt", "updatedAt", ...fields.map(([key]) => key)]) {
-    if (!columns[key]) {
-      throw new Error(`Resource "${resource.name}": table has no column for "${key}". Run \`flare sync-types\` and create a migration.`);
+  if (!options.rows && !(table && options.getDb)) {
+    throw new Error(`Resource "${resource.name}": a store needs either a Drizzle table and getDb, or rows.`);
+  }
+  const rows = options.rows ?? drizzleRows(table!, options.getDb!);
+
+  // Drizzle can say up front whether the table matches the descriptor; a Prisma client
+  // can't be asked the same question without a round trip, so that check stays here.
+  const columns = "columns" in rows ? (rows.columns as Record<string, { name: string }>) : undefined;
+  if (columns) {
+    for (const key of ["id", "createdAt", "updatedAt", ...fields.map(([key]) => key)]) {
+      if (!columns[key]) {
+        throw new Error(`Resource "${resource.name}": table has no column for "${key}". Run \`flare sync-types\` and create a migration.`);
+      }
     }
   }
-  const idColumn = columns.id!;
-  const columnKeyByName = new Map(Object.entries(columns).map(([key, column]) => [column.name, key]));
+  /** A column name from a constraint error back to the field that owns it. */
+  const keyForColumn = (name: string): string | undefined =>
+    columns
+      ? Object.entries(columns).find(([, column]) => column.name === name)?.[0]
+      : ["id", "createdAt", "updatedAt", ...fields.map(([key]) => key)].find((key) => columnName(key) === name || key === name);
 
   const fail = (status: Failure["status"], error: string, extra: Partial<Failure> = {}): Failure => ({ ok: false, status, error, ...extra });
 
+  /** The same wording whichever database refused the write. */
   function constraintFailure(error: unknown, action: ResourceAction): Failure | undefined {
-    const text = errorText(error);
-    const unique = /UNIQUE constraint failed: ([\w.]+(?:, [\w.]+)*)/.exec(text);
-    if (unique) {
-      const key = columnKeyByName.get(unique[1]!.split(", ")[0]!.split(".").pop()!);
+    const hit = rows.constraint(error);
+    if (!hit) return undefined;
+    if (hit.kind === "unique") {
+      const key = hit.column ? keyForColumn(hit.column) : undefined;
       const label = key ? (resource.fields[key]?.label ?? key) : "Value";
       return fail(409, `${label} is already taken.`, key ? { field: key } : {});
     }
-    if (/FOREIGN KEY constraint failed/.test(text)) {
+    if (hit.kind === "foreignKey") {
       return action === "delete"
         ? fail(409, `This ${resource.label.toLowerCase()} is still referenced by other records.`)
         : fail(422, "A related record doesn't exist.");
     }
-    if (/CHECK constraint failed/.test(text)) return fail(422, "A value is outside its allowed options.");
-    return undefined;
+    return fail(422, "A value is outside its allowed options.");
   }
 
   async function guarded<T>(action: ResourceAction, work: () => Promise<Result<T>>): Promise<Result<T>> {
@@ -175,7 +178,6 @@ export function createResourceStore(options: ResourceStoreOptions) {
   const invalid = (issues: { path: PropertyKey[]; message: string }[]) =>
     fail(422, "Validation failed.", { issues: issues.map((issue) => ({ path: issue.path.map(String).join("."), message: issue.message })) });
 
-  const byId = (id: string) => eq(idColumn, id);
   const notFound = () => fail(404, `${resource.label} not found.`);
 
   const computed = Object.entries(resource.computed ?? {});
@@ -195,7 +197,7 @@ export function createResourceStore(options: ResourceStoreOptions) {
   };
 
   const hooks = resource.hooks ?? {};
-  const hookContext = async () => ({ db: getDb(), user: (await options.currentUser?.()) ?? null });
+  const hookContext = async () => ({ db: rows.db, user: (await options.currentUser?.()) ?? null });
 
   return {
     resource,
@@ -207,59 +209,36 @@ export function createResourceStore(options: ResourceStoreOptions) {
       if ("issues" in parsed) return fail(400, "Invalid query.", { queryIssues: parsed.issues });
       const { page, perPage, sort, q, filters, cursor } = parsed.query;
 
-      const conditions: SQL[] = [];
-      if (q) {
-        const pattern = `%${q.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
-        const searchable = fields.filter(([, def]) => isSearchable(def)).map(([key]) => columns[key]!);
-        if (searchable.length) conditions.push(or(...searchable.map((column) => sql`${column} LIKE ${pattern} ESCAPE '\\'`))!);
-      }
-      for (const [key, value] of Object.entries(filters)) {
-        conditions.push(value === null ? isNull(columns[key]!) : eq(columns[key]!, value));
-      }
-      const filterWhere = conditions.length ? and(...conditions) : undefined;
+      const searchable = fields.filter(([, def]) => isSearchable(def)).map(([key]) => key);
+      const matching = { search: q ? { term: q, fields: searchable } : undefined, filters };
 
-      const sortColumn = columns[sort.field]!;
       // Reading backwards from a "previous page" cursor means flipping the order and
       // flipping the rows back afterwards.
       const backwards = cursor?.direction === "before";
       const descending = backwards ? sort.direction === "asc" : sort.direction === "desc";
-      const order = descending ? [desc(sortColumn), desc(idColumn)] : [asc(sortColumn), asc(idColumn)];
 
-      const pageConditions = [...conditions];
-      if (cursor) {
-        // (sort, id) as one comparison, so rows sharing a sort value aren't skipped or repeated.
-        // Compared as the column stores it: a date column's driver mapper expects a Date,
-        // and a cursor carries the milliseconds it was read as.
-        const value = cursor.value;
-        pageConditions.push(
-          descending
-            ? or(sql`${sortColumn} < ${value}`, and(sql`${sortColumn} = ${value}`, sql`${idColumn} < ${cursor.id}`))!
-            : or(sql`${sortColumn} > ${value}`, and(sql`${sortColumn} = ${value}`, sql`${idColumn} > ${cursor.id}`))!,
-        );
-      }
-      const where = pageConditions.length ? and(...pageConditions) : undefined;
-
-      const db = getDb();
-      const query = db.select().from(table).where(where).orderBy(...order).limit(perPage + 1);
-      const [found, counted] = await Promise.all([
-        cursor ? query : query.offset((page - 1) * perPage),
+      const [found, counting] = await Promise.all([
         // One row past the limit is enough to know there's more without counting it all.
-        db
-          .select({ total: count() })
-          .from(db.select({ id: idColumn }).from(table).where(filterWhere).limit(COUNT_LIMIT + 1).as("capped")),
+        rows.find({
+          ...matching,
+          sort: { field: sort.field, direction: descending ? "desc" : "asc" },
+          cursor: cursor ? { field: sort.field, value: cursor.value, id: cursor.id, greaterThan: !descending } : undefined,
+          limit: perPage + 1,
+          offset: cursor ? undefined : (page - 1) * perPage,
+        }),
+        rows.countUpTo(matching, COUNT_LIMIT + 1),
       ]);
 
       // The extra row only tells us another page exists; it isn't part of this one.
       const hasMore = found.length > perPage;
-      const rows = ((hasMore ? found.slice(0, perPage) : found) as Record<string, unknown>[]).map(withComputed);
-      if (backwards) rows.reverse();
+      const page_ = (hasMore ? found.slice(0, perPage) : found).map(withComputed);
+      if (backwards) page_.reverse();
 
-      const counting = counted[0]?.total ?? 0;
       const exactTotal = counting <= COUNT_LIMIT;
       const total = exactTotal ? counting : COUNT_LIMIT;
 
-      const first = rows[0];
-      const last = rows[rows.length - 1];
+      const first = page_[0];
+      const last = page_[page_.length - 1];
       const moreAfter = backwards ? true : hasMore;
       const moreBefore = backwards ? hasMore : Boolean(cursor) || page > 1;
       const cursorFor = (row: Record<string, unknown> | undefined, direction: "after" | "before") =>
@@ -268,7 +247,7 @@ export function createResourceStore(options: ResourceStoreOptions) {
       return {
         ok: true,
         data: {
-          data: rows,
+          data: page_,
           meta: {
             page,
             perPage,
@@ -283,20 +262,16 @@ export function createResourceStore(options: ResourceStoreOptions) {
     },
 
     async get(id: string): Promise<Result<Record<string, unknown>>> {
-      const [record] = await getDb().select().from(table).where(byId(id)).limit(1);
-      return record ? { ok: true, data: withComputed(record as Record<string, unknown>) } : notFound();
+      const record = await rows.byId(id);
+      return record ? { ok: true, data: withComputed(record) } : notFound();
     },
 
     /** Title-field values for a set of ids (for showing relations). Missing ids are omitted. */
     async titles(ids: string[]): Promise<Record<string, string>> {
       const unique = [...new Set(ids.filter(Boolean))];
       if (unique.length === 0) return {};
-      const titleColumn = columns[resource.titleField] ?? idColumn;
-      const rows = (await getDb().select({ id: idColumn, title: titleColumn }).from(table).where(inArray(idColumn, unique))) as {
-        id: string;
-        title: unknown;
-      }[];
-      return Object.fromEntries(rows.map((row) => [row.id, row.title == null ? row.id : String(row.title)]));
+      const found = await rows.titles(unique, resource.titleField);
+      return Object.fromEntries(found.map((row) => [row.id, row.title == null ? row.id : String(row.title)]));
     },
 
     create(raw: unknown): Promise<Result<Record<string, unknown>>> {
@@ -309,11 +284,8 @@ export function createResourceStore(options: ResourceStoreOptions) {
         if (!result.success) return invalid(result.error.issues);
         const input = result.data as Record<string, unknown>;
         const now = new Date();
-        const [record] = await getDb()
-          .insert(table)
-          .values({ ...input, id: crypto.randomUUID(), createdAt: now, updatedAt: now })
-          .returning();
-        const saved = withComputed(record as Record<string, unknown>);
+        const record = await rows.insert({ ...input, id: crypto.randomUUID(), createdAt: now, updatedAt: now });
+        const saved = withComputed(record);
         await hooks.afterCreate?.(saved, context);
         return { ok: true, data: saved };
       });
@@ -323,19 +295,14 @@ export function createResourceStore(options: ResourceStoreOptions) {
     update(id: string, raw: unknown): Promise<Result<Record<string, unknown>>> {
       return writing("update", async () => {
         const context = await hookContext();
-        const [existing] = hooks.beforeUpdate || hooks.afterUpdate ? await getDb().select().from(table).where(byId(id)).limit(1) : [];
-        const current = (existing as Record<string, unknown> | undefined) ?? null;
+        const current = hooks.beforeUpdate || hooks.afterUpdate ? await rows.byId(id) : null;
         const supplied = hooks.beforeUpdate ? await hooks.beforeUpdate({ ...((raw ?? {}) as object) }, { ...context, id, current }) : raw;
         const result = validators.update.safeParse(supplied);
         if (!result.success) return invalid(result.error.issues);
         const input = result.data as Record<string, unknown>;
-        const [record] = await getDb()
-          .update(table)
-          .set({ ...input, updatedAt: new Date() })
-          .where(byId(id))
-          .returning();
+        const record = await rows.update(id, { ...input, updatedAt: new Date() });
         if (!record) return notFound();
-        const saved = withComputed(record as Record<string, unknown>);
+        const saved = withComputed(record);
         await hooks.afterUpdate?.(saved, { ...context, previous: current });
         return { ok: true, data: saved };
       });
@@ -346,13 +313,13 @@ export function createResourceStore(options: ResourceStoreOptions) {
       const result = validators.create.safeParse(input);
       if (!result.success) return Promise.resolve(invalid(result.error.issues));
       return writing("update", async () => {
-        const values: Record<string, unknown> = {};
+        const values: Row = {};
         for (const [key, def] of fields) {
           values[key] = "default" in def && def.default !== undefined ? def.default : def.required ? undefined : null;
         }
         Object.assign(values, result.data, { updatedAt: new Date() });
-        const [record] = await getDb().update(table).set(values).where(byId(id)).returning();
-        return record ? { ok: true, data: withComputed(record as Record<string, unknown>) } : notFound();
+        const record = await rows.update(id, values);
+        return record ? { ok: true, data: withComputed(record) } : notFound();
       });
     },
 
@@ -360,11 +327,9 @@ export function createResourceStore(options: ResourceStoreOptions) {
       return writing("delete", async () => {
         const context = await hookContext();
         if (hooks.beforeDelete) {
-          const [existing] = await getDb().select().from(table).where(byId(id)).limit(1);
-          await hooks.beforeDelete({ ...context, id, current: (existing as Record<string, unknown> | undefined) ?? null });
+          await hooks.beforeDelete({ ...context, id, current: await rows.byId(id) });
         }
-        const deleted = await getDb().delete(table).where(byId(id)).returning({ id: idColumn });
-        if (deleted.length === 0) return notFound();
+        if (!(await rows.remove(id))) return notFound();
         await hooks.afterDelete?.({ ...context, id });
         return { ok: true, data: { id } };
       });

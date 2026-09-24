@@ -61,6 +61,30 @@
       "skillPath": "skills/productivity/grilling/SKILL.md",
       "computedHash": "4fa026e5979770347b3357ff5139e1e41d21c3a9f7335e9cd2811cb5b8d32f2f"
     },
+    "neon-postgres": {
+      "source": "neondatabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/neon-postgres/SKILL.md",
+      "computedHash": "2e367b4b436500b7d28aba2b4318b1a2a4f7bacd94f1c045ba62751b95b578fe"
+    },
+    "nextjs-app-router-patterns": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/frontend-mobile-development/skills/nextjs-app-router-patterns/SKILL.md",
+      "computedHash": "3a46e9093baecb3a85819529ce05006f817663f48d9e872868c32ae6049c0d5c"
+    },
+    "prisma-cli": {
+      "source": "prisma/skills",
+      "sourceType": "github",
+      "skillPath": "prisma-cli/SKILL.md",
+      "computedHash": "b92e55aef78f6796d81433c44738a6733211a04c16e65cbad6d42c5f71092aab"
+    },
+    "prisma-upgrade-v7": {
+      "source": "prisma/skills",
+      "sourceType": "github",
+      "skillPath": "prisma-upgrade-v7/SKILL.md",
+      "computedHash": "dcc6c71adca6b22f37c5bda5ac7fd63c3bb59495596a22e06a29c7c85371558f"
+    },
     "resend": {
       "source": "resend/resend-skills",
       "sourceType": "github",
@@ -78,6 +102,12 @@
       "sourceType": "github",
       "skillPath": "skills/stripe-best-practices/SKILL.md",
       "computedHash": "9f8517d4decfaffc88d78cf297403735651409b30aa4ec7b7766dad5b6bf3a0e"
+    },
+    "upstash-redis-js": {
+      "source": "upstash/skills",
+      "sourceType": "github",
+      "skillPath": "skills/upstash-redis-js/SKILL.md",
+      "computedHash": "907c7482c24b253174de2d1c1599901e7984caa3696c38e6eb927c059a6fa0f0"
     },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",
