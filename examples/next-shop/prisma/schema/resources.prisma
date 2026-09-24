@@ -1,0 +1,63 @@
+// Generated from the descriptors in resources/. Edit a descriptor, not this.
+// generated:start hash=888799e62ea0
+model Category {
+  id String @id @default(uuid())
+  name String @unique
+  slug String @unique
+  description String? @db.Text
+  products Product[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([createdAt])
+  @@map("categories")
+}
+
+enum OrderStatus {
+  pending
+  paid
+  shipped
+  refunded
+}
+
+model Order {
+  id String @id @default(uuid())
+  reference String @unique
+  customerEmail String @map("customer_email")
+  status OrderStatus
+  total Float
+  note String? @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([createdAt])
+  @@index([status])
+  @@map("orders")
+}
+
+enum ProductKind {
+  stock
+  digital
+}
+
+model Product {
+  id String @id @default(uuid())
+  name String
+  sku String @unique
+  kind ProductKind
+  price Float
+  stock Int?
+  description String? @db.Text
+  tags String[]
+  categoryId String? @map("category_id")
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  active Boolean
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([categoryId])
+  @@index([createdAt])
+  @@index([kind])
+  @@map("products")
+}
+// generated:end

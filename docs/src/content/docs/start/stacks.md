@@ -87,10 +87,12 @@ and dashboard pages it writes on Cloudflare. What changes is the schema:
   Overwritten every time you run `flare gen resource`.
 
 Migrations are Prisma's: `npx prisma migrate dev` diffs the schema against
-your database and writes the SQL. `flare migrate` is the Cloudflare
-equivalent and doesn't apply here, and neither do `flare dev`, `build`,
-`start` or `deploy` — this app runs `next dev` and deploys with `vercel`.
-The CLI says so if you try.
+your database and writes the SQL. `flare migrate` applies what is already
+written — it runs `prisma migrate deploy` here — which is the one you want
+against a database that matters, because it never invents a migration.
+
+`flare dev`, `build`, `start` and `deploy` don't apply: this app runs
+`next dev` and deploys with `vercel`. The CLI says so if you try.
 
 ## What this stack is missing
 
@@ -103,5 +105,8 @@ Being straight about it:
 - **Traffic analytics in-app.** The observability page reads Cloudflare's
   analytics API on the other stack; here it points you at Vercel's dashboard
   rather than holding a token that can read your whole account.
-- **Seeds.** `flare seed` and `flare seed:resource` are Drizzle-only so far.
-  `prisma db seed` works in the meantime.
+- **`flare seed:resource`.** The one-liner that fills a table from its
+  descriptor writes to D1 through wrangler, so it is Cloudflare-only. Seed
+  files themselves work: `flare seed:make <name> --resource Product` writes
+  one with the rows filled in, and `flare seed` runs it. What it hands you is
+  the app's own Prisma client, plus an `insertMany` over `createMany`.

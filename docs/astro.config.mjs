@@ -79,6 +79,7 @@ export default defineConfig({
           items: [
             { label: "A shop with a till", slug: "tutorials/shop" },
             { label: "A drive", slug: "tutorials/drive" },
+            { label: "A catalogue on Next.js", slug: "tutorials/next-shop" },
           ],
         },
         {
