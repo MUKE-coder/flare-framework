@@ -81,6 +81,8 @@ export const NEXT_DEPENDENCIES = {
 
 export const NEXT_DEV_DEPENDENCIES = {
   prisma: "7.10.0",
+  // Runs seeds: the generated Prisma client is TypeScript a bundler compiles.
+  tsx: "^4.23.13",
   "@types/node": "^22.20.3",
   "@types/react": "^19.3.0",
   "@types/react-dom": "^19.3.0",

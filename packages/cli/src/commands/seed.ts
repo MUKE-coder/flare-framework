@@ -1,13 +1,14 @@
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { createFake, kebabCase, storedFields, type Resource, type StoredField } from "@flaredev/core";
+import { camelCase, createFake, kebabCase, storedFields, type Resource, type StoredField } from "@flaredev/core";
 import { createJiti } from "jiti";
 import pc from "picocolors";
 import { loadResources } from "../generator/load.js";
 import { tableExport } from "../generator/render.js";
 import { createInsertMany, type DrizzleHelpers } from "../seed/insert-many.js";
 import { openLocalD1 } from "../seed/local-d1.js";
-import { findAppRoot } from "./run.js";
+import { readStack, type Stack } from "../stack.js";
+import { findAppRoot, resolveBin, runNode } from "./run.js";
 
 export interface SeedOptions {
   /** Seed names (file stems) to run; default: every seed, in file-name order. */
@@ -42,6 +43,13 @@ export async function runSeeds(options: SeedOptions = {}): Promise<void> {
   const files = seedFiles(appRoot, options.names);
   if (files.length === 0) {
     log(`No seeds found. Create one with ${pc.bold("flare seed:make <name>")}.`);
+    return;
+  }
+
+  // Postgres seeds run in the app itself: its Prisma client is TypeScript a bundler
+  // compiles, which this process can't import.
+  if (readStack(appRoot) === "next") {
+    await runPrismaSeeds(appRoot, files, log);
     return;
   }
 
@@ -109,9 +117,19 @@ function sampleValue(key: string, def: StoredField): string | undefined {
 }
 
 /** Seed source for `flare seed:make`, with example rows for `resource` when there is one. */
-export function renderSeed(resource: Resource | undefined): string {
+export function renderSeed(resource: Resource | undefined, stack: Stack = "cloudflare"): string {
   if (!resource) {
-    return `import { defineSeed } from "@flaredev/core";
+    return stack === "next"
+      ? `import { defineSeed } from "@flaredev/core";
+
+export default defineSeed(async ({ db, insertMany, fake, log }) => {
+  // \`db\` is this app's Prisma client, e.g.:
+  // await db.contact.create({ data: { name: "Ada", email: "ada@example.com" } });
+  // Or many at once: await insertMany("contact", [{ name: fake.fullName() }]);
+  log("nothing to seed yet");
+});
+`
+      : `import { defineSeed } from "@flaredev/core";
 
 export default defineSeed(async ({ db, insertMany, fake, log }) => {
   // Insert rows with Drizzle, e.g.:
@@ -129,6 +147,28 @@ export default defineSeed(async ({ db, insertMany, fake, log }) => {
     if (value !== undefined) lines.push(`    ${key}: ${value},`);
     else if (def.required) todos.push(`    // ${key}: TODO (${def.kind === "belongsTo" ? `id of an existing ${def.target}` : "R2 object key"}),`);
   }
+
+  if (stack === "next") {
+    // Prisma takes rows already built, and wants the timestamp it can't default.
+    const body = [...lines, ...todos].map((line) => `  ${line}`).join("\n");
+    return `import { defineSeed } from "@flaredev/core";
+
+/** How many to create. createMany sends them in one statement. */
+const COUNT = 50;
+
+export default defineSeed(async ({ insertMany, fake, log }) => {
+  await insertMany(
+    ${JSON.stringify(camelCase(resource.name))},
+    Array.from({ length: COUNT }, () => ({
+${body}
+      updatedAt: new Date(),
+    })),
+  );
+  log(\`inserted \${COUNT.toLocaleString()} ${resource.pluralLabel.toLowerCase()}\`);
+});
+`;
+  }
+
   return `import { defineSeed } from "@flaredev/core";
 import { ${table} } from "@/db/schema";
 
@@ -165,8 +205,60 @@ export async function makeSeed(rawName: string, options: { resource?: string; cw
   }
 
   mkdirSync(join(appRoot, SEEDS_DIR), { recursive: true });
-  writeFileSync(path, renderSeed(resource));
+  writeFileSync(path, renderSeed(resource, readStack(appRoot)));
   log(`${pc.green("create".padEnd(9))} ${relative}`);
   log(`\nRun it with ${pc.bold(`flare seed ${name}`)}.`);
   return relative;
+}
+
+/**
+ * Run seeds on the Next.js stack.
+ *
+ * The generated Prisma client is TypeScript that a bundler compiles, so it can't simply
+ * be imported from a CLI process. The app's own `tsx` can, which is also how Prisma runs
+ * its seeds — so the work happens in a short script written into the app, run there, and
+ * deleted afterwards.
+ *
+ * The seed is handed `db` (the app's Prisma client) and an `insertMany` over
+ * `createMany`, so a seed is written the way the rest of the app talks to the database.
+ */
+async function runPrismaSeeds(appRoot: string, files: string[], log: (message: string) => void): Promise<void> {
+  const runner = join(appRoot, ".flare-seed-runner.mts");
+  const script = [
+    `import "dotenv/config";`,
+    `import { createFake } from "@flaredev/core";`,
+    `import { prisma } from "./lib/db";`,
+    ...files.map((file, index) => `import seed${index} from "./${SEEDS_DIR}/${file.replace(/\.ts$/, "")}";`),
+    "",
+    `const files = ${JSON.stringify(files)};`,
+    `const seeds = [${files.map((_, index) => `seed${index}`).join(", ")}];`,
+    `const client = prisma as unknown as Record<string, { createMany(args: { data: unknown[] }): Promise<unknown> }>;`,
+    "",
+    `for (const [index, seed] of seeds.entries()) {`,
+    `  console.log("seed " + files[index]);`,
+    `  await seed({`,
+    `    db: prisma,`,
+    `    env: process.env,`,
+    `    insertMany: async (model: string, rows: Record<string, unknown>[]) => {`,
+    `      const delegate = client[model];`,
+    `      if (!delegate) throw new Error('No Prisma model "' + model + '". Use the camelCase name, e.g. "orderItem".');`,
+    `      await delegate.createMany({ data: rows });`,
+    `    },`,
+    `    fake: createFake(),`,
+    `    log: (message: string) => console.log("  " + message),`,
+    `  });`,
+    `}`,
+    `await (prisma as unknown as { $disconnect(): Promise<void> }).$disconnect();`,
+    "",
+  ].join("\n");
+
+  writeFileSync(runner, script);
+  try {
+    const tsx = resolveBin(appRoot, "tsx", "tsx");
+    const code = await runNode([tsx, runner], appRoot);
+    if (code !== 0) throw new Error("A seed failed; nothing further was run.");
+    log(pc.green(`\nRan ${files.length} seed(s).`));
+  } finally {
+    rmSync(runner, { force: true });
+  }
 }
