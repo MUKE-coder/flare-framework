@@ -84,8 +84,9 @@ describe("genResource", () => {
       "app/dashboard/order-items/[id]/page.tsx",
       "app/dashboard/order-items/new/page.tsx",
       "app/dashboard/order-items/[id]/edit/page.tsx",
-      "db/relations.ts",
+      // The descriptor registry is shared by both stacks; the schema files are not.
       "resources/index.ts",
+      "db/relations.ts",
       "resources/server.ts",
       "db/schema.ts",
     ]);

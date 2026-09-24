@@ -29,6 +29,7 @@ import { loadPolicies, policyPath, renderPolicy } from "../generator/policy.js";
 import { writeJson } from "../utils/fs.js";
 import { detectPackageManager, run } from "../utils/pm.js";
 import { findAppRoot } from "./run.js";
+import { readStack } from "../stack.js";
 
 export interface GenBillingOptions {
   provider?: string;
@@ -171,7 +172,7 @@ export async function genBilling(options: GenBillingOptions = {}): Promise<{ fil
 
   const all = await loadResources(appRoot);
   ensureSupportFiles(appRoot, log);
-  logResults(applyPlan(appRoot, planFiles(all, await loadPolicies(appRoot)), { force: options.force }), log);
+  logResults(applyPlan(appRoot, planFiles(all, await loadPolicies(appRoot), readStack(appRoot)), { force: options.force }), log);
 
   let migrations: string[] = [];
   if (!options.skipMigration) {

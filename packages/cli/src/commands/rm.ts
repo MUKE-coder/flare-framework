@@ -10,6 +10,7 @@ import { applyPlan, findOrphans, logResults, planFiles, resourceHeader } from ".
 import { loadPolicies, renderPolicy } from "../generator/policy.js";
 import { tableExport } from "../generator/render.js";
 import { findAppRoot } from "./run.js";
+import { readStack } from "../stack.js";
 
 export interface RmResourceOptions {
   cwd?: string;
@@ -81,7 +82,7 @@ export async function rmResource(rawName: string, options: RmResourceOptions = {
   const owned = new Set<string>();
   if (entry) {
     owned.add(entry.file);
-    for (const file of planFiles(all)) {
+    for (const file of planFiles(all, undefined, readStack(appRoot))) {
       if (existsSync(join(appRoot, file.path)) && file.header === resourceHeader(name)) owned.add(file.path);
     }
   }
@@ -118,7 +119,7 @@ export async function rmResource(rawName: string, options: RmResourceOptions = {
     log(`${pc.red("remove".padEnd(9))} ${path}`);
   }
 
-  logResults(applyPlan(appRoot, planFiles(remaining, policy ? await loadPolicies(appRoot) : undefined)), log);
+  logResults(applyPlan(appRoot, planFiles(remaining, policy ? await loadPolicies(appRoot) : undefined, readStack(appRoot))), log);
 
   const table = entry ? tableExport(entry.resource) : undefined;
   if (table && existsSync(join(appRoot, "seeds"))) {

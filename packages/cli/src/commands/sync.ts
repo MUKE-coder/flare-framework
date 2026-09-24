@@ -5,6 +5,7 @@ import { loadResources } from "../generator/load.js";
 import { loadPolicies } from "../generator/policy.js";
 import { applyPlan, ensureSupportFiles, findOrphans, logResults, planFiles } from "../generator/plan.js";
 import { findAppRoot } from "./run.js";
+import { readStack } from "../stack.js";
 
 export interface SyncOptions {
   cwd?: string;
@@ -27,7 +28,7 @@ export async function syncTypes(options: SyncOptions = {}): Promise<number> {
   // The policy registry is only ours to maintain once the app has policies (or a registry from an earlier one).
   const policies = await loadPolicies(appRoot);
   const tracksPolicies = policies.length > 0 || existsSync(join(appRoot, "policies/index.ts"));
-  const plan = planFiles(all, tracksPolicies ? policies : undefined);
+  const plan = planFiles(all, tracksPolicies ? policies : undefined, readStack(appRoot));
 
   if (!options.check) ensureSupportFiles(appRoot, log);
   const results = applyPlan(appRoot, plan, { force: options.force, dryRun: options.check });

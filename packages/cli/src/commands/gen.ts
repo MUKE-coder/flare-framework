@@ -9,6 +9,7 @@ import { DriftError, writeGenerated } from "../generator/markers.js";
 import { generateSchemaMigration } from "../generator/migrations.js";
 import { applyPlan, ensureSupportFiles, logResults, planFiles, type FileResult } from "../generator/plan.js";
 import { findAppRoot } from "./run.js";
+import { readStack } from "../stack.js";
 
 export interface GenResourceOptions {
   /** Sidebar heading this resource sits under, e.g. "Sales". */
@@ -101,7 +102,7 @@ export async function genResource(rawName: string, options: GenResourceOptions):
     const all = await loadResources(appRoot);
     table = all.find(({ resource }) => resource.name === name)!.resource.table;
     ensureSupportFiles(appRoot, log);
-    written = applyPlan(appRoot, planFiles(all), { force: options.force });
+    written = applyPlan(appRoot, planFiles(all, undefined, readStack(appRoot)), { force: options.force });
     logResults(written, log);
   } catch (error) {
     const hint = exists ? "" : `\n(${relativePath} was written; fix it and run \`flare sync-types\`.)`;

@@ -20,6 +20,7 @@ import {
   securityHeader,
 } from "../generator/security.js";
 import { findAppRoot } from "./run.js";
+import { readStack } from "../stack.js";
 
 export interface GenSecurityOptions {
   cwd?: string;
@@ -105,7 +106,7 @@ export async function genSecurity(options: GenSecurityOptions = {}): Promise<{ f
 
   const all = await loadResources(appRoot);
   ensureSupportFiles(appRoot, log);
-  logResults(applyPlan(appRoot, planFiles(all, await loadPolicies(appRoot)), { force: options.force }), log);
+  logResults(applyPlan(appRoot, planFiles(all, await loadPolicies(appRoot), readStack(appRoot)), { force: options.force }), log);
 
   let migrations: string[] = [];
   if (!options.skipMigration) {

@@ -1,4 +1,5 @@
 import { camelCase, columnName, relationGraph, storedFields, type Resource, type StoredField } from "@flaredev/core";
+import type { Stack } from "../stack.js";
 import type { LoadedResource } from "./load.js";
 
 /** Import name of a descriptor: "order-item" → "orderItemResource" (suffixed so it can never collide with a table export). */
@@ -347,11 +348,37 @@ export function renderServerRegistry(all: LoadedResource[]): string {
   ].join("\n");
 }
 
+/**
+ * `resources/server.ts` for the Next.js stack: the descriptor and its Prisma delegate.
+ *
+ * The Cloudflare version pairs a resource with a Drizzle table; this one pairs it with
+ * `prisma.product` and friends, which is what `prismaRows` needs.
+ */
+export function renderPrismaServerRegistry(all: LoadedResource[]): string {
+  if (all.length === 0) return "export const resourceTables = {} as const;\n";
+  const sorted = [...all].sort((a, b) => a.resource.name.localeCompare(b.resource.name));
+  return [
+    `import { prisma } from "@/lib/db";`,
+    `import { ${sorted.map(({ stem }) => resourceLocal(stem)).join(", ")} } from "./index";`,
+    "",
+    "export const resourceTables = {",
+    ...sorted.map(
+      ({ resource, stem }) => `  ${resource.name}: { resource: ${resourceLocal(stem)}, delegate: prisma.${camelCase(resource.name)} },`,
+    ),
+    "} as const;",
+    "",
+    "export type ResourceName = keyof typeof resourceTables;",
+    "",
+  ].join("\n");
+}
+
 /** Every file a resource owns, relative to the app root, with its rendered block. */
-export function resourceFiles(entry: LoadedResource, all: LoadedResource[]): { path: string; content: string }[] {
+export function resourceFiles(entry: LoadedResource, all: LoadedResource[], stack: Stack = "cloudflare"): { path: string; content: string }[] {
   const { resource, stem } = entry;
   return [
-    { path: `db/schema/${resource.table}.ts`, content: renderTableModule(entry, all) },
+    // The schema is the one file that belongs to a stack. On Next.js every model lives
+    // in one prisma/schema.prisma, written by planFiles rather than per resource.
+    ...(stack === "cloudflare" ? [{ path: `db/schema/${resource.table}.ts`, content: renderTableModule(entry, all) }] : []),
     { path: `app/api/${resource.slug}/route.ts`, content: renderCollectionRoute(entry) },
     { path: `app/api/${resource.slug}/[id]/route.ts`, content: renderItemRoute(entry) },
     { path: `resources/${stem}.client.ts`, content: renderClient(entry) },

@@ -8,6 +8,7 @@ import { DriftError, writeGenerated } from "../generator/markers.js";
 import { applyPlan, logResults, planFiles } from "../generator/plan.js";
 import { loadPolicies, policyPath, renderPolicy, renderPolicyBlock } from "../generator/policy.js";
 import { findAppRoot } from "./run.js";
+import { readStack } from "../stack.js";
 
 export interface GenPolicyOptions {
   /** Comma-separated roles, e.g. "admin,staff". */
@@ -79,7 +80,7 @@ export async function genPolicy(rawName: string, options: GenPolicyOptions): Pro
 
   // Refresh the policy registry the app reads at runtime.
   const policies = await loadPolicies(appRoot);
-  logResults(applyPlan(appRoot, planFiles(resources, policies)), log);
+  logResults(applyPlan(appRoot, planFiles(resources, policies, readStack(appRoot))), log);
   log(`\n${pc.dim("Roles come from `flare role:add`; the API and the admin both enforce this policy.")}`);
   return { name, path: relative };
 }
