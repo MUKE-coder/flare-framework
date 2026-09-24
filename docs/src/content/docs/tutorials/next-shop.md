@@ -150,7 +150,8 @@ export default defineSeed(async ({ db, insertMany, fake, log }) => {
       { name: "Materials", slug: "materials", description: "Timber, steel, canvas.", updatedAt: new Date() },
     ],
   });
-  const categories = await db.category.findMany();
+  // Annotated because `db` is untyped, and fake.pick infers its element type from it.
+  const categories: { id: string }[] = await db.category.findMany();
 
   await insertMany(
     "product",

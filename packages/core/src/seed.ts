@@ -24,7 +24,11 @@ export type InsertMany = <T extends object>(
 ) => Promise<number>;
 
 export interface SeedContext {
-  /** Drizzle client over the app's schema, bound to the local D1 database. */
+  /**
+   * The app's database client: Drizzle over the local D1 database on Cloudflare, the
+   * app's own Prisma client on Next.js. Untyped, because which one it is depends on
+   * the stack and both are generated per app.
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   db: any;
   /** All local bindings and variables (D1, R2, .dev.vars). */

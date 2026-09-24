@@ -9,18 +9,15 @@ import { defineSeed } from "@flaredev/core";
  * the measurements.
  */
 export default defineSeed(async ({ db, insertMany, fake, log }) => {
-  const prisma = db as unknown as {
-    category: { createMany(args: { data: unknown[] }): Promise<unknown>; findMany(): Promise<{ id: string }[]> };
-  };
-
-  await prisma.category.createMany({
+  await db.category.createMany({
     data: [
       { name: "Workshop", slug: "workshop", description: "Tools and things for a desk.", updatedAt: new Date() },
       { name: "Downloads", slug: "downloads", description: "Licences, kits and source code.", updatedAt: new Date() },
       { name: "Materials", slug: "materials", description: "Timber, steel, canvas.", updatedAt: new Date() },
     ],
   });
-  const categories = await prisma.category.findMany();
+  // Annotated because `db` is untyped, and fake.pick infers its element type from it.
+  const categories: { id: string }[] = await db.category.findMany();
 
   await insertMany(
     "product",
