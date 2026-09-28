@@ -236,6 +236,64 @@ const adminImports = (entry: LoadedResource) => [
   `import ${resourceLocal(entry.stem)} from "@/resources/${entry.stem}.resource";`,
 ];
 
+/**
+ * The `loading.tsx` beside each dashboard page.
+ *
+ * Next and vinext both render these while the page's own data is awaited, so what
+ * they draw should be the page's layout rather than a spinner — the content lands in
+ * place instead of replacing something that was moving.
+ *
+ * Generated per resource so the column and field counts match this resource's table
+ * and form, which a shared component couldn't know.
+ */
+export function renderAdminListLoading(entry: LoadedResource): string {
+  // The table shows a column per stored field, plus the row's actions, and stops
+  // being worth mimicking past a handful.
+  const columns = Math.min(6, storedFields(entry.resource).length + 1);
+  return [
+    `import { ResourceListSkeleton } from "@/components/dashboard/skeletons";`,
+    "",
+    `export default function Loading() {`,
+    `  return <ResourceListSkeleton columns={${columns}} />;`,
+    "}",
+    "",
+  ].join("\n");
+}
+
+export function renderAdminFormLoading(entry: LoadedResource): string {
+  const fields = Math.min(8, Math.max(1, storedFields(entry.resource).length));
+  return [
+    `import { FormSkeleton, PageHeaderSkeleton } from "@/components/dashboard/skeletons";`,
+    "",
+    `export default function Loading() {`,
+    "  return (",
+    "    <>",
+    "      <PageHeaderSkeleton actions={0} />",
+    `      <FormSkeleton fields={${fields}} />`,
+    "    </>",
+    "  );",
+    "}",
+    "",
+  ].join("\n");
+}
+
+export function renderAdminDetailLoading(entry: LoadedResource): string {
+  const rows = Math.min(10, Math.max(1, storedFields(entry.resource).length));
+  return [
+    `import { DetailSkeleton, PageHeaderSkeleton } from "@/components/dashboard/skeletons";`,
+    "",
+    `export default function Loading() {`,
+    "  return (",
+    "    <>",
+    "      <PageHeaderSkeleton />",
+    `      <DetailSkeleton rows={${rows}} />`,
+    "    </>",
+    "  );",
+    "}",
+    "",
+  ].join("\n");
+}
+
 /** `app/dashboard/<slug>/page.tsx`: the list view. */
 export function renderAdminListPage(entry: LoadedResource): string {
   const local = resourceLocal(entry.stem);
@@ -406,5 +464,9 @@ export function resourceFiles(entry: LoadedResource, all: LoadedResource[], stac
     { path: `app/dashboard/${resource.slug}/[id]/page.tsx`, content: renderAdminDetailPage(entry) },
     { path: `app/dashboard/${resource.slug}/new/page.tsx`, content: renderAdminNewPage(entry) },
     { path: `app/dashboard/${resource.slug}/[id]/edit/page.tsx`, content: renderAdminEditPage(entry) },
+    { path: `app/dashboard/${resource.slug}/loading.tsx`, content: renderAdminListLoading(entry) },
+    { path: `app/dashboard/${resource.slug}/new/loading.tsx`, content: renderAdminFormLoading(entry) },
+    { path: `app/dashboard/${resource.slug}/[id]/loading.tsx`, content: renderAdminDetailLoading(entry) },
+    { path: `app/dashboard/${resource.slug}/[id]/edit/loading.tsx`, content: renderAdminFormLoading(entry) },
   ];
 }

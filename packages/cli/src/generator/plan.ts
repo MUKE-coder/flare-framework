@@ -123,7 +123,11 @@ export function findOrphans(appRoot: string, all: LoadedResource[]): { path: str
     for (const file of [`${dir}/route.ts`, `${dir}/[id]/route.ts`]) if (existsSync(join(appRoot, file))) candidates.push(file);
   }
   for (const dir of list("app/dashboard", () => true)) {
-    for (const file of [`${dir}/page.tsx`, `${dir}/new/page.tsx`, `${dir}/[id]/page.tsx`, `${dir}/[id]/edit/page.tsx`]) {
+    // Every file `resourceFiles` writes under app/dashboard, so a resource whose
+    // descriptor is already gone leaves nothing behind — its skeletons included.
+    const pages = [`${dir}/page.tsx`, `${dir}/new/page.tsx`, `${dir}/[id]/page.tsx`, `${dir}/[id]/edit/page.tsx`];
+    const skeletons = [`${dir}/loading.tsx`, `${dir}/new/loading.tsx`, `${dir}/[id]/loading.tsx`, `${dir}/[id]/edit/loading.tsx`];
+    for (const file of [...pages, ...skeletons]) {
       if (existsSync(join(appRoot, file))) candidates.push(file);
     }
   }

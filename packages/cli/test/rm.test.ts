@@ -31,6 +31,10 @@ const TAG_FILES = [
   "app/dashboard/tags/[id]/page.tsx",
   "app/dashboard/tags/new/page.tsx",
   "app/dashboard/tags/[id]/edit/page.tsx",
+  "app/dashboard/tags/loading.tsx",
+  "app/dashboard/tags/new/loading.tsx",
+  "app/dashboard/tags/[id]/loading.tsx",
+  "app/dashboard/tags/[id]/edit/loading.tsx",
 ];
 
 const read = (root: string, path: string) => readFileSync(join(root, path), "utf8");
