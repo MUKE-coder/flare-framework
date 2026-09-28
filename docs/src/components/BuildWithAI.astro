@@ -1,0 +1,163 @@
+---
+/**
+ * "Build with AI" — copies a brief that teaches a coding agent to use Flare.
+ *
+ * The prompt is a real file (src/prompts/build-with-ai.md) rather than a string in
+ * here, because it is long, it is documentation in its own right, and it should be
+ * reviewed in a diff like any other page.
+ *
+ * `variant="page"` is the compact strip that sits under every docs page;
+ * `variant="hero"` is the larger card for the landing page.
+ */
+import prompt from "../prompts/build-with-ai.md?raw";
+
+interface Props {
+  variant?: "page" | "hero";
+}
+const { variant = "page" }: Props = Astro.props;
+---
+
+<aside class:list={["fl-ai", variant]} data-prompt={prompt}>
+  <div class="fl-ai-text">
+    <p class="fl-ai-label">Build with AI</p>
+    <p class="fl-ai-body">
+      {
+        variant === "hero"
+          ? "Copy a brief that teaches your coding agent how Flare works — both stacks, the CLI, the field grammar, the rules and what not to do. Paste it in, describe your app, and let it build."
+          : "Copy a brief for your coding agent: the stacks, the CLI, the rules and the traps."
+      }
+    </p>
+  </div>
+  <button type="button" class="fl-ai-button" data-copy>
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </svg>
+    <span data-label>Copy prompt</span>
+  </button>
+</aside>
+
+<script>
+  // One listener for however many of these are on the page.
+  document.addEventListener("click", async (event) => {
+    const button = (event.target as HTMLElement | null)?.closest<HTMLButtonElement>("[data-copy]");
+    const host = button?.closest<HTMLElement>(".fl-ai");
+    if (!button || !host) return;
+
+    const label = button.querySelector<HTMLElement>("[data-label]");
+    const text = host.dataset.prompt ?? "";
+    const say = (message: string) => {
+      if (label) label.textContent = message;
+      button.classList.toggle("copied", message !== "Copy prompt");
+      window.setTimeout(() => {
+        if (label) label.textContent = "Copy prompt";
+        button.classList.remove("copied");
+      }, 2200);
+    };
+
+    try {
+      await navigator.clipboard.writeText(text);
+      say("Copied");
+    } catch {
+      // Clipboard access needs a secure context and a permission the page may not
+      // have. Selecting the text is worse than copying it and better than nothing.
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.setAttribute("readonly", "");
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.append(area);
+      area.select();
+      const ok = document.execCommand?.("copy");
+      area.remove();
+      say(ok ? "Copied" : "Press Ctrl+C");
+    }
+  });
+</script>
+
+<style>
+  .fl-ai {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    border: 1px dashed var(--fl-rule-strong, var(--sl-color-hairline));
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    background: var(--fl-ember-soft, rgba(255, 107, 53, 0.08));
+  }
+
+  .fl-ai.page {
+    margin-top: 3rem;
+  }
+
+  .fl-ai.hero {
+    padding: 1.5rem;
+    gap: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .fl-ai-text {
+    flex: 1 1 18rem;
+    min-width: 0;
+  }
+
+  .fl-ai-label {
+    font-family: var(--sl-font-mono, ui-monospace, monospace);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fl-ember, var(--sl-color-text-accent));
+    margin: 0 0 0.35rem;
+  }
+
+  .fl-ai-body {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--sl-color-gray-2);
+  }
+
+  .fl-ai.hero .fl-ai-body {
+    font-size: 1rem;
+  }
+
+  .fl-ai-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    border: 1px solid var(--fl-ember, var(--sl-color-text-accent));
+    border-radius: 8px;
+    padding: 0.5rem 0.9rem;
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--fl-on-ember, var(--sl-color-black));
+    background: var(--fl-ember, var(--sl-color-text-accent));
+    cursor: pointer;
+    transition: filter 0.15s ease;
+  }
+
+  .fl-ai-button:hover {
+    filter: brightness(1.08);
+  }
+
+  .fl-ai-button:focus-visible {
+    outline: 2px solid var(--sl-color-text-accent);
+    outline-offset: 3px;
+  }
+
+  .fl-ai-button.copied {
+    filter: none;
+    background: transparent;
+    color: var(--fl-ember, var(--sl-color-text-accent));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fl-ai-button {
+      transition: none;
+    }
+  }
+</style>

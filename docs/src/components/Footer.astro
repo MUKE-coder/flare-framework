@@ -1,0 +1,17 @@
+---
+/**
+ * Starlight's footer, with the "Build with AI" strip above it.
+ *
+ * Overriding the footer is what puts the CTA on every docs page without touching a
+ * single Markdown file. The landing page renders its own, larger one, so this skips
+ * the splash template to avoid showing it twice.
+ */
+import Default from "@astrojs/starlight/components/Footer.astro";
+import BuildWithAI from "./BuildWithAI.astro";
+
+const { entry } = Astro.locals.starlightRoute;
+const isSplash = entry.data.template === "splash";
+---
+
+{!isSplash && <BuildWithAI />}
+<Default><slot /></Default>
