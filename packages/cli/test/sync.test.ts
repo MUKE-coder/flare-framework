@@ -54,7 +54,8 @@ describe("flare sync-types", () => {
   it("leaves hand-edited generated blocks alone and reports drift, unless --force", async () => {
     const root = await app();
     const route = "app/api/contacts/route.ts";
-    const edited = read(root, route).replace("export const POST = handlers.collection.POST;", "export const POST = undefined; // disabled by hand");
+    // Any hand edit inside the generated block will do; this one disables the route.
+    const edited = read(root, route).replace("const denied = await authorize", "const denied = undefined; void authorize");
     writeFileSync(join(root, route), edited);
 
     const run = await sync(root);
@@ -64,7 +65,7 @@ describe("flare sync-types", () => {
     expect(read(root, route)).toBe(edited);
 
     expect((await sync(root, { force: true })).code).toBe(0);
-    expect(read(root, route)).toContain("export const POST = handlers.collection.POST;");
+    expect(read(root, route)).toContain("const denied = await authorize");
   });
 
   it("preserves hand-written code outside generated blocks", async () => {

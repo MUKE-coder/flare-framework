@@ -86,11 +86,16 @@ export const contacts = sqliteTable(
 });
 
 describe("route, client, and registry rendering", () => {
-  it("renders thin route handlers with plain named exports", () => {
+  it("exports one async function per HTTP method", () => {
     const collection = renderCollectionRoute(contact);
     expect(collection).toContain('import contactResource from "@/resources/contact.resource";');
-    expect(collection).toMatch(/export const GET = handlers\.collection\.GET;\nexport const POST = handlers\.collection\.POST;/);
-    expect(renderItemRoute(contact)).toMatch(/export const (GET|PATCH|PUT|DELETE) = handlers\.item\.\1;/g);
+    for (const method of ["GET", "POST"]) {
+      expect(collection, method).toContain(`export async function ${method}(request: Request)`);
+    }
+    const item = renderItemRoute(contact);
+    for (const method of ["GET", "PATCH", "PUT", "DELETE"]) {
+      expect(item, method).toContain(`export async function ${method}(request: Request, context: RouteContext)`);
+    }
   });
 
   it("takes the engine from the app, never from node_modules", () => {
@@ -101,6 +106,45 @@ describe("route, client, and registry rendering", () => {
       expect(route).not.toContain("@flaredev/core");
       expect(route).toContain('from "@/lib/resource"');
     }
+  });
+
+  it("writes out what a request goes through, rather than delegating", () => {
+    // The point of inlining: someone reading route.ts sees the policy check, the CSRF
+    // guard, the JSON read and the store call, in that order, without opening a second
+    // file. If this ever collapses back to `handlers.collection.GET`, that is lost.
+    const collection = renderCollectionRoute(contact);
+    expect(collection).toContain("export async function GET(request: Request)");
+    expect(collection).toContain("export async function POST(request: Request)");
+    expect(collection).not.toContain("handlers.collection");
+
+    const order = ["action: \"create\"", "crossOrigin(request)", "readJson(request)", "store.create(", "drain(request)"];
+    let at = -1;
+    for (const step of order) {
+      const next = collection.indexOf(step);
+      expect(next, step).toBeGreaterThan(at);
+      at = next;
+    }
+  });
+
+  it("drains the body in a finally, so an early return can't strand it", () => {
+    // An unread body breaks the *next* request through wrangler's dev proxy, and the
+    // early returns above it are exactly the paths that would leave one unread.
+    for (const route of [renderCollectionRoute(contact), renderItemRoute(contact)]) {
+      const blocks = route.split("} finally {").slice(1);
+      expect(blocks.length).toBeGreaterThan(0);
+      for (const block of blocks) expect(block.slice(0, block.indexOf("}"))).toContain("await drain(request);");
+    }
+  });
+
+  it("gives every write the cross-origin guard", () => {
+    const item = renderItemRoute(contact);
+    for (const method of ["PATCH", "PUT", "DELETE"]) {
+      const body = item.slice(item.indexOf(`export async function ${method}`));
+      expect(body.slice(0, body.indexOf("} finally")), method).toContain("crossOrigin(request)");
+    }
+    // A read is not a write, and blocking it would break ordinary cross-site GETs.
+    const read = item.slice(item.indexOf("export async function GET"), item.indexOf("export async function PATCH"));
+    expect(read).not.toContain("crossOrigin");
   });
 
   it("names the row adapter at the call site, per stack", () => {

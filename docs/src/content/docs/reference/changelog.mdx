@@ -21,6 +21,27 @@ npx flare --version                 # what this app is on
 pnpm add -D @flaredev/cli@latest    # upgrade it
 ```
 
+<Release version="0.7.0" date="28 September 2026">
+
+**Routes say what they do.**
+
+0.6.0 moved the engine into your app, but a generated route still read as
+eighteen lines of wiring — `createResourceHandlers({ ... })`, then four
+exports. The code was yours and you still had to be told where it was.
+
+A route now contains its own handlers. Each shows the policy check, the
+cross-origin guard, the JSON read, the store call and the response it builds,
+in the order they happen. Nothing is repeated between them: the guards are
+named functions in `lib/resource/http.ts`, so the CSRF check, the
+content-type check and the body drain that stops an early return breaking the
+*next* request through wrangler's dev proxy all still live in one place.
+
+`createResourceHandlers` is still there and still works. Routes generated
+before this release keep running; regenerate one with
+`flare gen resource <Name> --force` to get the longer form, or leave them.
+
+</Release>
+
 <Release version="0.6.2" date="28 September 2026">
 
 **The Prisma engines download could fail, and took the install with it.**

@@ -147,7 +147,7 @@ export function ensureSupportFiles(appRoot: string, log: (message: string) => vo
   // The engine a generated route imports. An app made before it moved out of the
   // package doesn't have these, and its next `gen resource` would write routes
   // importing a folder that isn't there — so they are installed on demand.
-  const engine = ["rows.ts", "query.ts", "store.ts", "handlers.ts", "index.ts", stack === "next" ? "prisma-rows.ts" : "drizzle-rows.ts"].map(
+  const engine = ["rows.ts", "query.ts", "http.ts", "store.ts", "handlers.ts", "index.ts", stack === "next" ? "prisma-rows.ts" : "drizzle-rows.ts"].map(
     (name) => `lib/resource/${name}`,
   );
 

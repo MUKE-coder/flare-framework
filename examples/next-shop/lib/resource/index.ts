@@ -8,6 +8,7 @@
 // which is the whole contract — about fifty lines in rows.ts, and the reason a
 // descriptor doesn't care which database it is on.
 export * from "./rows";
+export * from "./http";
 export * from "./query";
 export * from "./store";
 export * from "./handlers";

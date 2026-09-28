@@ -182,35 +182,33 @@ export function renderRelations(all: LoadedResource[]): string {
  * database on Cloudflare, a Prisma delegate on Next.js. The handlers, the authorization
  * and the cache invalidation are the same either way.
  */
-const handlerImports = (entry: LoadedResource, stack: Stack = "cloudflare") => {
+/**
+ * The wiring every route of a resource shares: the store, and where its rows come from.
+ *
+ * The adapter is named rather than implied — it is the one thing about these routes
+ * that differs between stacks, so it is written out where you can see it.
+ */
+const routeHeader = (entry: LoadedResource, stack: Stack) => {
   const local = resourceLocal(entry.stem);
   const source =
     stack === "next"
-      ? {
-          imports: [`import { createResourceHandlers, prismaRows } from "@/lib/resource";`, `import { prisma } from "@/lib/db";`],
-          wiring: [`  rows: prismaRows(prisma.${camelCase(entry.resource.name)}, prisma),`],
-        }
+      ? { imports: [`import { prisma } from "@/lib/db";`], rows: `prismaRows(prisma.${camelCase(entry.resource.name)}, prisma)` }
       : {
-          imports: [
-            `import { createResourceHandlers, drizzleRows } from "@/lib/resource";`,
-            `import { getDb } from "@/db";`,
-            `import { ${tableExport(entry.resource)} } from "@/db/schema";`,
-          ],
-          // Named rather than implied: the adapter is the one thing about this route
-          // that differs between stacks, so it is written out.
-          wiring: [`  rows: drizzleRows(${tableExport(entry.resource)}, getDb),`],
+          imports: [`import { getDb } from "@/db";`, `import { ${tableExport(entry.resource)} } from "@/db/schema";`],
+          rows: `drizzleRows(${tableExport(entry.resource)}, getDb)`,
         };
+  const adapter = stack === "next" ? "prismaRows" : "drizzleRows";
 
-  return [
+  return (helpers: string[]) => [
+    `import { createResourceStore, ${[adapter, ...helpers].join(", ")} } from "@/lib/resource";`,
     ...source.imports,
     `import { authorize, currentUser } from "@/lib/api";`,
     `import { revalidateResource } from "@/lib/cache";`,
     `import ${local} from "@/resources/${entry.stem}.resource";`,
     "",
-    `const handlers = createResourceHandlers({`,
+    `const store = createResourceStore({`,
     `  resource: ${local},`,
-    ...source.wiring,
-    `  authorize,`,
+    `  rows: ${source.rows},`,
     `  currentUser,`,
     `  onChange: revalidateResource,`,
     `});`,
@@ -218,22 +216,111 @@ const handlerImports = (entry: LoadedResource, stack: Stack = "cloudflare") => {
   ];
 };
 
-/** `app/api/<slug>/route.ts`: GET list, POST create. */
+/**
+ * `app/api/<slug>/route.ts`: GET list, POST create.
+ *
+ * Written out rather than delegated. Every step a request goes through is here —
+ * the policy check, the CSRF guard, the JSON read, the store call, the response —
+ * because a route that names its behaviour instead of showing it is a route you have
+ * to take on trust.
+ */
 export function renderCollectionRoute(entry: LoadedResource, stack: Stack = "cloudflare"): string {
-  return [...handlerImports(entry, stack), "export const GET = handlers.collection.GET;", "export const POST = handlers.collection.POST;", ""].join(
-    "\n",
-  );
+  const local = resourceLocal(entry.stem);
+  const plural = entry.resource.pluralLabel.toLowerCase();
+  return [
+    ...routeHeader(entry, stack)(["crossOrigin", "drain", "failureResponse", "problem", "readJson", "respond"]),
+    `/** GET /api/${entry.resource.slug} — list ${plural}. Query: page, perPage, sort, q, filter[field], cursor. */`,
+    `export async function GET(request: Request): Promise<Response> {`,
+    `  const denied = await authorize({ request, resource: ${local}, action: "list" });`,
+    `  if (denied) return denied;`,
+    "",
+    `  return respond(await store.list(new URL(request.url).searchParams));`,
+    `}`,
+    "",
+    `/** POST /api/${entry.resource.slug} — create one. */`,
+    `export async function POST(request: Request): Promise<Response> {`,
+    `  try {`,
+    `    const denied = await authorize({ request, resource: ${local}, action: "create" });`,
+    `    if (denied) return denied;`,
+    `    if (crossOrigin(request)) return problem(403, "Cross-origin request blocked.");`,
+    "",
+    `    const read = await readJson(request);`,
+    `    if ("response" in read) return read.response;`,
+    "",
+    `    const result = await store.create(read.body);`,
+    `    if (!result.ok) return failureResponse(result);`,
+    "",
+    "    const location = `" + "${new URL(request.url).pathname.replace(/\\/$/, \"\")}/${result.data.id as string}`;",
+    `    return Response.json(result.data, { status: 201, headers: { location } });`,
+    `  } finally {`,
+    `    // A body left unread breaks the next request through wrangler's dev proxy.`,
+    `    await drain(request);`,
+    `  }`,
+    `}`,
+    "",
+  ].join("\n");
 }
 
 /** `app/api/<slug>/[id]/route.ts`: GET read, PATCH update, PUT replace, DELETE. */
 export function renderItemRoute(entry: LoadedResource, stack: Stack = "cloudflare"): string {
-  return [
-    ...handlerImports(entry, stack),
-    "export const GET = handlers.item.GET;",
-    "export const PATCH = handlers.item.PATCH;",
-    "export const PUT = handlers.item.PUT;",
-    "export const DELETE = handlers.item.DELETE;",
+  const local = resourceLocal(entry.stem);
+  const one = entry.resource.label.toLowerCase();
+  const write = (method: string, action: string, call: string, doc: string) => [
+    `/** ${doc} */`,
+    `export async function ${method}(request: Request, context: RouteContext): Promise<Response> {`,
+    `  try {`,
+    `    const { id } = await context.params;`,
+    `    const denied = await authorize({ request, resource: ${local}, action: "${action}", id });`,
+    `    if (denied) return denied;`,
+    `    if (crossOrigin(request)) return problem(403, "Cross-origin request blocked.");`,
     "",
+    ...call.split("\n"),
+    `  } finally {`,
+    `    await drain(request);`,
+    `  }`,
+    `}`,
+    "",
+  ];
+
+  return [
+    ...routeHeader(entry, stack)(["crossOrigin", "drain", "failureResponse", "problem", "readJson", "respond", "type RouteContext"]),
+    `/** GET /api/${entry.resource.slug}/[id] — read one ${one}. */`,
+    `export async function GET(request: Request, context: RouteContext): Promise<Response> {`,
+    `  const { id } = await context.params;`,
+    `  const denied = await authorize({ request, resource: ${local}, action: "read", id });`,
+    `  if (denied) return denied;`,
+    "",
+    `  return respond(await store.get(id));`,
+    `}`,
+    "",
+    ...write(
+      "PATCH",
+      "update",
+      [
+        `    const read = await readJson(request);`,
+        `    if ("response" in read) return read.response;`,
+        "",
+        `    return respond(await store.update(id, read.body));`,
+      ].join("\n"),
+      `PATCH /api/${entry.resource.slug}/[id] — change some fields of one ${one}.`,
+    ),
+    ...write(
+      "PUT",
+      "update",
+      [
+        `    const read = await readJson(request);`,
+        `    if ("response" in read) return read.response;`,
+        "",
+        `    return respond(await store.replace(id, read.body));`,
+      ].join("\n"),
+      `PUT /api/${entry.resource.slug}/[id] — replace one ${one} entirely.`,
+    ),
+    ...write(
+      "DELETE",
+      "delete",
+      [`    const result = await store.delete(id);`, `    return result.ok ? new Response(null, { status: 204 }) : failureResponse(result);`].join("\n"),
+      `DELETE /api/${entry.resource.slug}/[id] — remove one ${one}.`,
+    ),
   ].join("\n");
 }
 

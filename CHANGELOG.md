@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.7.0
+
+**Routes say what they do.**
+
+0.6.0 moved the engine into your app, but a generated route still read as
+eighteen lines of wiring: `createResourceHandlers({ ... })`, then four
+exports. The code was yours and you still had to be told where it was.
+
+A route now contains its own handlers. Each one shows the policy check, the
+cross-origin guard, the JSON read, the store call and the response it builds,
+in the order they happen:
+
+```ts
+export async function POST(request: Request): Promise<Response> {
+  try {
+    const denied = await authorize({ request, resource: productResource, action: "create" });
+    if (denied) return denied;
+    if (crossOrigin(request)) return problem(403, "Cross-origin request blocked.");
+
+    const read = await readJson(request);
+    if ("response" in read) return read.response;
+
+    const result = await store.create(read.body);
+    if (!result.ok) return failureResponse(result);
+
+    const location = `${new URL(request.url).pathname.replace(/\/$/, "")}/${result.data.id as string}`;
+    return Response.json(result.data, { status: 201, headers: { location } });
+  } finally {
+    await drain(request);
+  }
+}
+```
+
+The guards are named functions in `lib/resource/http.ts` rather than repeated
+per route, so nothing is duplicated and nothing is lost: the CSRF check, the
+content-type check, and the body drain that stops an early return breaking the
+*next* request through wrangler's dev proxy.
+
+`createResourceHandlers` is still there and still works. Routes generated
+before this release keep running; regenerate one to get the longer form.
+
+**Upgrading.** Run `flare gen resource <Name> --force` per resource to rewrite
+its routes, or leave them. `flare update` brings in `lib/resource/http.ts`.
+
 ## 0.6.2
 
 **The Prisma engines download could fail, and took the install with it.**

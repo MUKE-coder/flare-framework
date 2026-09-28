@@ -18,7 +18,8 @@ lib/resource/
   rows.ts          the contract a data source has to meet — about fifty lines
   query.ts         ?page, ?sort, ?q, ?filter[status], ?cursor → a parsed query
   store.ts         validation, hooks, computed values, pagination, error mapping
-  handlers.ts      Request → Response, and the policy check before either
+  http.ts          the guards and the result → Response mapping routes call
+  handlers.ts      the same flow as a factory, if you prefer the short form
   drizzle-rows.ts  rows.ts over Drizzle and D1        (Cloudflare stack)
   prisma-rows.ts   rows.ts over Prisma and Postgres   (Next.js stack)
 ```
@@ -29,28 +30,39 @@ Open it, read it, change it, delete it.
 ## What a route actually is
 
 ```ts title="app/api/products/route.ts"
-import { createResourceHandlers, drizzleRows } from "@/lib/resource";
-import { getDb } from "@/db";
-import { products } from "@/db/schema";
-import { authorize, currentUser } from "@/lib/api";
-import { revalidateResource } from "@/lib/cache";
-import productResource from "@/resources/product.resource";
+export async function GET(request: Request): Promise<Response> {
+  const denied = await authorize({ request, resource: productResource, action: "list" });
+  if (denied) return denied;
 
-const handlers = createResourceHandlers({
-  resource: productResource,
-  rows: drizzleRows(products, getDb),
-  authorize,
-  currentUser,
-  onChange: revalidateResource,
-});
+  return respond(await store.list(new URL(request.url).searchParams));
+}
 
-export const GET = handlers.collection.GET;
-export const POST = handlers.collection.POST;
+export async function POST(request: Request): Promise<Response> {
+  try {
+    const denied = await authorize({ request, resource: productResource, action: "create" });
+    if (denied) return denied;
+    if (crossOrigin(request)) return problem(403, "Cross-origin request blocked.");
+
+    const read = await readJson(request);
+    if ("response" in read) return read.response;
+
+    const result = await store.create(read.body);
+    if (!result.ok) return failureResponse(result);
+
+    const location = `${new URL(request.url).pathname.replace(/\/$/, "")}/${result.data.id as string}`;
+    return Response.json(result.data, { status: 201, headers: { location } });
+  } finally {
+    // A body left unread breaks the next request through wrangler's dev proxy.
+    await drain(request);
+  }
+}
 ```
 
-Six imports, and **every one of them is a file in your repository**. Ctrl-click
-`createResourceHandlers` and you land in `lib/resource/handlers.ts`, not in
-`node_modules`. Ctrl-click `drizzleRows` and you can see the exact SQL
+Every step is there: who may do this, whether the write came from another
+site, how the body is read, what the store returns and what that becomes over
+HTTP. And **every function it calls is a file in your repository** —
+Ctrl-click `crossOrigin` or `respond` and you land in `lib/resource/http.ts`,
+not in `node_modules`. Ctrl-click `drizzleRows` and you can see the exact SQL
 Drizzle is being asked to build.
 
 The row adapter is named rather than implied, which is the one line that
