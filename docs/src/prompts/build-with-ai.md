@@ -90,6 +90,21 @@ category:belongsTo(Category)?, notes:hasMany(Note)
 `domain`, `country`, `color`, `slug`. File categories: `image`, `video`,
 `audio`, `pdf`, `doc`, `sheet`, `archive`, `any`.
 
+## Nothing is hidden — read the code
+
+The engine that runs every endpoint is copied into the app at `lib/resource/`
+(rows, query parsing, the store, the handlers, and one row adapter per
+stack — about 800 lines). It is **not** imported from the framework. When you
+need to know how pagination, validation or an error code works, open the
+file; do not guess and do not call it framework internals.
+
+Change it if it needs changing. `flare diff` shows how the app's copy differs
+from the shipped version, `flare update --yes` takes the upstream one, and
+neither runs unless asked.
+
+`@flaredev/core` holds only the library parts: descriptor and field types,
+validators, the OpenAPI document, formatting helpers, fake data.
+
 ## Rules — these cause real damage when broken
 
 1. **Never edit inside `// generated:start` … `// generated:end`.** It is
@@ -110,7 +125,9 @@ category:belongsTo(Category)?, notes:hasMany(Note)
 6. **Never import a server module into a `"use client"` file** — `@/db`,
    `@/lib/db`, `cloudflare:workers`, or anything reaching them. The build
    fails with a message that points nowhere near the cause.
-7. **Skeletons, not spinners.** Every dashboard route already has a
+7. **Read `lib/resource/` rather than guessing.** It is the app's own code
+   and it is the authority on what a request does.
+8. **Skeletons, not spinners.** Every dashboard route already has a
    `loading.tsx` shaped like its page. Match that pattern.
 
 ## Don't

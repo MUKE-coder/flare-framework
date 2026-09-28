@@ -1,6 +1,6 @@
 ---
 title: Choosing a stack
-description: Flare targets Cloudflare Workers and Next.js on Vercel from the same resource descriptor. What each one is good at.
+description: Cloudflare Workers with D1 and Drizzle, or Next.js on Vercel with Postgres and Prisma — compared side by side, with the same resource built on both.
 ---
 
 Flare's job is to turn a [resource descriptor](/concepts/resource-descriptor/)
@@ -63,6 +63,122 @@ Generated per stack:
 - The schema and migrations — Drizzle/SQLite or Prisma/Postgres
 - The route handlers — Workers or Next.js Route Handlers
 - The database client and the cache adapter
+
+## The same resource, on both
+
+This is the whole difference, in the files one `flare gen resource Product`
+writes. Everything else in the app is the same code.
+
+### The descriptor — identical
+
+```ts title="resources/product.resource.ts"
+export default defineResource({
+  name: "Product",
+  fields: {
+    name: field.string(),
+    sku: field.string({ unique: true }),
+    price: field.float(),
+    category: field.belongsTo("Category", { required: false }),
+  },
+});
+```
+
+### The schema — different language, same shape
+
+```ts title="Cloudflare — db/schema/products.ts"
+export const products = sqliteTable("products", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  sku: text("sku").notNull().unique(),
+  price: real("price").notNull(),
+  categoryId: text("category_id").references(() => categories.id, { onDelete: "set null" }),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+```
+
+```prisma title="Next.js — prisma/schema/resources.prisma"
+model Product {
+  id         String    @id @default(uuid())
+  name       String
+  sku        String    @unique
+  price      Float
+  categoryId String?   @map("category_id")
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@map("products")
+}
+```
+
+### The route — one line apart
+
+```ts title="app/api/products/route.ts"
+import { createResourceHandlers, drizzleRows } from "@/lib/resource";
+// …
+  rows: drizzleRows(products, getDb),          // Cloudflare
+  rows: prismaRows(prisma.product, prisma),    // Next.js
+```
+
+Both call the same `createResourceHandlers` — [which is code in your app](/concepts/no-magic/),
+not in a package. The row adapter is the seam, and it is about 130 lines on
+either side.
+
+### The commands
+
+| | Cloudflare | Next.js |
+| --- | --- | --- |
+| Write a migration | `flare gen migration --from-schema` | `prisma migrate dev` |
+| Apply it | `flare migrate` | `flare migrate` (= `prisma migrate deploy`) |
+| Dev server | `flare dev` | `flare dev` (= `next dev`) |
+| Deploy | `flare deploy` | `flare deploy` (= `vercel deploy --prod`) |
+| Fill a table | `flare seed:resource Product 25k` | `flare seed:make` + `flare seed` |
+
+## Where they genuinely differ
+
+Beyond the table at the top, these are the differences that change what you
+can build.
+
+**The runtime.** Workers is not Node. Most npm packages work; anything using
+Node's filesystem, native modules or long-lived TCP does not. Next.js on
+Vercel runs Node, so everything works.
+
+**CPU per request.** A Worker on the free plan gets 10ms of CPU per
+invocation, and 30 seconds on the paid one — plenty for a query and a render,
+not enough to resize video. Vercel functions run to their configured timeout.
+
+**SQLite versus Postgres.** D1 is real SQL and fine for most applications.
+Postgres gives you extensions, window functions, `tsvector` full-text search
+with ranking, `jsonb` operators and materialised views. If you know you need
+one of those, the choice is made.
+
+**Cold starts.** Workers have effectively none. Neon's free tier suspends an
+idle database, so the first request after a quiet spell waits for it to wake
+— a plan choice, not a code problem.
+
+**Egress.** R2 charges nothing for bandwidth out. For an app that serves
+files, this is often the single biggest line on the bill, which is why both
+stacks use R2 for storage.
+
+**Realtime.** Cloudflare gives every channel a Durable Object — one address,
+its own storage, websockets that stay open. Vercel has no equivalent, so
+`realtimeChannel().publish()` is a no-op on that stack.
+
+## Can I switch later?
+
+Not with a command, and there isn't one planned. What moves without change:
+your descriptors, hooks, computed fields, policies, seeds, every dashboard
+component, and `lib/resource/` itself apart from its row adapter. What
+doesn't: the schema and its migration history, the database client, the cache
+adapter and the deployment.
+
+In practice, moving a small app is an afternoon — regenerate the resources on
+a new app of the other stack and move the data. Moving a large one with a
+year of migrations is not.
+
+The honest advice is to pick for the database. Everything else is either
+shared already or a day's work; a schema with real data in it is neither.
 
 ## Starting a Next.js app
 

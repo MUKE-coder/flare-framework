@@ -70,11 +70,34 @@ npx flare dev
 Then read `references/commands.md` for the rest of the CLI, and
 `references/field-grammar.md` for what can go in `--fields`.
 
+## Nothing is hidden
+
+The code that turns a descriptor into a working endpoint is **copied into the
+app**, not imported from the framework — the same bargain shadcn/ui makes:
+
+```
+lib/resource/
+  rows.ts          the contract a data source implements (~50 lines)
+  query.ts         ?page, ?sort, ?q, ?filter[x], ?cursor -> a parsed query
+  store.ts         validation, hooks, computed values, pagination, error mapping
+  handlers.ts      Request -> Response, and the policy check
+  drizzle-rows.ts  or prisma-rows.ts, depending on the stack
+```
+
+Read it before guessing how something behaves — it is right there, and it is
+the answer. Change it freely; `flare diff` shows how an app's copy differs
+from the shipped version and `flare update --yes` takes the upstream one.
+
+`@flaredev/core` keeps only the library parts: descriptor and field types,
+validators, the OpenAPI document, formatting and fake data.
+
 ## Rules
 
 These are the ones that cause real damage when broken. `references/rules.md`
 has the full set with the reasoning.
 
+0. **Read `lib/resource/` before asking how a request is handled.** It is in
+   the app. Do not describe it as framework internals.
 1. **Never hand-edit inside `// generated:start` / `// generated:end`.** It is
    overwritten on the next `gen resource`. Put your code outside the markers,
    in the same file — that part is preserved.

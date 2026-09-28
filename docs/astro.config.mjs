@@ -47,6 +47,7 @@ export default defineConfig({
         {
           label: "Core concepts",
           items: [
+            { label: "Nothing is hidden", slug: "concepts/no-magic" },
             { label: "The resource descriptor", slug: "concepts/resource-descriptor" },
             { label: "Field type grammar", slug: "concepts/field-grammar" },
             { label: "What `gen resource` emits", slug: "concepts/generated-files" },
@@ -80,6 +81,7 @@ export default defineConfig({
           label: "Stack: Cloudflare Workers",
           collapsed: false,
           items: [
+            { label: "Cloudflare vs Next.js", slug: "start/stacks" },
             { label: "Setting up Cloudflare", slug: "start/cloudflare-setup" },
             { label: "Deploying to Cloudflare", slug: "guides/deployment" },
             { label: "Migrations & seeds (D1)", slug: "guides/migrations-and-seeds" },
@@ -96,6 +98,7 @@ export default defineConfig({
           label: "Stack: Next.js on Vercel",
           collapsed: false,
           items: [
+            { label: "Cloudflare vs Next.js", slug: "start/stacks" },
             { label: "Deploying to Vercel", slug: "guides/vercel-deployment" },
             { label: "Tutorial: a catalogue", slug: "tutorials/next-shop" },
           ],
