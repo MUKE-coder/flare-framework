@@ -83,6 +83,9 @@ export const NEXT_DEV_DEPENDENCIES = {
   prisma: "7.10.0",
   // Runs seeds: the generated Prisma client is TypeScript a bundler compiles.
   tsx: "^4.23.13",
+  // `flare deploy` and `npm run deploy`. Local rather than global, so the deploy works
+  // on a fresh clone and every app pins its own version.
+  vercel: "^60.1.3",
   "@types/node": "^22.20.3",
   "@types/react": "^19.3.0",
   "@types/react-dom": "^19.3.0",

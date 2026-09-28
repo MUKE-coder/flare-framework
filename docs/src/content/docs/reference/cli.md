@@ -298,9 +298,12 @@ npx flare tunnel 8787
 
 ## Delegated commands
 
-These forward straight through to the app's own installs — see
-[deploying to Cloudflare](/guides/deployment/) for what `deploy` adds on
-top.
+These forward straight through to the app's own installs, so the four verbs
+are the same on both stacks even though what they run isn't. Anything after
+the command name is passed on unchanged.
+
+On **Cloudflare** — see [deploying to Cloudflare](/guides/deployment/) for
+what `deploy` adds on top:
 
 | Command | Runs |
 | --- | --- |
@@ -309,9 +312,24 @@ top.
 | `flare start` | `wrangler dev --config dist/server/wrangler.json --persist-to .wrangler/state` (runs `flare build` first if there's no build yet) |
 | `flare deploy` | Migrations → `vinext-cloudflare deploy` → secrets → zone security rules |
 
-`flare dev` and `flare start` also accept `--tunnel`, which shares the running
-server on a public URL ([Sharing your local app](/guides/tunnels/)).
+On **Next.js** — see [deploying to Vercel](/guides/vercel-deployment/):
 
-`flare deploy` additionally accepts `--skip-migrations`, `--skip-secrets`,
-`--skip-security`,
-`--env <name>`, and `--preview` (shorthand for `--env preview`).
+| Command | Runs |
+| --- | --- |
+| `flare dev` | `next dev` |
+| `flare build` | `prisma generate`, then `next build` |
+| `flare start` | `next start` (runs `flare build` first if there's no build yet) |
+| `flare deploy` | `vercel deploy --prod` |
+
+The Next.js deploy does nothing besides run the CLI: migrations, secrets and
+domains all belong to the Vercel project rather than to Flare. Migrations are
+`flare migrate` against the production `DATABASE_URL`, run deliberately.
+
+`flare dev` and `flare start` also accept `--tunnel` on either stack, which
+shares the running server on a public URL
+([Sharing your local app](/guides/tunnels/)).
+
+`flare deploy` on Cloudflare additionally accepts `--skip-migrations`,
+`--skip-secrets`, `--skip-security`, `--env <name>`, and `--preview`
+(shorthand for `--env preview`). On Next.js, the Vercel CLI's own flags work
+instead — `--yes`, `--scope <team>`, and so on.

@@ -26,6 +26,17 @@ function fakeWorkspace() {
   return { root, app };
 }
 
+/** The same, for a Next.js app: next and the Vercel CLI in place of vinext and wrangler. */
+function fakeNextWorkspace() {
+  const root = mkdtempSync(join(tmpdir(), "flare-run-next-"));
+  dirs.push(root);
+  const app = join(root, "examples", "shop");
+  write(join(app, "package.json"), { name: "shop", dependencies: { "@flaredev/core": "0.5.1" }, flare: { stack: "next" } });
+  write(join(root, "node_modules/next/package.json"), { name: "next", bin: { next: "dist/bin/next" } });
+  write(join(root, "node_modules/vercel/package.json"), { name: "vercel", bin: { vercel: "dist/index.js" } });
+  return { root, app };
+}
+
 describe("isDelegatedCommand", () => {
   it("recognises only the delegated verbs", () => {
     for (const verb of ["dev", "build", "start", "deploy"]) expect(isDelegatedCommand(verb)).toBe(true);
@@ -91,5 +102,39 @@ describe("resolveBin / delegatedArgv", () => {
   it("tells the user to install when a package is missing", () => {
     const { app } = fakeWorkspace();
     expect(() => resolveBin(app, "not-installed", "x")).toThrow(/Install dependencies first/);
+  });
+});
+
+describe("delegatedArgv on the Next.js stack", () => {
+  it("deploys with the Vercel CLI, promoting to production", () => {
+    const { root, app } = fakeNextWorkspace();
+    expect(delegatedArgv(app, "deploy", [])).toEqual([join(root, "node_modules/vercel/dist/index.js"), "deploy", "--prod"]);
+  });
+
+  it("forwards arguments to the Vercel CLI, so its own flags work", () => {
+    const { root, app } = fakeNextWorkspace();
+    expect(delegatedArgv(app, "deploy", ["--yes", "--scope", "my team"])).toEqual([
+      join(root, "node_modules/vercel/dist/index.js"),
+      "deploy",
+      "--prod",
+      "--yes",
+      "--scope",
+      "my team",
+    ]);
+  });
+
+  it("runs the app's own Next for the other three", () => {
+    const { root, app } = fakeNextWorkspace();
+    const next = join(root, "node_modules/next/dist/bin/next");
+    expect(delegatedArgv(app, "dev", ["--port", "4000"])).toEqual([next, "dev", "--port", "4000"]);
+    expect(delegatedArgv(app, "build", [])).toEqual([next, "build"]);
+    expect(delegatedArgv(app, "start", [])).toEqual([next, "start"]);
+  });
+
+  it("never reaches for wrangler or vinext, which this app doesn't have", () => {
+    const { app } = fakeNextWorkspace();
+    for (const command of ["dev", "build", "start", "deploy"] as const) {
+      expect(delegatedArgv(app, command, []).join(" ")).not.toMatch(/wrangler|vinext/);
+    }
   });
 });

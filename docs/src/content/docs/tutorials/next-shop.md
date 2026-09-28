@@ -318,9 +318,13 @@ complains.
 ## 6. Deploying
 
 ```bash
-npm run build
-npx vercel deploy --prod
+npx vercel link        # once, to connect the directory to a Vercel project
+npx flare deploy       # vercel deploy --prod, with your flags forwarded
 ```
+
+The build happens on Vercel, running the `build` script — which is
+`prisma generate && next build`, and needs to stay that way: the generated
+client lives in `node_modules` and isn't committed.
 
 Set these as Vercel environment variables:
 
@@ -339,6 +343,9 @@ Run migrations against production before the first deploy, with
 ```bash
 npx flare migrate      # prisma migrate deploy
 ```
+
+[Deploying to Vercel](/guides/vercel-deployment/) covers the rest, including
+why migrations are never part of a deploy.
 
 Two notes on the supporting services. File uploads use **R2** rather than
 Vercel Blob, because R2 charges nothing for bandwidth out and a catalogue is

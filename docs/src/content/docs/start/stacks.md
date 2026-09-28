@@ -91,8 +91,12 @@ your database and writes the SQL. `flare migrate` applies what is already
 written — it runs `prisma migrate deploy` here — which is the one you want
 against a database that matters, because it never invents a migration.
 
-`flare dev`, `build`, `start` and `deploy` don't apply: this app runs
-`next dev` and deploys with `vercel`. The CLI says so if you try.
+`flare dev`, `build`, `start` and `deploy` work here too, delegating to Next
+and the Vercel CLI instead of vinext and wrangler — so the commands are the
+same on both stacks even though what they run isn't. `flare build` runs
+`prisma generate` first, and `flare deploy` is `vercel deploy --prod` with
+your arguments forwarded. [Deploying to Vercel](/guides/vercel-deployment/)
+is the detail.
 
 ## What this stack is missing
 

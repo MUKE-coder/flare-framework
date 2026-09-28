@@ -70,14 +70,24 @@ export function resolveBin(appRoot: string, pkgName: string, binName: string): s
 }
 
 /** The full argv (after `node`) a delegated command runs, e.g. [".../vinext/dist/cli.js", "dev", "--port", "4000"]. */
+/**
+ * The same four verbs on the Next.js stack.
+ *
+ * `flare deploy` is the Vercel CLI: it uploads the project, builds it on Vercel and
+ * promotes it. Everything it needs — the build command, the environment variables, the
+ * project link — lives in the Vercel project rather than here, which is why there is no
+ * equivalent of the Cloudflare deploy's migrate-and-secrets dance. Migrations are
+ * `flare migrate` against the production DATABASE_URL, run deliberately.
+ */
+const NEXT_COMMANDS: Record<DelegatedCommand, { pkg: string; bin: string; args: string[] }> = {
+  dev: { pkg: "next", bin: "next", args: ["dev"] },
+  build: { pkg: "next", bin: "next", args: ["build"] },
+  start: { pkg: "next", bin: "next", args: ["start"] },
+  deploy: { pkg: "vercel", bin: "vercel", args: ["deploy", "--prod"] },
+};
+
 export function delegatedArgv(appRoot: string, command: DelegatedCommand, forwarded: string[]): string[] {
-  if (readStack(appRoot) === "next") {
-    // These four wrap vinext and wrangler, which a Next.js app doesn't have. Its own
-    // scripts are the ones to run, and saying so beats a missing-binary error.
-    const script = { dev: "npm run dev", build: "npm run build", start: "npm start", deploy: "npm run deploy" }[command];
-    throw new Error(`\`flare ${command}\` is for the Cloudflare stack. This app targets Next.js — run \`${script}\` instead.`);
-  }
-  const spec = DELEGATED_COMMANDS[command];
+  const spec = readStack(appRoot) === "next" ? NEXT_COMMANDS[command] : DELEGATED_COMMANDS[command];
   return [resolveBin(appRoot, spec.pkg, spec.bin), ...spec.args, ...forwarded];
 }
 
@@ -143,17 +153,32 @@ export function portArg(args: string[]): string | undefined {
 
 export async function runDelegated(command: DelegatedCommand, forwarded: string[], cwd = process.cwd()): Promise<number> {
   const appRoot = findAppRoot(cwd);
+  const next = readStack(appRoot) === "next";
   const tunnel = (command === "dev" || command === "start") && forwarded.includes("--tunnel");
   if (tunnel) forwarded = forwarded.filter((arg) => arg !== "--tunnel");
   const wantsHelp = forwarded.includes("--help") || forwarded.includes("-h");
 
-  if (command === "start" && !wantsHelp && !existsSync(join(appRoot, "dist/server/wrangler.json"))) {
+  // `next build` regenerates nothing by itself, and a Prisma client left behind by an
+  // older schema fails the type-check rather than the query. The app's own build script
+  // does the same two steps, so both routes behave alike.
+  if (next && command === "build" && !wantsHelp) {
+    const code = await runNode([resolveBin(appRoot, "prisma", "prisma"), "generate"], appRoot);
+    if (code !== 0) return code;
+  }
+
+  const built = next ? ".next" : "dist/server/wrangler.json";
+  if (command === "start" && !wantsHelp && !existsSync(join(appRoot, built))) {
     console.log("No production build found; running `flare build` first.\n");
-    const code = await runNode(delegatedArgv(appRoot, "build", []), appRoot);
+    // Through this function rather than the bin, so the build is the same one `flare
+    // build` runs — Prisma's generate included.
+    const code = await runDelegated("build", [], appRoot);
     if (code !== 0) return code;
   }
 
   if (command === "deploy") {
+    // The Cloudflare deploy migrates D1, pushes secrets and applies zone rules first.
+    // On Vercel every one of those is the platform's, so this is just the CLI.
+    if (next) return runNode(delegatedArgv(appRoot, "deploy", forwarded), appRoot);
     return runDeploy(forwarded, {
       appRoot,
       wranglerBin: resolveBin(appRoot, "wrangler", "wrangler"),
