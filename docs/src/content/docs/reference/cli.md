@@ -276,6 +276,43 @@ resource.
 | --- | --- |
 | `--resource <name>` | Write example rows for this resource explicitly |
 
+## `flare diff [filter]`
+
+What differs between this app's copies of Flare's code and the version the
+installed CLI ships.
+
+```bash
+npx flare diff
+npx flare diff store       # only paths containing "store"
+```
+
+The engine under `lib/resource/` is [copied into your app](/concepts/no-magic/)
+rather than imported, so a fix in a later release doesn't arrive on its own.
+This says what has changed, per file, with your lines as `-` and Flare's as
+`+`. A file Flare ships that your app doesn't have is listed as *missing*.
+
+It reads; it never writes.
+
+## `flare update [filter]`
+
+Replace this app's copies with the version the installed CLI ships.
+
+```bash
+npx flare update           # lists what would change, and stops
+npx flare update --yes     # applies it
+```
+
+| Flag | |
+| --- | --- |
+| `-y`, `--yes` | Apply. Without it the command only lists what it would overwrite |
+
+**This discards your edits to the files it touches.** Run `flare diff` first.
+Without `--yes` nothing is written, which is deliberate: quietly overwriting
+someone's changes is the one failure this design can't afford.
+
+A filter narrows it to one file, so you can take an upstream fix to
+`store.ts` while keeping your own `query.ts`.
+
 ## `flare sync-types`
 
 Regenerate every derived file from the descriptors and report drift — see
