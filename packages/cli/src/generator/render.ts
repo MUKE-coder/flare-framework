@@ -187,16 +187,21 @@ const handlerImports = (entry: LoadedResource, stack: Stack = "cloudflare") => {
   const source =
     stack === "next"
       ? {
-          imports: [`import { prismaRows } from "@flaredev/core/server";`, `import { prisma } from "@/lib/db";`],
+          imports: [`import { createResourceHandlers, prismaRows } from "@/lib/resource";`, `import { prisma } from "@/lib/db";`],
           wiring: [`  rows: prismaRows(prisma.${camelCase(entry.resource.name)}, prisma),`],
         }
       : {
-          imports: [`import { getDb } from "@/db";`, `import { ${tableExport(entry.resource)} } from "@/db/schema";`],
-          wiring: [`  table: ${tableExport(entry.resource)},`, `  getDb,`],
+          imports: [
+            `import { createResourceHandlers, drizzleRows } from "@/lib/resource";`,
+            `import { getDb } from "@/db";`,
+            `import { ${tableExport(entry.resource)} } from "@/db/schema";`,
+          ],
+          // Named rather than implied: the adapter is the one thing about this route
+          // that differs between stacks, so it is written out.
+          wiring: [`  rows: drizzleRows(${tableExport(entry.resource)}, getDb),`],
         };
 
   return [
-    `import { createResourceHandlers } from "@flaredev/core/server";`,
     ...source.imports,
     `import { authorize, currentUser } from "@/lib/api";`,
     `import { revalidateResource } from "@/lib/cache";`,

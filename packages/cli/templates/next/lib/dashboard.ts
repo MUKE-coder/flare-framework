@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { allowedActions, can, columnName, type Policy, type PolicyAction, type Resource } from "@flaredev/core";
-import { createResourceStore, prismaRows, type PrismaDelegate, type ResourceStore } from "@flaredev/core/server";
+import { createResourceStore, prismaRows, type PrismaDelegate, type ResourceStore } from "@/lib/resource";
 import { prisma } from "@/lib/db";
 import { policies } from "@/policies";
 import { resourceTables } from "@/resources/server";

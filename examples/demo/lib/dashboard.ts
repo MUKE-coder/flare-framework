@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { allowedActions, can, type Policy, type PolicyAction, type Resource } from "@flaredev/core";
 import { and, count, gte, lt } from "drizzle-orm";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
-import { createResourceStore, type ResourceStore } from "@flaredev/core/server";
+import { createResourceStore, drizzleRows, type ResourceStore } from "@/lib/resource";
 import { getDb } from "@/db";
 import { policies } from "@/policies";
 import { resourceTables } from "@/resources/server";
@@ -66,7 +66,7 @@ export function dashboardStore(name: string): ResourceStore {
   if (!entry) notFound();
   let store = stores.get(name);
   if (!store) {
-    store = createResourceStore({ resource: entry.resource, table: entry.table, getDb, onChange: revalidateResource, currentUser });
+    store = createResourceStore({ resource: entry.resource, rows: drizzleRows(entry.table, getDb), onChange: revalidateResource, currentUser });
     stores.set(name, store);
   }
   return store;

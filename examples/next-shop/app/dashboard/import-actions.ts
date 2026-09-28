@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { recordAudit } from "@/lib/audit";
 import { can, type PolicyAction } from "@flaredev/core";
-import type { Failure } from "@flaredev/core/server";
+import type { Failure } from "@/lib/resource/store";
 import { resourcePath, dashboardSession, dashboardStore, policyFor } from "@/lib/dashboard";
 import type { ActionResult } from "./actions";
 

@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { can, type Policy } from "@flaredev/core";
-import type { Authorize } from "@flaredev/core/server";
+import type { Authorize } from "@/lib/resource/handlers";
 import { policies } from "@/policies";
 import { auth } from "./auth";
 

@@ -25,6 +25,12 @@
       "skillPath": "skills/cloudflare/SKILL.md",
       "computedHash": "61b6c4b68c6b155302edeb63779d39600d88a0029ef2bb0667aedc07c9732ba4"
     },
+    "drizzle": {
+      "source": "lobehub/lobehub",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/drizzle/SKILL.md",
+      "computedHash": "a51a3da4e421ae171d1b3aea0953cd63241b48a5f2fff59ad7ed0f6ff6d9a459"
+    },
     "durable-objects": {
       "source": "cloudflare/skills",
       "sourceType": "github",

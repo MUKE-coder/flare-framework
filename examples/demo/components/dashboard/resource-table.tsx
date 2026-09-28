@@ -2,7 +2,7 @@ import Link from "next/link";
 import { FileCell } from "@/components/dashboard/fields/file-cell";
 import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
 import { clientResource, formatValue, optionLabel, statusTone, storedFields, type Resource, type StoredField } from "@flaredev/core";
-import { isSortable } from "@flaredev/core/server";
+import { isSortable } from "@/lib/resource/query";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

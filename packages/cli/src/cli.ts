@@ -14,6 +14,7 @@ import { genPolicy } from "./commands/gen-policy.js";
 import { migrate, rollback } from "./commands/migrate.js";
 import { rmResource } from "./commands/rm.js";
 import { addRole } from "./commands/role.js";
+import { diffTracked, updateTracked } from "./commands/eject.js";
 import { makeSeed, runSeeds } from "./commands/seed.js";
 import { dbPush } from "./commands/db-push.js";
 import { seedResourceCommand, type SeedResourceOptions } from "./commands/seed-resource.js";
@@ -207,6 +208,24 @@ export function createCli() {
     .example("flare seed:resource Contact 5k --remote --yes")
     .action(async (resource: string, count: string | undefined, options: SeedResourceOptions & { count?: string }) => {
       await seedResourceCommand(resource, { ...options, count: options.count ?? count });
+    });
+
+  cli
+    .command("diff [filter]", "Show how the code Flare copied into this app (lib/resource) differs from the current version")
+    .example("flare diff")
+    .example("flare diff store          # just the files whose path contains \"store\"")
+    .action((filter: string | undefined) => {
+      diffTracked({ filter });
+    });
+
+  cli
+    .command("update [filter]", "Replace this app's copies of Flare's files with the current version (discards your edits)")
+    .option("-y, --yes", "Confirm overwriting")
+    .example("flare update            # lists what would change")
+    .example("flare update --yes      # applies it")
+    .action((filter: string | undefined, options: { yes?: boolean }) => {
+      const code = updateTracked({ filter, yes: options.yes });
+      if (code !== 0) process.exitCode = code;
     });
 
   cli

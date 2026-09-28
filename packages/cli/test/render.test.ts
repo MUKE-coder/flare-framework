@@ -89,9 +89,23 @@ describe("route, client, and registry rendering", () => {
   it("renders thin route handlers with plain named exports", () => {
     const collection = renderCollectionRoute(contact);
     expect(collection).toContain('import contactResource from "@/resources/contact.resource";');
-    expect(collection).toContain("table: contacts,");
     expect(collection).toMatch(/export const GET = handlers\.collection\.GET;\nexport const POST = handlers\.collection\.POST;/);
     expect(renderItemRoute(contact)).toMatch(/export const (GET|PATCH|PUT|DELETE) = handlers\.item\.\1;/g);
+  });
+
+  it("takes the engine from the app, never from node_modules", () => {
+    // The point of copying lib/resource into the app is that a route's behaviour is
+    // readable and editable there. A route that imported the framework instead would
+    // quietly undo that.
+    for (const route of [renderCollectionRoute(contact), renderItemRoute(contact), renderCollectionRoute(contact, "next")]) {
+      expect(route).not.toContain("@flaredev/core");
+      expect(route).toContain('from "@/lib/resource"');
+    }
+  });
+
+  it("names the row adapter at the call site, per stack", () => {
+    expect(renderCollectionRoute(contact)).toContain("rows: drizzleRows(contacts, getDb),");
+    expect(renderCollectionRoute(contact, "next")).toContain("rows: prismaRows(prisma.contact, prisma),");
   });
 
   it("renders a typed client bound to the resource slug", () => {

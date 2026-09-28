@@ -4,12 +4,10 @@ export default defineResource({
   name: "Contact",
   icon: "users",
   fields: {
-    // generated:start hash=2b295da907ce
+    // generated:start hash=f1033d1e576b
     name: field.string(),
-    email: field.string({ format: "email" }),
-    phone: field.string({ required: false }),
-    status: field.enum(["lead","pending","customer","churned"], { required: false }),
-    vip: field.boolean({ required: false }),
+    email: field.string({ unique: true, format: "email" }),
+    status: field.enum(["lead","customer"]),
     // generated:end
   },
 });

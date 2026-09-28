@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createObjectKey, fileKeyPrefix, fileMaxBytes, matchesContentType, mimeTypesFor, type FileField } from "@flaredev/core";
-import type { FieldIssue } from "@flaredev/core/server";
+import type { FieldIssue } from "@/lib/resource/store";
 import { diffFields, recordAudit } from "@/lib/audit";
 import { listViews, MAX_VIEWS } from "@/lib/views";
 import { and, eq } from "drizzle-orm";

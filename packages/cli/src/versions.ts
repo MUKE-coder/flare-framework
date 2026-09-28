@@ -104,4 +104,6 @@ export const CLOUDFLARE_ONLY = [
   "drizzle.config.ts",
   ".dev.vars.example",
   "worker-configuration.d.ts",
+  // The engine's Drizzle adapter; the Next.js overlay brings prisma-rows.ts instead.
+  "lib/resource/drizzle-rows.ts",
 ] as const;
