@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.6.1
+
+**A new Next.js app couldn't finish its first install.**
+
+`pnpm install` stopped with `ERR_PNPM_IGNORED_BUILDS`, naming four versions
+of esbuild. 0.6.0 gave each stack its own list of dependency build scripts to
+allow, and esbuild was left off the Next.js one — the Vercel CLI depends on
+it, so every new Next.js app hit this on the very first command after
+scaffolding.
+
+The two lists are now one list, the union of what either stack needs. Naming
+a package a stack doesn't install costs nothing, because the entry is never
+consulted; leaving one out breaks the first thing somebody runs. Tests pin
+both stacks' entries, and the fix was confirmed by installing both for real
+rather than reading the list again.
+
 ## 0.6.0
 
 The release that takes the magic out.

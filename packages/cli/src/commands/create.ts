@@ -36,6 +36,17 @@ export interface CreateOptions {
   stack?: string;
 }
 
+/**
+ * Dependency build scripts a scaffolded app allows, for pnpm.
+ *
+ * The union of what either stack needs: esbuild and workerd on Cloudflare, Prisma's
+ * engine download on Next.js, esbuild again there because the Vercel CLI depends on it.
+ * sharp is refused because nothing generated uses it and its download is large.
+ */
+const ALLOW_BUILDS = ["'@prisma/engines': true", "esbuild: true", "prisma: true", "sharp: false", "workerd: true"]
+  .map((line) => `  ${line}`)
+  .join("\n");
+
 export interface CreateResult {
   dir: string;
   name: string;
@@ -169,13 +180,16 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   if (packageManager === "pnpm" && !inWorkspace) {
     // pnpm blocks dependency build scripts unless explicitly allowed, and stops the
     // install with ERR_PNPM_IGNORED_BUILDS until someone decides. Deciding here means
-    // the first install just works. Prisma's postinstall fetches its engines, so the
-    // Next.js stack needs that one; the Cloudflare stack needs workerd's.
-    const allowBuilds =
-      stack === "next"
-        ? "allowBuilds:\n  '@prisma/engines': true\n  prisma: true\n  sharp: false\n"
-        : "allowBuilds:\n  esbuild: true\n  workerd: true\n  sharp: false\n";
-    writeFileSync(join(dir, "pnpm-workspace.yaml"), allowBuilds);
+    // the first install just works.
+    //
+    // One list for both stacks rather than one each. A per-stack list was wrong within
+    // a day: esbuild was left off the Next.js one, and the Vercel CLI brings esbuild
+    // in, so every new Next.js app failed its first install. Naming a package a stack
+    // doesn't install costs nothing — the entry is simply never consulted — while
+    // leaving one out breaks the very first command someone runs.
+    writeFileSync(join(dir, "pnpm-workspace.yaml"), `allowBuilds:
+${ALLOW_BUILDS}
+`);
   }
 
   // A lockfile turns the install from "resolve 340 packages, then fetch them" into

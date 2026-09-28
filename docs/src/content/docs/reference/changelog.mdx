@@ -21,6 +21,24 @@ npx flare --version                 # what this app is on
 pnpm add -D @flaredev/cli@latest    # upgrade it
 ```
 
+<Release version="0.6.1" date="28 September 2026">
+
+**A new Next.js app couldn't finish its first install.**
+
+`pnpm install` stopped with `ERR_PNPM_IGNORED_BUILDS`, naming four versions
+of esbuild. 0.6.0 gave each stack its own list of dependency build scripts to
+allow, and esbuild was left off the Next.js one — the Vercel CLI depends on
+it, so every new Next.js app hit this on the very first command after
+scaffolding.
+
+The two lists are now one, the union of what either stack needs. Naming a
+package a stack doesn't install costs nothing, because the entry is never
+consulted; leaving one out breaks the first thing somebody runs. Both
+stacks' entries are pinned by tests, and the fix was confirmed by running
+both installs rather than re-reading the list.
+
+</Release>
+
 <Release version="0.6.0" date="28 September 2026">
 
 **The code that runs your endpoints moved into your app.**

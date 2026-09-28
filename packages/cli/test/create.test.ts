@@ -104,6 +104,12 @@ describe("createApp", () => {
     expect(pkg.devDependencies.tailwindcss).toBeDefined();
     expect(pkg.devDependencies.typescript).toBeDefined();
 
+    // Same list on this stack, for the same reason.
+    const workspace = readFileSync(join(dir, "pnpm-workspace.yaml"), "utf8");
+    for (const entry of ["esbuild: true", "workerd: true"]) {
+      expect(workspace, entry).toContain(entry);
+    }
+
     const wrangler = readFileSync(join(dir, "wrangler.jsonc"), "utf8");
     expect(wrangler).toContain('"name": "shop"');
     expect(wrangler).toContain('"compatibility_date": "2026-09-17"');
@@ -163,10 +169,14 @@ describe("createApp", () => {
     expect(pkg.dependencies["drizzle-orm"]).toBeUndefined();
     expect(pkg.dependencies["@prisma/adapter-pg"]).toBeDefined();
 
-    // Without this, the first `pnpm install` stops with ERR_PNPM_IGNORED_BUILDS.
+    // Without these, the first `pnpm install` stops with ERR_PNPM_IGNORED_BUILDS.
+    // esbuild is here because the Vercel CLI depends on it — leaving it off this list
+    // broke every new Next.js app's first install, so the list is now the union of
+    // both stacks' needs rather than a guess per stack.
     const workspace = readFileSync(join(dir, "pnpm-workspace.yaml"), "utf8");
-    expect(workspace).toContain("prisma: true");
-    expect(workspace).not.toContain("workerd");
+    for (const entry of ["'@prisma/engines': true", "prisma: true", "esbuild: true"]) {
+      expect(workspace, entry).toContain(entry);
+    }
 
     const readme = readFileSync(join(dir, "README.md"), "utf8");
     expect(readme).not.toMatch(/__[A-Z_]+__/);
