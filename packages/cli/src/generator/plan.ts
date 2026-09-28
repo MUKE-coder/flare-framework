@@ -1,6 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, sep } from "node:path";
 import pc from "picocolors";
+import { readStack } from "../stack.js";
 import { templatesDir } from "../utils/fs.js";
 import type { LoadedResource } from "./load.js";
 import { DriftError, inspectGenerated, writeGenerated, type FileStatus } from "./markers.js";
@@ -142,11 +143,24 @@ export function findOrphans(appRoot: string, all: LoadedResource[]): { path: str
 
 /** Files every app needs once resources exist (copied from the app template if missing). */
 export function ensureSupportFiles(appRoot: string, log: (message: string) => void) {
-  for (const path of ["lib/api.ts", "lib/cache.ts"]) {
+  const stack = readStack(appRoot);
+  // The engine a generated route imports. An app made before it moved out of the
+  // package doesn't have these, and its next `gen resource` would write routes
+  // importing a folder that isn't there — so they are installed on demand.
+  const engine = ["rows.ts", "query.ts", "store.ts", "handlers.ts", "index.ts", stack === "next" ? "prisma-rows.ts" : "drizzle-rows.ts"].map(
+    (name) => `lib/resource/${name}`,
+  );
+
+  for (const path of ["lib/api.ts", "lib/cache.ts", ...engine]) {
     const target = join(appRoot, path);
     if (existsSync(target)) continue;
+    // The Next.js overlay wins where it has its own version of a file.
+    const source = [join(templatesDir, "next", path), join(templatesDir, "app", path)].find(
+      (candidate) => (stack === "next" || !candidate.includes(`${sep}next${sep}`)) && existsSync(candidate),
+    );
+    if (!source) continue;
     mkdirSync(dirname(target), { recursive: true });
-    copyFileSync(join(templatesDir, "app", path), target);
+    copyFileSync(source, target);
     log(`${pc.green("create".padEnd(9))} ${path}`);
   }
 }
