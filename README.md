@@ -1,8 +1,10 @@
-<!-- Banner: docs/public/banner.png -->
+<p align="center">
+  <img src="./docs/public/banner.png" alt="Flare — the full-stack framework for Cloudflare and Next.js" width="100%">
+</p>
 
-# Flare
+<h1 align="center">Flare</h1>
 
-**Describe a resource once. Get the table, the API, the validation and the admin screens.**
+<p align="center"><strong>Describe a resource once. Get the table, the API, the validation and the admin screens.</strong></p>
 
 [![npm](https://img.shields.io/npm/v/@flaredev/cli?color=ff6b35&label=%40flaredev%2Fcli)](https://www.npmjs.com/package/@flaredev/cli)
 [![license](https://img.shields.io/badge/license-MIT-ff6b35)](./LICENSE)

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://flare-docs.codetotech.com/banner.png" alt="Flare — the full-stack framework for Cloudflare and Next.js" width="100%">
+</p>
+
 # create-flare-framework
 
 Start a new [Flare](https://flare-docs.codetotech.com) app, a batteries-included

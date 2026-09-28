@@ -20,6 +20,15 @@ export default defineConfig({
       customCss: ["@fontsource-variable/geist", "@fontsource-variable/geist-mono", "/src/styles/flare-theme.css"],
       favicon: "/favicon.svg",
       // The site title carries the Flare version these docs describe.
+      // Shared links get the banner. Starlight sets the title and description
+      // tags itself; these are only the image ones it leaves alone.
+      head: [
+        { tag: "meta", attrs: { property: "og:image", content: "https://flare-docs.codetotech.com/banner-social.png" } },
+        { tag: "meta", attrs: { property: "og:image:width", content: "1280" } },
+        { tag: "meta", attrs: { property: "og:image:height", content: "640" } },
+        { tag: "meta", attrs: { name: "twitter:card", content: "summary_large_image" } },
+        { tag: "meta", attrs: { name: "twitter:image", content: "https://flare-docs.codetotech.com/banner-social.png" } },
+      ],
       components: {
         SiteTitle: "./src/components/SiteTitle.astro",
         // Puts the "Build with AI" strip on every docs page (the splash page opts out

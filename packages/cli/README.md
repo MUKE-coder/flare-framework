@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://flare-docs.codetotech.com/banner.png" alt="Flare — the full-stack framework for Cloudflare and Next.js" width="100%">
+</p>
+
 # @flaredev/cli
 
 The `flare` command for [Flare](https://flare-docs.codetotech.com), a
