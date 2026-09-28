@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FileCell } from "@/components/dashboard/fields/file-cell";
 import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
 import { clientResource, formatValue, optionLabel, statusTone, storedFields, type Resource, type StoredField } from "@flaredev/core";
 import { isSortable } from "@flaredev/core/server";
@@ -207,6 +208,10 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
                       } else if (column.def.kind === "enum" && value != null) {
                         const tone = statusTone(value);
                         content = <Badge variant={tone === "neutral" ? "secondary" : tone}>{content}</Badge>;
+                      } else if (column.def.kind === "file" && typeof value === "string" && value) {
+                        // A thumbnail for an image, a filename for anything else — the raw
+                        // object key is noise in a table.
+                        content = <FileCell resourceName={resource.name} fieldKey={column.key} value={value} />;
                       } else if (column.def.kind === "multiselect" && Array.isArray(value) && value.length) {
                         const def = column.def;
                         content = (

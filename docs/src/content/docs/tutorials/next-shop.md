@@ -209,7 +209,59 @@ Make yourself an admin so the policies let you through:
 npx flare user:role you@example.com admin
 ```
 
-## 5. The part that needs Postgres
+## 5. Pictures
+
+A catalogue without pictures is a spreadsheet. Both a category and a product
+should have one, which is a field like any other:
+
+```bash
+npx flare gen resource Category --group Catalogue --icon tag   --fields 'name:string!, slug:string!, description:text?, image:file:[image]:5mb?'
+```
+
+`file:[image]:5mb?` is three things at once — a file field, images only, and
+nothing over five megabytes. The limit is enforced twice: the browser refuses
+the file, and so does the server when it signs the upload, because a check
+only the browser does is not a check.
+
+Add the same field to `Product`, between `description` and `tags`.
+
+The dashboard needs nothing further. The form grows a drop zone that uploads
+straight to storage and shows a thumbnail; the table and the record page show
+that thumbnail rather than the object key, which is not something anyone
+wants to read.
+
+### Where the file actually goes
+
+Not into Postgres. The column holds a **key** — `products/2026/09/kettle-a1b2c3.png`
+— and the bytes live in an R2 bucket. Objects are private, so there is no URL
+to put in an `<img>`: one is signed on demand and expires. That is why the
+thumbnail is a client component doing a round trip, rather than a plain
+`src`.
+
+You need the four `R2_*` variables from `.env.example` for uploads to work.
+Without them the field still renders and the upload fails, which is the
+correct order of events but worth knowing before you wonder why.
+
+:::caution[This migration has to be written by hand]
+`npx prisma migrate dev` will offer to **drop the `search` column** — and with
+it the index the next section builds. It isn't a bug: `search` is a generated
+`tsvector`, Prisma's schema has no way to express one, so Prisma concludes it
+shouldn't exist.
+
+Write the migration yourself instead:
+
+```sql title="prisma/migrations/…_images/migration.sql"
+ALTER TABLE "products" ADD COLUMN "image" TEXT;
+ALTER TABLE "categories" ADD COLUMN "image" TEXT;
+```
+
+then `npx prisma migrate deploy`. This is the standing cost of using a
+database feature your ORM doesn't model, and it applies to every later
+migration on this table, not just this one. If you would rather not pay it,
+keep the full-text column in a table of its own.
+:::
+
+## 6. The part that needs Postgres
 
 Search in the dashboard's tables is `contains`, which becomes `ILIKE
 '%term%'`. It is fine, and it reads every row. Postgres can do better, and
@@ -315,7 +367,7 @@ the elapsed time. Showing the timing on the page is a habit worth keeping: it
 makes a regression visible the day it lands rather than the month someone
 complains.
 
-## 6. Deploying
+## 7. Deploying
 
 ```bash
 npx vercel link        # once, to connect the directory to a Vercel project

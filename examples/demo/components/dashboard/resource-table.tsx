@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { FileCell } from "@/components/dashboard/fields/file-cell";
 import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
-import { formatValue, optionLabel, statusTone, storedFields, type Resource, type StoredField } from "@flaredev/core";
+import { clientResource, formatValue, optionLabel, statusTone, storedFields, type Resource, type StoredField } from "@flaredev/core";
 import { isSortable } from "@flaredev/core/server";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +27,7 @@ import type { RelationMeta } from "./fields/field-widget";
 import { ImportDialog } from "./import-dialog";
 import { LocalTime } from "./local-time";
 import { hrefWith, toSearchParams, type SearchParams } from "./query";
-import { NewRecordButton } from "./resource-form-dialog";
+import { NewRecordButton } from "./resource-form-sheet";
 import { ResourceTableToolbar } from "./resource-table-toolbar";
 import { SaveViewButton } from "./save-view-button";
 import { RowActions } from "./row-actions";
@@ -44,6 +45,9 @@ const NUMERIC = new Set(["int", "float"]);
  */
 export async function ResourceTable({ resource, searchParams }: { resource: Resource; searchParams: SearchParams }) {
   await requireAccess(resource, "read");
+  // Hooks and computed values are functions, and a function can't be sent to the browser.
+  // This is the same resource without them, for the client components below.
+  const forClient = clientResource(resource);
   const basePath = resourcePath(resource);
   const permissions = await adminPermissions(resource.name);
   const params = toSearchParams(searchParams);
@@ -87,7 +91,7 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
     relations[key] = { name: target.name, label: target.label, pluralLabel: target.pluralLabel, slug: target.slug, titleField: target.titleField };
   }
 
-  const modalForms = site.dashboard.forms === "modal";
+  const overlayForms = site.dashboard.forms === "sheet";
   const rowIds = rows.map((row) => String(row.id));
   const exportColumns = [{ key: "id", label: "Id" }, ...fields.filter(([, def]) => def.kind !== "file").map(([key, def]) => ({ key, label: def.label }))];
 
@@ -102,15 +106,15 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
     <TableSelection ids={rowIds}>
       <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <ResourceTableToolbar resource={resource} />
+        <ResourceTableToolbar resource={forClient} />
         <div className="flex flex-wrap items-center gap-2">
           <SaveViewButton resourceName={resource.name} label={resource.pluralLabel} />
           <ColumnMenu columns={allColumns.map(({ key, label }) => ({ key, label }))} visible={columns.map((column) => column.key)} />
           <ExportButton resourceName={resource.name} pluralLabel={resource.pluralLabel} />
-          {permissions.create && <ImportDialog resource={resource} />}
+          {permissions.create && <ImportDialog resource={forClient} />}
           {permissions.create &&
-            (modalForms ? (
-              <NewRecordButton resource={resource} relations={relations} listHref={basePath} />
+            (overlayForms ? (
+              <NewRecordButton resource={forClient} relations={relations} listHref={basePath} />
             ) : (
               <Button asChild>
                 <Link href={resourcePath(resource, "new")}>
@@ -204,6 +208,10 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
                       } else if (column.def.kind === "enum" && value != null) {
                         const tone = statusTone(value);
                         content = <Badge variant={tone === "neutral" ? "secondary" : tone}>{content}</Badge>;
+                      } else if (column.def.kind === "file" && typeof value === "string" && value) {
+                        // A thumbnail for an image, a filename for anything else — the raw
+                        // object key is noise in a table.
+                        content = <FileCell resourceName={resource.name} fieldKey={column.key} value={value} />;
                       } else if (column.def.kind === "multiselect" && Array.isArray(value) && value.length) {
                         const def = column.def;
                         content = (
@@ -281,9 +289,9 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
                     })}
                     <TableCell className="text-right">
                       <RowActions
-                        resource={resource}
+                        resource={forClient}
                         id={id}
-                        record={modalForms ? row : undefined}
+                        record={overlayForms ? row : undefined}
                         relations={relations}
                         listHref={basePath}
                         editHref={resourcePath(resource, id, "edit")}

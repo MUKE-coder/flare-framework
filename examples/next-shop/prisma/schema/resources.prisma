@@ -1,10 +1,11 @@
 // Generated from the descriptors in resources/. Edit a descriptor, not this.
-// generated:start hash=888799e62ea0
+// generated:start hash=b939bb715980
 model Category {
   id String @id @default(uuid())
   name String @unique
   slug String @unique
   description String? @db.Text
+  image String?
   products Product[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -48,6 +49,7 @@ model Product {
   price Float
   stock Int?
   description String? @db.Text
+  image String?
   tags String[]
   categoryId String? @map("category_id")
   category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatValue, optionLabel, relationGraph, statusTone, storedFields, type Resource } from "@flaredev/core";
+import { clientResource, formatValue, optionLabel, relationGraph, statusTone, storedFields, type Resource } from "@flaredev/core";
 import { Badge } from "@/components/ui/badge";
+import { FileCell } from "@/components/dashboard/fields/file-cell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { recentAudit } from "@/lib/audit";
@@ -23,6 +24,9 @@ const RELATED_LIMIT = 5;
  */
 export async function RecordDetail({ resource, id }: { resource: Resource; id: string }) {
   await requireAccess(resource, "read");
+  // Hooks and computed values are functions, and a function can't be sent to the browser.
+  // This is the same resource without them, for the client components below.
+  const forClient = clientResource(resource);
   const store = dashboardStore(resource.name);
   const result = await store.get(id);
   if (!result.ok) notFound();
@@ -81,7 +85,7 @@ export async function RecordDetail({ resource, id }: { resource: Resource; id: s
         ]}
         actions={
           <RecordActions
-            resource={resource}
+            resource={forClient}
             id={id}
             record={record}
             relations={relations}
@@ -89,7 +93,7 @@ export async function RecordDetail({ resource, id }: { resource: Resource; id: s
             editHref={resourcePath(resource, id, "edit")}
             canUpdate={permissions.update}
             canDelete={permissions.delete}
-            modalForms={site.dashboard.forms === "modal"}
+            overlayForms={site.dashboard.forms === "sheet"}
           />
         }
       />
@@ -108,6 +112,9 @@ export async function RecordDetail({ resource, id }: { resource: Resource; id: s
               } else if (def.kind === "enum" && value != null) {
                 const tone = statusTone(value);
                 content = <Badge variant={tone === "neutral" ? "secondary" : tone}>{content}</Badge>;
+              } else if (def.kind === "file" && typeof value === "string" && value) {
+                // Bigger here than in the table: this is the page for looking at one record.
+                content = <FileCell resourceName={resource.name} fieldKey={key} value={value} size={96} />;
               } else if (def.kind === "multiselect" && Array.isArray(value) && value.length > 0) {
                 content = (
                   <span className="flex flex-wrap gap-1">

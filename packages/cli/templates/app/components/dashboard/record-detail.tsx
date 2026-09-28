@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { clientResource, formatValue, optionLabel, relationGraph, statusTone, storedFields, type Resource } from "@flaredev/core";
 import { Badge } from "@/components/ui/badge";
+import { FileCell } from "@/components/dashboard/fields/file-cell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { recentAudit } from "@/lib/audit";
@@ -111,6 +112,9 @@ export async function RecordDetail({ resource, id }: { resource: Resource; id: s
               } else if (def.kind === "enum" && value != null) {
                 const tone = statusTone(value);
                 content = <Badge variant={tone === "neutral" ? "secondary" : tone}>{content}</Badge>;
+              } else if (def.kind === "file" && typeof value === "string" && value) {
+                // Bigger here than in the table: this is the page for looking at one record.
+                content = <FileCell resourceName={resource.name} fieldKey={key} value={value} size={96} />;
               } else if (def.kind === "multiselect" && Array.isArray(value) && value.length > 0) {
                 content = (
                   <span className="flex flex-wrap gap-1">

@@ -207,6 +207,7 @@ export const CategoryScalarFieldEnum = {
   name: 'name',
   slug: 'slug',
   description: 'description',
+  image: 'image',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -236,6 +237,7 @@ export const ProductScalarFieldEnum = {
   price: 'price',
   stock: 'stock',
   description: 'description',
+  image: 'image',
   tags: 'tags',
   categoryId: 'categoryId',
   active: 'active',

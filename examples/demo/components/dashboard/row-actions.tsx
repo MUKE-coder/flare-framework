@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ExternalLinkIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
-import type { Resource } from "@flaredev/core";
+import type { ClientResource } from "@flaredev/core";
 import { deleteRecordAction } from "@/app/dashboard/actions";
 import {
   AlertDialog,
@@ -26,11 +26,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
-import { ResourceFormDialog, type FormRelations } from "./resource-form-dialog";
+import { ResourceFormSheet, type FormRelations } from "./resource-form-sheet";
 
 /**
  * Edit and delete for one row. Edit opens a dialog when the row's record came with it
- * (site.dashboard.forms is "modal"), and otherwise goes to the form page.
+ * (site.dashboard.forms is "sheet"), and otherwise goes to the form page.
  */
 export function RowActions({
   resource,
@@ -43,7 +43,7 @@ export function RowActions({
   canUpdate = true,
   canDelete = true,
 }: {
-  resource: Resource;
+  resource: ClientResource;
   id: string;
   /** The record itself, when the form opens in a dialog. */
   record?: Record<string, unknown>;
@@ -124,7 +124,7 @@ export function RowActions({
       </DropdownMenu>
 
       {record && canUpdate && (
-        <ResourceFormDialog
+        <ResourceFormSheet
           resource={resource}
           relations={relations}
           listHref={listHref}
