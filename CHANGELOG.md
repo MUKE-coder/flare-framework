@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.7.2
+
+**`flare diff` was only looking at a sixth of the code Flare copies.**
+
+It tracked `lib/resource` and nothing else, so an app reported "up to date"
+while its storage adapter, cache, API helpers and every dashboard component
+were an old version. 0.7.1's upload fix is in `lib/storage.ts` — a file
+`flare update` could not see, which meant the fix could never reach an app
+that already existed. That is the one job these commands have.
+
+They now cover everything under `lib/` and `components/` — 116 files in a
+fresh app rather than 7 — minus the copies that are the app's own: anything
+rewritten from a placeholder (`lib/site.ts`, `lib/auth.ts`, `lib/mail.ts`)
+and `lib/auth-config.ts`, which is written from the sign-in methods chosen at
+create time and so differs from its template in every app that exists.
+
+Upgrading an app to 0.7.1's upload fix is now:
+
+```bash
+pnpm add -D @flaredev/cli@latest
+npx flare diff            # see what changed
+npx flare update --yes    # take it
+```
+
 ## 0.7.1
 
 **Image uploads on the Next.js stack stored nothing, and said they worked.**

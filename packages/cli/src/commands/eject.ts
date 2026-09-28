@@ -17,8 +17,34 @@ import { findAppRoot } from "./run.js";
  * shadcn/ui makes the same trade and answers it the same way.
  */
 
-/** Files Flare owns upstream and copies into an app. */
-const TRACKED = ["lib/resource"];
+/**
+ * Where Flare's own code lands in an app.
+ *
+ * Everything under these, except the files below. `lib/resource` alone was not enough:
+ * the storage adapter, the cache, the API helpers and every dashboard component are
+ * copied too, so a fix to any of them could never reach an existing app — which is the
+ * whole thing these commands exist to prevent.
+ */
+const TRACKED = ["lib", "components"];
+
+/**
+ * Copies that are the app's own, not Flare's.
+ *
+ * A template containing `__APP_NAME__` or another placeholder is rewritten per app and
+ * can never match byte for byte, so comparing it would report noise forever. Files
+ * written rather than copied — `lib/auth-config.ts`, from the sign-in methods chosen at
+ * create time — have no template to compare against and fall out on their own.
+ */
+const PER_APP = /__APP_NAME__|__PM__|__THEME__|__COMPAT_DATE__/;
+
+/**
+ * Copies with a template that isn't what the app gets.
+ *
+ * `lib/auth-config.ts` ships as a template and is then overwritten with the sign-in
+ * methods chosen at create time, so it differs from its template in every app that
+ * exists, for a reason that is nobody's problem.
+ */
+const WRITTEN_PER_APP = new Set(["lib/auth-config.ts"]);
 
 export interface EjectOptions {
   cwd?: string;
@@ -41,7 +67,13 @@ const prunedOn = (path: string, stack: Stack) =>
 
 /** Where a tracked file lives upstream, per stack: the Next overlay wins when it has one. */
 function upstreamFile(path: string, stack: Stack): string | undefined {
-  if (prunedOn(path, stack)) return undefined;
+  if (prunedOn(path, stack) || WRITTEN_PER_APP.has(path)) return undefined;
+  const found = locate(path, stack);
+  if (found && PER_APP.test(readFileSync(found, "utf8"))) return undefined;
+  return found;
+}
+
+function locate(path: string, stack: Stack): string | undefined {
   const candidates = stack === "next" ? [join(templatesDir, "next", path), join(templatesDir, "app", path)] : [join(templatesDir, "app", path)];
   return candidates.find((candidate) => existsSync(candidate));
 }

@@ -98,6 +98,33 @@ describe("after the app's copy is edited", () => {
   });
 });
 
+describe("what gets tracked", () => {
+  it("covers every file Flare copies, not only the engine", () => {
+    // lib/resource alone meant a fix to the storage adapter, the cache or any dashboard
+    // component could never reach an existing app — which is what these commands are
+    // for. 0.7.1's upload fix was exactly that file.
+    const paths = compareTracked(app(), "cloudflare").map((entry) => entry.path);
+    for (const path of ["lib/resource/store.ts", "lib/storage.ts", "lib/cache.ts", "lib/api.ts", "components/dashboard/resource-table.tsx"]) {
+      expect(paths, path).toContain(path);
+    }
+    expect(paths.length).toBeGreaterThan(50);
+  });
+
+  it("leaves out the files that are the app's own", () => {
+    const paths = compareTracked(app(), "cloudflare").map((entry) => entry.path);
+    // Rewritten per app from a placeholder, or written from create-time choices; both
+    // differ from their template in every app there will ever be.
+    for (const path of ["lib/site.ts", "lib/auth.ts", "lib/mail.ts", "lib/auth-config.ts"]) {
+      expect(paths, path).not.toContain(path);
+    }
+  });
+
+  it("reports a fresh app as matching, so real drift stands out", () => {
+    const changed = compareTracked(app(), "cloudflare").filter((entry) => entry.state !== "same");
+    expect(changed.map((entry) => entry.path)).toEqual([]);
+  });
+});
+
 describe("the engine that gets copied", () => {
   it("never imports the framework it was copied out of", () => {
     const dir = app();

@@ -286,8 +286,9 @@ npx flare diff
 npx flare diff store       # only paths containing "store"
 ```
 
-The engine under `lib/resource/` is [copied into your app](/concepts/no-magic/)
-rather than imported, so a fix in a later release doesn't arrive on its own.
+The code under `lib/` and `components/` is
+[copied into your app](/concepts/no-magic/) rather than imported, so a fix in
+a later release doesn't arrive on its own.
 This says what has changed, per file, with your lines as `-` and Flare's as
 `+`. A file Flare ships that your app doesn't have is listed as *missing*.
 

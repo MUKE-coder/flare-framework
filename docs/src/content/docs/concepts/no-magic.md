@@ -101,6 +101,11 @@ npx flare diff            # what changed upstream vs. your copies
 npx flare update --yes    # take the upstream version
 ```
 
+They cover everything Flare copies — `lib/` and `components/`, around 116
+files — not just the engine. The exceptions are the copies that are yours by
+definition: anything carrying your app's name, and `lib/auth-config.ts`,
+which is written from the sign-in methods you picked.
+
 `flare diff` shows the differing lines per file, yours as `-` and Flare's as
 `+`. `flare update` refuses to run without `--yes`, and lists what it would
 overwrite first — the one thing this design must never do is take your edits

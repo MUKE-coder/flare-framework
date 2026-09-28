@@ -21,6 +21,24 @@ npx flare --version                 # what this app is on
 pnpm add -D @flaredev/cli@latest    # upgrade it
 ```
 
+<Release version="0.7.2" date="28 September 2026">
+
+**`flare diff` was only looking at a sixth of the code Flare copies.**
+
+It tracked `lib/resource` and nothing else, so an app could report "up to
+date" while its storage adapter, cache, API helpers and every dashboard
+component were an old version. 0.7.1's upload fix lives in `lib/storage.ts` —
+a file `flare update` could not see, so the fix could never reach an app that
+already existed. That is the one job these commands have.
+
+They now cover everything under `lib/` and `components/` — 116 files in a
+fresh app rather than 7 — minus the copies that are the app's own: anything
+rewritten from a placeholder, and `lib/auth-config.ts`, which is written from
+the sign-in methods chosen at create time and differs from its template in
+every app there will ever be.
+
+</Release>
+
 <Release version="0.7.1" date="28 September 2026">
 
 **Image uploads on the Next.js stack stored nothing, and said they worked.**
