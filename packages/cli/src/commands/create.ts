@@ -16,7 +16,7 @@ import {
 } from "../versions.js";
 import { isStack, STACKS, type Stack } from "../stack.js";
 import { copyTemplate, findUp, templatesDir, writeJson } from "../utils/fs.js";
-import { detectPackageManager, isPackageManager, type PackageManager } from "../utils/pm.js";
+import { choosePackageManager, type PackageManager } from "../utils/pm.js";
 
 export interface CreateOptions {
   /** Kept for callers that only want the files; installing is `installDependencies`. */
@@ -84,10 +84,7 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
     throw new Error(`Directory ${dir} already exists and is not empty.`);
   }
 
-  if (options.pm !== undefined && !isPackageManager(options.pm)) {
-    throw new Error(`Unknown package manager "${options.pm}". Use pnpm, npm, yarn, or bun.`);
-  }
-  const packageManager = options.pm ?? detectPackageManager();
+  const { packageManager, preferred: prefersPnpm } = choosePackageManager(options.pm);
   if (options.stack !== undefined && !isStack(options.stack)) {
     throw new Error(`Unknown stack "${options.stack}". Use ${STACKS.join(" or ")}.`);
   }
@@ -189,6 +186,9 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
 
   const log = options.log ?? ((message: string) => console.log(message));
   log(`${pc.green("✔")} Wrote ${files} files to ${relative(process.cwd(), dir) || "."}`);
+  // Say so, because it isn't what they typed: `npm create flare-framework` installs
+  // with pnpm unless told otherwise, and minutes of silence would be worse than a line.
+  if (prefersPnpm) log(pc.dim(`Installing with pnpm — far quicker for an app this size. Use ${pc.bold("--pm npm")} to change that.`));
 
   return { dir, name, packageManager, inWorkspace };
 }

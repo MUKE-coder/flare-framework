@@ -17,16 +17,22 @@ description: Prerequisites and every way to install the Flare CLI.
 The fastest start. This runs the latest CLI once and scaffolds the app:
 
 ```bash
-npm create flare-framework@latest myapp
+pnpm create flare-framework myapp
 ```
 
 Or with your package manager of choice:
 
 ```bash
-pnpm create flare-framework myapp
+npm create flare-framework@latest myapp
 yarn create flare-framework myapp
 bun create flare-framework myapp
 ```
+
+Whichever you start with, the dependencies are installed with **pnpm** when
+it's on your machine, and the command says so when it does. An app is around
+340 packages; pnpm does that in seconds where npm takes minutes, and its
+shared store means the second app is quicker still. `--pm npm` (or `yarn`,
+`bun`) overrides it.
 
 On the Cloudflare stack the first install downloads the Workers runtime and the
 build toolchain (about 300 packages), so it takes a few minutes; on the Next.js

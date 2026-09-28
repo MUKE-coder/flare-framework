@@ -10,12 +10,14 @@ Workers — no hand-written boilerplate at any step.
 ## 1. Scaffold the app
 
 ```bash
-npm create flare-framework@latest myapp
+pnpm create flare-framework myapp
 cd myapp
 ```
 
-(`pnpm create flare-framework myapp` works too. For a global `flare` command
-or the install scripts, see [Installation](/start/installation/).)
+(`npm create flare-framework@latest myapp` works too, and still installs with
+pnpm when you have it — an app is around 340 packages, which is minutes under
+npm and seconds under pnpm. For a global `flare` command or the install
+scripts, see [Installation](/start/installation/).)
 
 It asks where the app will run first. This page takes the default,
 **Cloudflare** — Workers, D1 and Drizzle. Answering **Next.js** instead gives

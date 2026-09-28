@@ -14,6 +14,36 @@ export function detectPackageManager(userAgent = process.env.npm_config_user_age
   return isPackageManager(name) ? name : "pnpm";
 }
 
+/** Whether a package manager is on PATH. */
+export function isInstalled(packageManager: PackageManager): boolean {
+  const probe = [packageManager, "--version"].join(" ");
+  const result =
+    process.platform === "win32"
+      ? spawnSync(probe, { stdio: "ignore", shell: true, env: childEnv() })
+      : spawnSync(packageManager, ["--version"], { stdio: "ignore", env: childEnv() });
+  return result.status === 0;
+}
+
+/**
+ * Which package manager to install a new app with.
+ *
+ * `--pm` wins. Otherwise pnpm, whenever it is installed — including when npm or yarn
+ * started us, which is the common case because the documented command is
+ * `npm create flare-framework`. This is not a preference about tooling: a Flare app is
+ * around 340 packages with a Workers runtime or Next and Prisma inside it, and npm
+ * takes minutes over pnpm's seconds on the same machine. The choice is printed, with
+ * how to override it, rather than made quietly.
+ */
+export function choosePackageManager(explicit?: string): { packageManager: PackageManager; preferred: boolean } {
+  if (explicit !== undefined) {
+    if (!isPackageManager(explicit)) throw new Error(`Unknown package manager "${explicit}". Use pnpm, npm, yarn, or bun.`);
+    return { packageManager: explicit, preferred: false };
+  }
+  const detected = detectPackageManager();
+  if (detected !== "pnpm" && isInstalled("pnpm")) return { packageManager: "pnpm", preferred: true };
+  return { packageManager: detected, preferred: false };
+}
+
 /**
  * Run a command with inherited stdio; returns the exit code. Arguments must be
  * CLI-controlled values, not user input: on Windows they go through the shell.

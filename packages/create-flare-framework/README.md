@@ -6,12 +6,16 @@ fullstack framework. It asks where the app will run: **Cloudflare Workers**
 descriptors, generated code and admin dashboard are the same either way.
 
 ```sh
-npm create flare-framework@latest my-app
-# or
 pnpm create flare-framework my-app
+# or
+npm create flare-framework@latest my-app
 yarn create flare-framework my-app
 bun create flare-framework my-app
 ```
+
+A Flare app is around 340 packages. pnpm installs them in seconds where npm
+takes minutes, so dependencies are installed with pnpm whenever it's on your
+machine — whichever command you started with. Pass `--pm npm` to override.
 
 Pass `-- --stack next` to skip the question.
 
