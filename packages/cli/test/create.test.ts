@@ -174,7 +174,9 @@ describe("createApp", () => {
     // broke every new Next.js app's first install, so the list is now the union of
     // both stacks' needs rather than a guess per stack.
     const workspace = readFileSync(join(dir, "pnpm-workspace.yaml"), "utf8");
-    for (const entry of ["'@prisma/engines': true", "prisma: true", "esbuild: true"]) {
+    // Refused, not allowed: the engines postinstall is a download that can fail, and a
+    // driver-adapter app never needs what it fetches.
+    for (const entry of ["'@prisma/engines': false", "prisma: true", "esbuild: true"]) {
       expect(workspace, entry).toContain(entry);
     }
 

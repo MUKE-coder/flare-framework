@@ -39,11 +39,18 @@ export interface CreateOptions {
 /**
  * Dependency build scripts a scaffolded app allows, for pnpm.
  *
- * The union of what either stack needs: esbuild and workerd on Cloudflare, Prisma's
- * engine download on Next.js, esbuild again there because the Vercel CLI depends on it.
- * sharp is refused because nothing generated uses it and its download is large.
+ * The union of what either stack needs, rather than a list per stack: naming a package
+ * a stack doesn't install costs nothing, while leaving one out breaks the first command
+ * somebody runs.
+ *
+ * `@prisma/engines` is refused on purpose. Its postinstall downloads engine binaries,
+ * which fails behind a proxy or a slow link and takes the install down with it — and
+ * this stack doesn't need them, because Prisma 7 talks to Postgres through a driver
+ * adapter. Verified without it: `prisma generate`, `prisma validate`, `prisma migrate
+ * diff` and `next build` all work. sharp is refused for the same reason and because
+ * nothing generated uses it.
  */
-const ALLOW_BUILDS = ["'@prisma/engines': true", "esbuild: true", "prisma: true", "sharp: false", "workerd: true"]
+const ALLOW_BUILDS = ["'@prisma/engines': false", "esbuild: true", "prisma: true", "sharp: false", "workerd: true"]
   .map((line) => `  ${line}`)
   .join("\n");
 

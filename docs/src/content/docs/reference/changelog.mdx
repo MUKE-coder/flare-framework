@@ -21,6 +21,22 @@ npx flare --version                 # what this app is on
 pnpm add -D @flaredev/cli@latest    # upgrade it
 ```
 
+<Release version="0.6.2" date="28 September 2026">
+
+**The Prisma engines download could fail, and took the install with it.**
+
+0.6.1 allowed `@prisma/engines` to run its postinstall, which downloads engine
+binaries. When that download fails — a slow link, a proxy, anything —
+`pnpm install` failed with it, after the packages were already on disk, so the
+app looked installed and wasn't.
+
+It is refused now. A Flare app on the Next.js stack reaches Postgres through a
+driver adapter and never needs what that postinstall fetches. Confirmed without
+it: `prisma generate`, `prisma validate`, `prisma migrate diff` and
+`next build` all work, and the install is quicker for it.
+
+</Release>
+
 <Release version="0.6.1" date="28 September 2026">
 
 **A new Next.js app couldn't finish its first install.**

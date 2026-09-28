@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.2
+
+**The Prisma engines download could fail, and took the install with it.**
+
+0.6.1 allowed `@prisma/engines` to run its postinstall, which downloads engine
+binaries. On a slow link, behind a proxy, or for any other reason the download
+fails, `pnpm install` failed with it — after the packages were already on disk,
+so the app looked installed and wasn't.
+
+It is refused now. A Flare app on the Next.js stack talks to Postgres through a
+driver adapter, so it never needs what that postinstall fetches. Confirmed
+without it: `prisma generate`, `prisma validate`, `prisma migrate diff` and
+`next build` all work, and the install is faster.
+
 ## 0.6.1
 
 **A new Next.js app couldn't finish its first install.**
