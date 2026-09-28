@@ -16,6 +16,7 @@ const SITE = "https://flare-docs.codetotech.com";
 
 /** Sidebar order, roughly: the order someone should read them in. */
 const SECTIONS: { title: string; match: (slug: string) => boolean; note?: string }[] = [
+  { title: "What Flare is", match: (slug) => slug.startsWith("about/"), note: "The pitch, who it suits, and what it believes." },
   { title: "Start here", match: (slug) => slug === "" || slug.startsWith("start/") },
   { title: "Core concepts", match: (slug) => slug.startsWith("concepts/") },
   {

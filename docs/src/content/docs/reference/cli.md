@@ -56,7 +56,9 @@ Generate (or update) a resource — see
 npx flare gen resource Contact --fields 'name:string, email:string!, company:belongsTo(Company)?'
 ```
 
-## `flare gen endpoint <resource> <name>`
+## `flare gen endpoint <Resource> <name>`
+
+The resource comes first, positionally. There is no `--resource` flag.
 
 An endpoint of your own beside the generated CRUD routes, with the session check, the
 policy check and the store already wired. No generated block: the file is yours.

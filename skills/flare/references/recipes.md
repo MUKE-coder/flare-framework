@@ -76,7 +76,7 @@ Returning an object filters the query; returning `false` refuses.
 ## An endpoint the resource doesn't give you
 
 ```bash
-npx flare gen endpoint recalculate --resource Invoice --record --method POST --action update
+npx flare gen endpoint Invoice recalculate --record --method POST --action update
 ```
 
 Writes `app/api/invoices/[id]/recalculate/route.ts` with the policy check
@@ -87,3 +87,25 @@ already in place.
 Both stacks have a free tier that a small app stays inside. The dashboard has
 a `/dashboard/costs` page that estimates from the app's own usage, and
 https://flare-docs.codetotech.com/guides/costs/ has the arithmetic.
+
+## Themes
+
+Six, picked at `flare create` with `--theme`, changed later with
+`flare theme <name>`: `default`, `coral`, `amber`, `sky`, `mono`, `emerald`.
+Each changes the palette *and* the sign-in screen's layout.
+
+A theme is CSS variables in `app/globals.css` and `data-theme` on `<html>`.
+Change colours there; components read semantic tokens (`bg-card`,
+`text-muted-foreground`), never raw values. Dark mode comes with each theme.
+
+## Seeds that don't fight you
+
+- Write dates as `new Date(fake.date())` on the Next.js stack. Prisma maps a
+  `date` field to `DateTime @db.Date`; `fake.date()` returns a date-only
+  string, which SQLite takes and Postgres refuses.
+- A failed seed leaves behind what it already wrote, so the next run trips on
+  a unique constraint and hides the original error. Clear the tables first.
+- The back-reference of a `belongsTo` is named after the model, plural:
+  `Order` + `OrderItem` gives `order.orderItems`, not `order.items`. Check
+  `prisma/schema/resources.prisma` when unsure.
+- `seeds/` doesn't exist until `flare seed:make` creates it.

@@ -135,3 +135,37 @@ Seeds run in Node against the **local** D1 database through Wrangler's
 
 Generated tables default `id` to `crypto.randomUUID()`, so seeds insert
 without supplying one.
+
+## Seed traps worth knowing
+
+Three things that cost time the first time, all found writing real seeds:
+
+**`seeds/` doesn't exist until you make one.** `flare seed:make <name>`
+creates the folder and writes a seed with the rows filled in from the
+descriptor. Writing the file by hand first fails with "No seeds found".
+
+**Dates differ between the stacks.** Prisma maps a `date` field to
+`DateTime @db.Date` and wants a DateTime; `fake.date()` returns a date-only
+string like `"2026-06-27"`, which SQLite accepts and Postgres rejects with
+"premature end of input. Expected ISO-8601 DateTime". On the Next.js stack,
+wrap it:
+
+```ts
+dateOfBirth: new Date(fake.date()),
+```
+
+**A failed seed leaves what it already wrote.** Seeds are not wrapped in a
+transaction, so a failure halfway through keeps the rows before it — and the
+next run then fails on a unique constraint, which hides the error you were
+trying to read. Clear the tables before re-running:
+
+```bash
+# Postgres
+psql "$DATABASE_URL" -c 'TRUNCATE orders, products, categories CASCADE;'
+```
+
+**A `belongsTo` back-reference is named after the model.** `Order` plus
+`OrderItem` gives you `order.orderItems`, not `order.items`. Prisma refuses
+one-sided relations, so the generator synthesises the other half; check
+`prisma/schema/resources.prisma` if a nested write complains about an unknown
+argument.

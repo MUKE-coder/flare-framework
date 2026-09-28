@@ -54,9 +54,19 @@ export default defineConfig({
           ],
         },
         {
+          label: "About",
+          items: [
+            { label: "The pitch", slug: "about/pitch" },
+            { label: "Who Flare is for", slug: "about/who-its-for" },
+            { label: "Philosophy", slug: "about/philosophy" },
+          ],
+        },
+        {
           label: "Core concepts",
           items: [
             { label: "Nothing is hidden", slug: "concepts/no-magic" },
+            { label: "How Flare is built", slug: "concepts/architecture" },
+            { label: "Every file in an app", slug: "concepts/file-structure" },
             { label: "The resource descriptor", slug: "concepts/resource-descriptor" },
             { label: "Field type grammar", slug: "concepts/field-grammar" },
             { label: "What `gen resource` emits", slug: "concepts/generated-files" },
@@ -77,6 +87,8 @@ export default defineConfig({
             { label: "Caching", slug: "guides/caching" },
             { label: "Realtime", slug: "guides/realtime" },
             { label: "Billing (Stripe)", slug: "guides/billing" },
+            { label: "API routes and handlers", slug: "guides/api-routes" },
+            { label: "CRUD, end to end", slug: "guides/crud-example" },
             { label: "API reference (OpenAPI)", slug: "guides/api-reference" },
             { label: "Building with AI", slug: "guides/build-with-ai" },
             { label: "What it costs", slug: "guides/costs" },

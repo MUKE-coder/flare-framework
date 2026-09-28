@@ -4,7 +4,7 @@ description: Build applications with the Flare framework — resource descriptor
 license: MIT
 metadata:
   author: MUKE-coder
-  version: "0.6.0"
+  version: "0.7.3"
 ---
 
 # Building with Flare
@@ -132,6 +132,8 @@ has the full set with the reasoning.
 - Don't import from `cloudflare:workers`, `@/db`, `@/lib/db` or any server
   module inside a `"use client"` component. It drags the runtime into the
   browser bundle and the build fails in a way that doesn't name the cause.
+- Don't put `+`, spaces or punctuation in an enum value — they become Prisma
+  enum members and must be identifiers. Use `optionLabels` for display.
 - Don't add a spinner where a skeleton belongs. Every dashboard route already
   has a `loading.tsx` shaped like its page.
 - Don't bind a `Date` in raw D1 SQL. D1 refuses object parameters — pass

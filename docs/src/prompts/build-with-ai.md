@@ -53,9 +53,23 @@ Drizzle. Schema in `db/schema/<table>.ts`. Migrate with `flare migrate`.
 Deploy with `flare deploy`.
 
 **next**: Next.js 16 on Vercel, Postgres (Neon), Prisma 7. Schema in
-`prisma/schema/resources.prisma`. Migrate with `prisma migrate dev` locally
-and `flare migrate` (= `prisma migrate deploy`) in production. Deploy with
-`flare deploy` (= `vercel deploy --prod`).
+`prisma/schema/resources.prisma` (generated) plus `prisma/schema/base.prisma`
+(yours, never regenerated). Migrate with `prisma migrate dev` locally and
+`flare migrate` (= `prisma migrate deploy`) in production. Deploy with
+`flare deploy` (= `vercel deploy --prod`). Cache is Upstash Redis. Realtime
+does not exist on this stack — `realtimeChannel().publish()` is a no-op.
+
+Things that differ in practice, not just on paper:
+
+- Enum fields become real Postgres enum types on `next`, and plain text on
+  `cloudflare`. That is why enum values must be identifiers.
+- A `date` field is `DateTime @db.Date` under Prisma and text under SQLite, so
+  a date-only string works on one and not the other.
+- `flare seed:resource` is Cloudflare-only. On `next`, write a seed file with
+  `flare seed:make` and run `flare seed`.
+- Anything Prisma's schema cannot express — a generated column, a GIN index, a
+  trigger — is invisible to it, and `prisma migrate dev` will offer to **drop**
+  it. Write those migrations by hand and apply with `prisma migrate deploy`.
 
 The descriptors, validators, policies, REST API and dashboard are identical on
 both. The database, the ORM and the host are not. A stack is chosen once at
@@ -77,6 +91,26 @@ npx flare user:role me@example.com admin
 
 Dependencies install with pnpm whenever it is available — an app is ~340
 packages and npm takes minutes where pnpm takes seconds.
+
+## Themes
+
+Six, chosen at `flare create` with `--theme`, switchable later with
+`flare theme <name>`. They change the whole look, including which sign-in
+screen layout the app uses:
+
+| | |
+| --- | --- |
+| `default` | Calm and centred, indigo accents |
+| `coral` | Warm and rounded, sign-in as a card over the page |
+| `amber` | Plain and direct, boxed forms with pill buttons |
+| `sky` | Crisp blue, bold headings, social sign-in first |
+| `mono` | Black and white on a fine grid |
+| `emerald` | Fresh green, sign-in beside a customer quote |
+
+A theme is CSS variables in `app/globals.css` plus `data-theme` on `<html>`.
+To change colours, edit the tokens there — not the components, which read
+semantic names (`bg-card`, `text-muted-foreground`) rather than raw values.
+Dark mode is per theme and automatic.
 
 ## The field grammar
 
@@ -143,7 +177,18 @@ validators, the OpenAPI document, formatting helpers, fake data.
 - Don't commit `.env` or `.dev.vars`. The committed ones are `.env.example`
   and `.dev.vars.example`.
 - Don't hand-write a REST endpoint for something a resource already exposes.
-  Use `flare gen endpoint` for the rest.
+  Use `flare gen endpoint <Resource> <name>` for the rest — the resource comes
+  first, positionally. There is no `--resource` flag.
+- Don't put `+`, spaces or punctuation in an enum value. They become Prisma
+  enum members, which must be identifiers. Use `a_pos` and give it a label:
+  `field.enum([...], { optionLabels: { a_pos: "A+" } })`.
+- Don't pass `fake.date()` straight into a Prisma `date` field. Prisma maps it
+  to `DateTime @db.Date` and wants a DateTime; `fake.date()` returns a
+  date-only string, which SQLite accepts and Postgres rejects. Wrap it:
+  `new Date(fake.date())`.
+- Don't assume a seed rolls back. A seed that fails halfway leaves what it
+  already wrote, and the next run then fails on a unique constraint that hides
+  the real error. Clear the table before re-running.
 - Don't invent a cents integer for money unless asked. `float` plus the
   dashboard's digit grouping is the default.
 
@@ -175,6 +220,12 @@ validators, the OpenAPI document, formatting helpers, fake data.
 - CLI reference: https://flare-docs.codetotech.com/reference/cli/
 - Tutorial, Cloudflare: https://flare-docs.codetotech.com/tutorials/shop/
 - Tutorial, Next.js: https://flare-docs.codetotech.com/tutorials/next-shop/
+- Architecture: https://flare-docs.codetotech.com/concepts/architecture/
+- Every file in an app: https://flare-docs.codetotech.com/concepts/file-structure/
+- API routes, handlers and CORS: https://flare-docs.codetotech.com/guides/api-routes/
+- CRUD end to end: https://flare-docs.codetotech.com/guides/crud-example/
+- Philosophy: https://flare-docs.codetotech.com/about/philosophy/
+- Who it is for: https://flare-docs.codetotech.com/about/who-its-for/
 - Full index for machines: https://flare-docs.codetotech.com/llms.txt
 
 ## What I want you to build

@@ -18,7 +18,7 @@ package manager started the command. `--pm npm` overrides.
 | Command | Writes |
 | --- | --- |
 | `flare gen resource <Name> --fields '<spec>'` | Table/model, migration, validators, REST routes, typed client, four dashboard pages and their skeletons |
-| `flare gen endpoint <name>` | A route handler for something a resource doesn't cover. `--method`, `--record`, `--action` |
+| `flare gen endpoint <Resource> <name>` | A route handler for something a resource doesn't cover. The resource comes first, positionally — there is no `--resource` flag. `--method`, `--record`, `--action` |
 | `flare gen policy <Resource> --roles admin,staff` | Who may read, create, update and delete |
 | `flare gen migration <name>` | An empty migration, or `--from-schema` to diff |
 | `flare gen billing` | Stripe checkout, portal and webhooks |
@@ -26,6 +26,9 @@ package manager started the command. `--pm npm` overrides.
 
 `--force` overwrites a generated block someone has hand-edited. It is the
 only way past the codegen contract, and it discards their edits.
+
+| `flare diff [filter]` | What differs between this app's copies of Flare's code and the installed version |
+| `flare update [filter]` | Take the installed version. Refuses without `--yes` |
 
 `flare rm resource <Name>` removes everything a resource owns, including
 files orphaned after its descriptor was deleted.
