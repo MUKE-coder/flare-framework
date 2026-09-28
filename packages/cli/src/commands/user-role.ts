@@ -1,7 +1,10 @@
+import { rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import pc from "picocolors";
+import { readStack } from "../stack.js";
 import { extractJson, readD1Databases, runWrangler } from "../utils/wrangler.js";
 import { listRoles } from "./role.js";
-import { findAppRoot, resolveBin } from "./run.js";
+import { findAppRoot, resolveBin, runNode } from "./run.js";
 
 export interface UserRoleOptions {
   remote?: boolean;
@@ -27,6 +30,9 @@ export async function setUserRole(email: string, role: string, options: UserRole
   const appRoot = findAppRoot(options.cwd ?? process.cwd());
   const sql = userRoleSql(email, role);
 
+  // Postgres, through the app's own Prisma client — there is no D1 to talk to.
+  if (readStack(appRoot) === "next") return setUserRoleOnPrisma(appRoot, email, role, log);
+
   // Catch typos: the role table lists what the app has registered (older apps have none).
   const roles = await listRoles(options);
   if (roles && !roles.includes(role)) {
@@ -50,4 +56,45 @@ export async function setUserRole(email: string, role: string, options: UserRole
   }
   log(pc.green(`${updated[0]!.email} now has role "${updated[0]!.role}" (${options.remote ? "remote" : "local"}).`));
   return 0;
+}
+
+/**
+ * `flare user:role` on the Next.js stack.
+ *
+ * The generated Prisma client is TypeScript a bundler compiles, so it can't be imported
+ * from this process. The app's own `tsx` can, which is how seeds run too: a short script
+ * is written into the app, run there, and deleted.
+ */
+async function setUserRoleOnPrisma(appRoot: string, email: string, role: string, log: (message: string) => void): Promise<number> {
+  const runner = join(appRoot, ".flare-role-runner.mts");
+  const script = [
+    `import "dotenv/config";`,
+    `import { prisma } from "./lib/db";`,
+    "",
+    `const client = prisma as unknown as { user: { updateMany(args: unknown): Promise<{ count: number }> }; $disconnect(): Promise<void> };`,
+    `const { count } = await client.user.updateMany({`,
+    `  where: { email: { equals: ${JSON.stringify(email)}, mode: "insensitive" } },`,
+    `  data: { role: ${JSON.stringify(role)} },`,
+    `});`,
+    `await client.$disconnect();`,
+    `// 3 means "no account with that email", which the CLI turns into a useful message.`,
+    `if (count === 0) process.exit(3);`,
+    "",
+  ].join("\n");
+
+  writeFileSync(runner, script);
+  try {
+    const tsx = resolveBin(appRoot, "tsx", "tsx");
+    const code = await runNode([tsx, runner], appRoot);
+    if (code === 3) {
+      log(pc.red(`No account with the email ${email}.`));
+      log(pc.dim("Sign up first, then set the role."));
+      return 1;
+    }
+    if (code !== 0) return code;
+    log(pc.green(`✔ ${email} is now ${role}.`));
+    return 0;
+  } finally {
+    rmSync(runner, { force: true });
+  }
 }

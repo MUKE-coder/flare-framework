@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.7.1
+
+**Image uploads on the Next.js stack stored nothing, and said they worked.**
+
+Three faults in the same few lines of `lib/storage.ts`, found by uploading an
+actual PNG rather than reading the code:
+
+- The request body arrives as a stream, and S3 refuses a PUT it cannot measure
+  — `411 MissingContentLength`. It is buffered now, and the length is set by
+  hand, because Next patches the global fetch and that fetch does not derive
+  `content-length` even from a buffered body.
+- The adapter never looked at the response, so a rejected upload returned 201
+  and the field stored a key pointing at nothing.
+- The whole object key was passed through `encodeURIComponent`, turning
+  `products/2026/09/a.png` into one segment with `%2F` in it. Each segment is
+  escaped on its own now.
+
+Verified against a real S3 server: signed, uploaded, read back, byte-identical.
+
+**`flare user:role` works on the Next.js stack.** It looked for a D1 database
+and failed with "No d1_databases in wrangler.jsonc" — on an app that has no
+wrangler.jsonc. It goes through the app's Prisma client now, and says so when
+no account has that email instead of silently changing nothing.
+
 ## 0.7.0
 
 **Routes say what they do.**

@@ -21,6 +21,29 @@ npx flare --version                 # what this app is on
 pnpm add -D @flaredev/cli@latest    # upgrade it
 ```
 
+<Release version="0.7.1" date="28 September 2026">
+
+**Image uploads on the Next.js stack stored nothing, and said they worked.**
+
+Three faults in the same few lines of `lib/storage.ts`, found by uploading an
+actual PNG rather than reading the code. The request body arrives as a stream
+and S3 refuses a PUT it cannot measure — `411 MissingContentLength` — so it is
+buffered now, with the length set by hand, because Next patches the global
+fetch and that one does not derive `content-length` even from a buffered body.
+The adapter never checked the response, so a rejected upload returned 201 and
+the field stored a key pointing at nothing. And the whole object key went
+through `encodeURIComponent`, turning `products/2026/09/a.png` into a single
+segment containing `%2F`.
+
+Verified against a real S3 server: signed, uploaded, read back,
+byte-identical.
+
+`flare user:role` also works on this stack now. It looked for a D1 database
+and failed with "No d1_databases in wrangler.jsonc" — on an app that has no
+wrangler.jsonc.
+
+</Release>
+
 <Release version="0.7.0" date="28 September 2026">
 
 **Routes say what they do.**
