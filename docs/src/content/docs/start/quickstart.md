@@ -17,6 +17,14 @@ cd myapp
 (`pnpm create flare-framework myapp` works too. For a global `flare` command
 or the install scripts, see [Installation](/start/installation/).)
 
+It asks where the app will run first. This page takes the default,
+**Cloudflare** — Workers, D1 and Drizzle. Answering **Next.js** instead gives
+you the same descriptors, generated code and dashboard on Next.js 16,
+Postgres and Prisma, deployed to Vercel; from there follow
+[the Next.js tutorial](/tutorials/next-shop/) rather than this page, because
+the database commands differ. [Choosing a stack](/start/stacks/) compares
+them, and `--stack next` skips the question.
+
 `flare create` writes a vinext app with TypeScript and Tailwind already
 configured, and wires up:
 

@@ -46,9 +46,9 @@ export function createCli() {
         options: { pm?: string; stack?: string; skipInstall?: boolean; authProviders?: string; auth?: string; theme?: string; yes?: boolean },
       ) => {
       const wanted = !options.skipInstall;
-      let answers: CreateAnswers = { theme: options.theme, auth: options.auth, authProviders: options.authProviders };
+      let answers: CreateAnswers = { stack: options.stack, theme: options.theme, auth: options.auth, authProviders: options.authProviders };
       if (canPrompt(options.yes)) answers = await askCreateQuestions(answers, toAppName(dir));
-      const result = createApp(dir, { pm: options.pm, stack: options.stack, install: false, ...answers, log: (message) => prompts.log.message(message) });
+      const result = createApp(dir, { pm: options.pm, install: false, ...answers, log: (message) => prompts.log.message(message) });
 
       let installed = false;
       if (wanted) {

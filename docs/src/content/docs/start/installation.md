@@ -28,12 +28,15 @@ yarn create flare-framework myapp
 bun create flare-framework myapp
 ```
 
-The first install downloads the Workers runtime and the build toolchain (about
-300 packages), so it takes a few minutes. pnpm is the quickest: its shared store
-means your second Flare app installs in seconds.
+On the Cloudflare stack the first install downloads the Workers runtime and the
+build toolchain (about 300 packages), so it takes a few minutes; on the Next.js
+stack it's Next, Prisma and the UI packages instead. pnpm is the quickest
+either way: its shared store means your second Flare app installs in seconds.
 
 `flare create` flags pass straight through, e.g.
-`npm create flare-framework@latest myapp -- --auth-providers google,github`.
+`npm create flare-framework@latest myapp -- --auth-providers google,github`, so
+`-- --stack next` picks the stack without being asked
+([Choosing a stack](/start/stacks/)).
 
 Every app lists `@flaredev/cli` as a dev dependency, so inside it you run
 `npx flare …` (or `pnpm flare …`) and each project keeps its own CLI version.

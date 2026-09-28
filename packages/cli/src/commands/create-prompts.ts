@@ -2,9 +2,11 @@ import * as prompts from "@clack/prompts";
 import pc from "picocolors";
 import { FLARE_VERSION } from "@flaredev/core";
 import { AUTH_METHODS, AUTH_PROVIDERS, DEFAULT_AUTH_METHODS, type AuthMethod, type AuthProvider } from "../auth-providers.js";
+import { STACK_LABELS, STACKS, type Stack } from "../stack.js";
 import { THEMES, type ThemeName } from "../themes.js";
 
 export interface CreateAnswers {
+  stack?: string;
   theme?: string;
   auth?: string;
   authProviders?: string;
@@ -42,12 +44,25 @@ function stopIfCancelled<T>(value: T): Exclude<T, symbol> {
 }
 
 /**
- * Ask for the theme, the sign-in methods and the social providers, skipping any the
- * command line already answered (`--theme`, `--auth`, `--auth-providers`).
+ * Ask for the stack, the theme, the sign-in methods and the social providers, skipping
+ * any the command line already answered (`--stack`, `--theme`, `--auth`,
+ * `--auth-providers`).
  */
 export async function askCreateQuestions(given: CreateAnswers, appName?: string): Promise<CreateAnswers> {
   prompts.intro(`${pc.bgRed(pc.white(" Flare "))} ${pc.dim(`v${FLARE_VERSION}`)}${appName ? ` ${pc.dim("·")} ${pc.bold(appName)}` : ""}`);
   const answers = { ...given };
+
+  // First, because it decides which database, which ORM and which host the rest of the
+  // app is built around — and it can't be changed by a flag afterwards.
+  if (given.stack === undefined) {
+    answers.stack = stopIfCancelled(
+      await prompts.select<Stack>({
+        message: "Where will it run?",
+        initialValue: "cloudflare" satisfies Stack,
+        options: STACKS.map((value) => ({ value, label: value === "next" ? "Next.js" : "Cloudflare", hint: STACK_LABELS[value] })),
+      }),
+    );
+  }
 
   if (given.theme === undefined) {
     answers.theme = stopIfCancelled(

@@ -7,12 +7,13 @@ Short, `wrangler`-consistent verbs. Every command below accepts `--help`.
 
 ## `flare create <dir>`
 
-Scaffold a new app. In a terminal it asks for the theme, the sign-in methods
-and the social providers; flags answer those questions up front, and `--yes`
-skips any left unanswered.
+Scaffold a new app. In a terminal it asks where the app will run, then for
+the theme, the sign-in methods and the social providers; flags answer those
+questions up front, and `--yes` skips any left unanswered.
 
 | Flag | |
 | --- | --- |
+| `--stack <name>` | `cloudflare` (default) or `next` ([Choosing a stack](/start/stacks/)) |
 | `--theme <name>` | `default`, `coral`, `amber`, `sky`, `mono` or `emerald` ([Themes](/guides/themes/)) |
 | `--auth <list>` | Sign-in methods: `magic-link`, `email-otp`, `passkeys`, `2fa-app`, `2fa-email`, or `all` (default) / `none` |
 | `--auth-providers <list>` | Social sign-in: `google`, `github`, `apple`, `microsoft` |
@@ -22,8 +23,14 @@ skips any left unanswered.
 
 ```bash
 npx @flaredev/cli create shop
+npx @flaredev/cli create shop --stack next
 npx @flaredev/cli create shop --theme mono --auth passkeys,2fa-app --auth-providers google,github --yes
 ```
+
+The stack is chosen once and recorded in `package.json`. There is no command
+that moves an app from one to the other: the descriptors, validators,
+policies and dashboard are the same either way, but the schema, migrations
+and deployment aren't.
 
 ## `flare theme [name]`
 
