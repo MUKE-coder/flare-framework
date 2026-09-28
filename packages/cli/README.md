@@ -1,9 +1,17 @@
 # @flaredev/cli
 
 The `flare` command for [Flare](https://flare-docs.codetotech.com), a
-batteries-included fullstack framework on Cloudflare Workers (vinext, D1,
-Drizzle, Better Auth, R2). It scaffolds apps, generates resources with an admin
-dashboard and REST API, runs migrations and deploys.
+batteries-included fullstack framework. It scaffolds apps, generates resources
+with an admin dashboard and REST API, runs migrations and deploys.
+
+Apps run on one of two stacks, chosen once at `flare create`:
+
+- **Cloudflare** — vinext on Workers, D1 and Drizzle, Better Auth, R2.
+- **Next.js** — Next.js 16 on Vercel, Postgres and Prisma, Better Auth, R2.
+
+The descriptors, validators, policies, REST API and dashboard are the same on
+both. [Choosing a stack](https://flare-docs.codetotech.com/start/stacks/) is the
+comparison, including what each one can't do.
 
 ## Install
 

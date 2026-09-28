@@ -3,7 +3,8 @@
 The runtime for [Flare](https://flare-docs.codetotech.com) apps: resource
 descriptors and the field grammar, the resource store and validators, policies,
 auth, mail and storage helpers, realtime (Durable Objects), billing rules and
-the security layer.
+the security layer. The resource store runs over Drizzle or Prisma, which is
+what lets one descriptor serve both the Cloudflare and Next.js stacks.
 
 Apps created with [`@flaredev/cli`](https://www.npmjs.com/package/@flaredev/cli)
 depend on this package already. You rarely add it by hand:
