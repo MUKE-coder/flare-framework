@@ -87,8 +87,12 @@ export function prismaRows(delegate: PrismaDelegate, client: unknown): ResourceR
     async find(query) {
       const where = matching(query);
       if (query.cursor) {
-        const { field, value, id, greaterThan } = query.cursor;
+        const { field, id, greaterThan, isDate } = query.cursor;
         const op = greaterThan ? "gt" : "lt";
+        // Postgres compares a timestamp against a Date, not the number the cursor
+        // carried. Without this, paging past the first page of a date-sorted list fails
+        // with "Expected DateTime, provided Int".
+        const value = isDate && (typeof query.cursor.value === "number" || typeof query.cursor.value === "string") ? new Date(query.cursor.value) : query.cursor.value;
         // (sort, id) as one comparison, so rows sharing a sort value are neither skipped
         // nor repeated. AND-ed with the filters rather than replacing them.
         const keyset = [{ [field]: { [op]: value } }, { AND: [{ [field]: value }, { id: { [op]: id } }] }];

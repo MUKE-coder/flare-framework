@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.7.3
+
+**Cursor paging failed on the Next.js stack for any date-sorted list — which is
+every list, by default.**
+
+A cursor travels through a URL, so a `Date` crosses it as a number. SQLite
+stores dates as milliseconds and wants that number back; Postgres wants a
+`Date`, and answered "Argument `lt`: Expected DateTime, provided Int". The
+second page of the dashboard's default view could not load.
+
+The cursor now carries whether its column holds a date — the store knows, from
+the descriptor, and neither adapter can tell on its own — and the Prisma
+adapter converts it back.
+
+This had a test. The test asserted the broken behaviour: a fake delegate
+accepts a number where Postgres will not, so `{ createdAt: { lt: 5 } }` looked
+correct. It asserts Dates now.
+
+**`flare create` no longer stalls before it starts.** It asked whether pnpm
+was installed by running `pnpm --version`, which takes seven seconds on a
+machine where pnpm runs through Node — seven seconds of silence for a question
+a directory listing answers. It reads PATH instead.
+
 ## 0.7.2
 
 **`flare diff` was only looking at a sixth of the code Flare copies.**

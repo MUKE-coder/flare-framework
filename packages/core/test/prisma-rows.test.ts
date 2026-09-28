@@ -92,7 +92,10 @@ describe("prismaRows translation", () => {
     // The default sort is newest first, so "the next page" means earlier than the cursor:
     // either past its sort value, or level with it and past its id.
     const and = (lastOf("findMany")!.where as { AND: { OR: unknown[] }[] }).AND;
-    expect(and[0]!.OR).toEqual([{ createdAt: { lt: 5 } }, { AND: [{ createdAt: 5 }, { id: { lt: "1" } }] }]);
+    // Dates, not the milliseconds the cursor travelled as: Postgres compares a timestamp
+    // against a Date and refuses an Int. A fake delegate accepts either, which is how
+    // this shipped broken — the assertion is the guard now.
+    expect(and[0]!.OR).toEqual([{ createdAt: { lt: new Date(5) } }, { AND: [{ createdAt: new Date(5) }, { id: { lt: "1" } }] }]);
   });
 
   it("turns the comparison round when the sort is ascending", async () => {
@@ -106,7 +109,7 @@ describe("prismaRows translation", () => {
     const { delegate: second, last: lastOf } = fakeDelegate();
     await storeOver(second).list(new URLSearchParams({ perPage: "1", sort: "createdAt", cursor: first.data.meta.nextCursor! }));
     const and = (lastOf("findMany")!.where as { AND: { OR: unknown[] }[] }).AND;
-    expect(and[0]!.OR).toEqual([{ createdAt: { gt: 5 } }, { AND: [{ createdAt: 5 }, { id: { gt: "1" } }] }]);
+    expect(and[0]!.OR).toEqual([{ createdAt: { gt: new Date(5) } }, { AND: [{ createdAt: new Date(5) }, { id: { gt: "1" } }] }]);
   });
 
   it("selects only the id and the title when resolving relation labels", async () => {

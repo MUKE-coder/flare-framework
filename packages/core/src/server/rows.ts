@@ -26,7 +26,20 @@ export interface RowsQuery {
    * `(sort field, id)` together so rows sharing a sort value are neither skipped nor
    * repeated.
    */
-  cursor?: { field: string; value: unknown; id: string; greaterThan: boolean };
+  cursor?: {
+    field: string;
+    value: unknown;
+    id: string;
+    greaterThan: boolean;
+    /**
+     * Whether the sort column holds a date.
+     *
+     * A cursor travels through a URL, so a Date arrives back as a number. SQLite stores
+     * dates as milliseconds and wants that number; Postgres wants a Date. Neither
+     * adapter can tell which a column is, and the store can — so it says.
+     */
+    isDate?: boolean;
+  };
   limit: number;
   /** Offset paging, for the page-number case. Never combined with a cursor. */
   offset?: number;

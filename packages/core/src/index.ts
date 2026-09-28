@@ -1,4 +1,4 @@
-export const FLARE_VERSION = "0.7.2";
+export const FLARE_VERSION = "0.7.3";
 
 export { hashPassword, verifyPassword, PBKDF2_ITERATIONS } from "./password.js";
 export { importSigningKey, signToken, verifyToken } from "./signing.js";

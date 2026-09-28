@@ -35,7 +35,7 @@ export type Result<T> = { ok: true; data: T } | Failure;
  */
 export const COUNT_LIMIT = 10_000;
 
-/** Dates are stored as milliseconds, and a cursor has to compare the way the column does. */
+/** A cursor is JSON in a URL, so a Date has to cross it as a number. */
 function toCursorValue(value: unknown): string | number | boolean | null {
   if (value instanceof Date) return value.getTime();
   if (value === null || value === undefined) return null;
@@ -209,6 +209,16 @@ export function createResourceStore(options: ResourceStoreOptions) {
       if ("issues" in parsed) return fail(400, "Invalid query.", { queryIssues: parsed.issues });
       const { page, perPage, sort, q, filters, cursor } = parsed.query;
 
+      /**
+       * Whether a sort column holds a date, so the adapter can shape the cursor for it.
+       * The timestamps every row has, plus any date or datetime field.
+       */
+      const isDateField = (key: string) => {
+        if (key === "createdAt" || key === "updatedAt") return true;
+        const def = fields.find(([name]) => name === key)?.[1];
+        return def?.kind === "date" || def?.kind === "datetime";
+      };
+
       const searchable = fields.filter(([, def]) => isSearchable(def)).map(([key]) => key);
       const matching = { search: q ? { term: q, fields: searchable } : undefined, filters };
 
@@ -222,7 +232,9 @@ export function createResourceStore(options: ResourceStoreOptions) {
         rows.find({
           ...matching,
           sort: { field: sort.field, direction: descending ? "desc" : "asc" },
-          cursor: cursor ? { field: sort.field, value: cursor.value, id: cursor.id, greaterThan: !descending } : undefined,
+          cursor: cursor
+            ? { field: sort.field, value: cursor.value, id: cursor.id, greaterThan: !descending, isDate: isDateField(sort.field) }
+            : undefined,
           limit: perPage + 1,
           offset: cursor ? undefined : (page - 1) * perPage,
         }),

@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { delimiter, join } from "node:path";
 
 export type PackageManager = "pnpm" | "npm" | "yarn" | "bun";
 
@@ -14,14 +16,18 @@ export function detectPackageManager(userAgent = process.env.npm_config_user_age
   return isPackageManager(name) ? name : "pnpm";
 }
 
-/** Whether a package manager is on PATH. */
+/**
+ * Whether a package manager is on PATH.
+ *
+ * Looked up on disk rather than run. `pnpm --version` takes seven seconds on a machine
+ * where pnpm is running through Node, and `flare create` asks this question before it
+ * prints anything — seven seconds of silence for an answer that is a directory listing.
+ */
 export function isInstalled(packageManager: PackageManager): boolean {
-  const probe = [packageManager, "--version"].join(" ");
-  const result =
-    process.platform === "win32"
-      ? spawnSync(probe, { stdio: "ignore", shell: true, env: childEnv() })
-      : spawnSync(packageManager, ["--version"], { stdio: "ignore", env: childEnv() });
-  return result.status === 0;
+  const dirs = (process.env.PATH ?? "").split(delimiter).filter(Boolean);
+  // On Windows the executable is pnpm.cmd or pnpm.exe, named by PATHEXT.
+  const suffixes = process.platform === "win32" ? (process.env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").split(";") : [""];
+  return dirs.some((dir) => suffixes.some((suffix) => existsSync(join(dir, packageManager + suffix.toLowerCase()))));
 }
 
 /**
