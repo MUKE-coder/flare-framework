@@ -47,6 +47,39 @@ either way: its shared store means your second Flare app installs in seconds.
 Every app lists `@flaredev/cli` as a dev dependency, so inside it you run
 `npx flare …` (or `pnpm flare …`) and each project keeps its own CLI version.
 
+## If it scaffolds an old version
+
+`pnpm create` and `npm create` cache the package they run. pnpm keeps it for
+**24 hours by default**, so the day after a Flare release, `pnpm create
+flare-framework` can still be running the version you used yesterday —
+quietly, without asking the registry. The banner it prints is the giveaway:
+
+```
++ create-flare-framework 0.5.0
+```
+
+Adding `@latest` does not help, because the cache is keyed before the version
+is resolved. Ask for the version you want by number:
+
+```bash
+pnpm create flare-framework@0.6.0 myapp
+```
+
+Or clear pnpm's cache of it, which lives in `dlx` inside pnpm's cache
+directory (`pnpm store path` points at the neighbouring store):
+
+```bash
+# macOS / Linux
+rm -rf "$(dirname "$(pnpm store path)")/dlx"
+# Windows PowerShell
+Remove-Item -Recurse -Force "$env:LOCALAPPDATA\pnpm-cache\dlx"
+```
+
+npm's equivalent is `npm cache clean --force`.
+
+An app already created is unaffected — it pins its own `@flaredev/cli` in
+`devDependencies`, and `npx flare --version` inside it tells you which.
+
 ## Install the `flare` command globally
 
 If you'd rather have `flare` on your PATH:
