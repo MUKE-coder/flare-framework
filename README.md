@@ -1,30 +1,112 @@
+<!-- Banner: docs/public/banner.png -->
+
 # Flare
 
-**Laravel + Filament, for the Cloudflare edge.**
+**Describe a resource once. Get the table, the API, the validation and the admin screens.**
 
-Flare is a batteries-included, generator-driven fullstack framework built
-on top of [vinext](https://github.com/cloudflare/vinext) (Cloudflare's
-Next.js-compatible Vite framework). `flare create myapp`, then
-`flare gen resource Contact --fields "name:string, email:string"`, then
-`flare deploy` — and within five minutes you have a live, authenticated
-CRUD app on Cloudflare Workers with a working admin dashboard. No
-hand-wired D1 bindings, no auth library to pick, no admin UI to build by
-hand.
+[![npm](https://img.shields.io/npm/v/@flaredev/cli?color=ff6b35&label=%40flaredev%2Fcli)](https://www.npmjs.com/package/@flaredev/cli)
+[![license](https://img.shields.io/badge/license-MIT-ff6b35)](./LICENSE)
+[![docs](https://img.shields.io/badge/docs-flare--docs.codetotech.com-ff6b35)](https://flare-docs.codetotech.com)
+
+```ts
+// resources/product.resource.ts
+export default defineResource({
+  name: "Product",
+  fields: {
+    name: field.string(),
+    sku: field.string({ unique: true }),
+    price: field.float(),
+    image: field.file({ accept: ["image"], required: false }),
+    category: field.belongsTo("Category", { required: false }),
+  },
+});
+```
+
+```sh
+npx flare gen resource Product
+```
+
+That writes the database table and its migration, Zod validators, a REST API
+with cursor pagination and filtering, a typed fetch client, policy hooks, and
+four dashboard pages — a sortable table with CSV import and export, a
+multi-step form in a sheet, a record page, and loading skeletons shaped like
+each of them.
+
+## Two stacks, one descriptor
+
+```sh
+pnpm create flare-framework myapp                    # Cloudflare Workers
+pnpm create flare-framework myapp -- --stack next    # Next.js on Vercel
+```
+
+| | **Cloudflare** (default) | **Next.js** |
+| --- | --- | --- |
+| Runtime | vinext on Workers | Next.js 16 on Vercel |
+| Database | D1 (SQLite) | Neon (Postgres) |
+| ORM | Drizzle | Prisma 7 |
+| Cache | Workers KV | Upstash Redis |
+| Files | R2 | R2 |
+| Auth, email, payments | Better Auth · Resend · Stripe | the same |
+
+Your descriptors, hooks, policies, seeds and every dashboard component are
+identical on both. The schema, the migrations and the deploy are not.
+[Compare them properly →](https://flare-docs.codetotech.com/start/stacks/)
+
+## Nothing is hidden
+
+The code that turns a descriptor into a working endpoint is **copied into
+your app**, the way [shadcn/ui](https://ui.shadcn.com) copies a component
+rather than shipping one from a package:
+
+```
+lib/resource/
+  rows.ts          the contract a data source implements (~50 lines)
+  query.ts         ?page, ?sort, ?q, ?filter[x], ?cursor → a parsed query
+  store.ts         validation, hooks, computed values, pagination, errors
+  handlers.ts      Request → Response, and the policy check
+  drizzle-rows.ts  or prisma-rows.ts, depending on the stack
+```
+
+About 800 lines, in your repository, imported by every generated route.
+Ctrl-click `createResourceHandlers` and you land in your own code — not in
+`node_modules`. Change it, and `flare diff` will tell you how your copy
+differs from the shipped one; `flare update --yes` takes the upstream
+version, and refuses to run without being asked.
+
+[Why it works this way →](https://flare-docs.codetotech.com/concepts/no-magic/)
+
+## What comes with an app
+
+Auth (passwords, magic links, email codes, passkeys, two-factor, social
+sign-in), file uploads to R2, transactional email, Stripe subscriptions,
+a policy layer, an OpenAPI document with a reference page, CSV import and
+export, saved views, an audit log, six themes, a cost estimator, 404 and
+error pages, and a cache that invalidates itself on writes.
 
 ## Install
 
 ```sh
-npm create flare-framework@latest myapp          # scaffold an app, no install
-npm install -g @flaredev/cli                     # or a global `flare` command
+pnpm create flare-framework myapp                                # recommended
+npm create flare-framework@latest myapp                          # also fine
+npm install -g @flaredev/cli                                     # global `flare`
 curl -fsSL https://flare-docs.codetotech.com/install.sh | bash   # macOS / Linux
-irm https://flare-docs.codetotech.com/install.ps1 | iex          # Windows PowerShell
+irm https://flare-docs.codetotech.com/install.ps1 | iex          # Windows
 ```
 
-Requires Node.js 22+. See [Installation](https://flare-docs.codetotech.com/start/installation/).
+Node.js 22+. An app is around 340 packages, so dependencies install with
+pnpm whenever it's on your machine — minutes under npm, seconds under pnpm.
+`--pm npm` overrides that.
 
-**Docs:** [flare-docs.codetotech.com](https://flare-docs.codetotech.com). The
-source is in [`docs/src/content/docs/`](./docs/src/content/docs/); run it locally
-with `cd docs && npx astro dev`.
+## Building with an AI agent
+
+```sh
+npx skills add MUKE-coder/flare-framework@flare
+```
+
+Gives a coding agent the CLI, the field grammar, the rules and the traps.
+There's also [`/llms.txt`](https://flare-docs.codetotech.com/llms.txt) for
+the docs index, and a **Build with AI** button on every docs page that
+copies a full brief.
 
 ## This repository
 
@@ -32,46 +114,48 @@ A pnpm workspace:
 
 | Path | Package | Role |
 | --- | --- | --- |
-| `packages/cli` | `@flaredev/cli` (bin: `flare`) | Every CLI verb (including the field grammar parser, `src/generator/grammar.ts`), plus the app template scaffolded by `flare create` |
-| `packages/create-flare-framework` | `create-flare-framework` | `npm create flare-framework` entry point: runs `flare create` |
-| `packages/core` | `@flaredev/core` | Runtime: descriptor types, resource store and validators, Cloudflare/auth/mail/storage helpers, policy checks, realtime |
-| `examples/demo` | — | A small CRM, generated entirely through the CLI, used to verify every phase's exit criteria |
-| `docs/` | `@flaredev/docs` | This repo's documentation site (Astro + Starlight), published at [flare-docs.codetotech.com](https://flare-docs.codetotech.com) |
+| `packages/cli` | `@flaredev/cli` (bin: `flare`) | Every CLI verb, the field grammar, the code generators, and the app templates |
+| `packages/core` | `@flaredev/core` | Descriptor and field types, validators, OpenAPI, formatting, fake data |
+| `packages/create-flare-framework` | `create-flare-framework` | The `npm create` entry point |
+| `skills/flare` | — | The agent skill, installable with `npx skills add` |
+| `examples/demo` | — | A small CRM on the Cloudflare stack |
+| `examples/shop` | — | The shop tutorial: stock and digital products, a till, a storefront |
+| `examples/drive` | — | The drive tutorial: folders and multi-file upload |
+| `examples/next-shop` | — | The Next.js stack against real Postgres, with ranked full-text search |
+| `docs/` | — | The documentation site (Astro + Starlight) |
 
 ## Working on Flare itself
 
-```bash
+```sh
 pnpm install
-pnpm test        # builds every package, then runs the full vitest suite
+pnpm test          # builds every package, then the full vitest suite
 pnpm typecheck
+cd docs && npx astro dev    # the docs site on http://localhost:4321
 ```
 
-Four files govern how this project is built, and are worth reading in
-this order before making a change:
+Four files govern how this project is built, worth reading in order:
 
-1. **[`project-description.md`](./project-description.md)** — the vision,
-   the tech stack, and the core technical decisions (the resource
-   descriptor pattern and the codegen overwrite contract, especially).
-2. **[`phases.md`](./phases.md)** — the ordered build plan and the single
-   source of truth for progress. Work phases in order; don't start a
-   phase's tasks while the previous one has unchecked items.
-3. **[`style-guide.md`](./style-guide.md)** — the visual system for the
-   generated admin dashboard.
-4. **[`prompt.md`](./prompt.md)** — the session checklist: how to pick up
-   where a previous session left off.
+1. [`project-description.md`](./project-description.md) — the vision and the
+   core technical decisions, especially the resource descriptor pattern and
+   the codegen overwrite contract.
+2. [`phases.md`](./phases.md) — the ordered build plan and the source of
+   truth for progress.
+3. [`style-guide.md`](./style-guide.md) — the visual system for the generated
+   dashboard.
+4. [`prompt.md`](./prompt.md) — how to pick up where a previous session left
+   off.
 
-## Documentation site
+## Documentation
 
-```bash
-cd docs
-npx astro dev      # http://localhost:4321
-npx astro build    # static site in docs/dist/
-```
+[flare-docs.codetotech.com](https://flare-docs.codetotech.com) — source in
+[`docs/src/content/docs/`](./docs/src/content/docs/).
 
-Source lives in `docs/src/content/docs/`, organized to match
-`project-description.md`'s sections but written for people building apps
-*with* Flare, not people building Flare itself.
+Good places to start: the [quickstart](https://flare-docs.codetotech.com/start/quickstart/),
+[choosing a stack](https://flare-docs.codetotech.com/start/stacks/),
+[what it costs](https://flare-docs.codetotech.com/guides/costs/), and the
+tutorials for [a shop](https://flare-docs.codetotech.com/tutorials/shop/) and
+[a catalogue on Next.js](https://flare-docs.codetotech.com/tutorials/next-shop/).
 
 ## License
 
-Not yet chosen. There is no LICENSE file in this repository yet.
+[MIT](./LICENSE)
