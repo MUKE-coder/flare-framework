@@ -59,7 +59,56 @@ export function FieldWidget(props: WidgetProps) {
       return <Textarea {...common} value={text} rows={4} onChange={(event) => onChange(event.target.value)} />;
 
     case "int":
-    case "float":
+    case "float": {
+      // A rating is a row of stars, not a number to type.
+      if (field.format === "rating") {
+        const most = field.max ?? 5;
+        const score = Number(text) || 0;
+        return (
+          <div className="flex items-center gap-1" role="radiogroup" aria-label={field.label}>
+            {Array.from({ length: most }, (_, index) => index + 1).map((star) => (
+              <button
+                key={star}
+                type="button"
+                role="radio"
+                aria-checked={score === star}
+                aria-label={`${star} of ${most}`}
+                disabled={disabled}
+                // Clicking the current score clears it, which is the only way to unset one.
+                onClick={() => onChange(score === star ? "" : String(star))}
+                className="rounded p-0.5 text-lg leading-none text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 data-[on=true]:text-foreground"
+                data-on={star <= score}
+              >
+                {star <= score ? "★" : "☆"}
+              </button>
+            ))}
+            {score > 0 && !disabled && (
+              <button type="button" onClick={() => onChange("")} className="ml-1 text-xs text-muted-foreground hover:text-foreground">
+                clear
+              </button>
+            )}
+          </div>
+        );
+      }
+
+      // Money and percent get their unit where the number is, so nobody has to guess.
+      if (field.format === "money" || field.format === "percent") {
+        return (
+          <InputGroup>
+            {field.format === "money" && <InputGroupAddon>{field.currency ?? "$"}</InputGroupAddon>}
+            <InputGroupInput
+              {...common}
+              type="text"
+              inputMode="decimal"
+              className="tabular-nums"
+              value={groupDigits(text)}
+              onChange={(event) => onChange(ungroup(event.target.value, true))}
+            />
+            {field.format === "percent" && <InputGroupAddon align="inline-end">%</InputGroupAddon>}
+          </InputGroup>
+        );
+      }
+
       // Shown grouped (2,000) and stored plain (2000), so a price can be read at a glance
       // and nothing downstream has to strip a comma back out.
       return (
@@ -72,6 +121,7 @@ export function FieldWidget(props: WidgetProps) {
           onChange={(event) => onChange(ungroup(event.target.value, field.kind === "float"))}
         />
       );
+    }
 
     case "boolean":
       return (
@@ -189,6 +239,37 @@ export function FieldWidget(props: WidgetProps) {
           return <Input {...common} type="email" autoComplete="email" value={text} onChange={(event) => onChange(event.target.value)} />;
         case "url":
           return <Input {...common} type="url" placeholder={field.placeholder ?? "https://"} value={text} onChange={(event) => onChange(event.target.value)} />;
+        case "username":
+          return (
+            <InputGroup>
+              <InputGroupAddon>@</InputGroupAddon>
+              <InputGroupInput {...common} autoCapitalize="none" spellCheck={false} placeholder={field.placeholder ?? "ada_lovelace"} value={text} onChange={(event) => onChange(event.target.value)} />
+            </InputGroup>
+          );
+        case "ip":
+          return <Input {...common} inputMode="numeric" spellCheck={false} className="font-mono" placeholder={field.placeholder ?? "192.168.1.1"} value={text} onChange={(event) => onChange(event.target.value)} />;
+        case "uuid":
+          return <Input {...common} spellCheck={false} className="font-mono" placeholder={field.placeholder ?? "3f2504e0-4f89-11d3-9a0c-0305e82c3301"} value={text} onChange={(event) => onChange(event.target.value)} />;
+        case "timezone":
+          // The browser knows every zone; no list to ship or keep current.
+          return (
+            <>
+              <Input {...common} list={`${common.id}-zones`} spellCheck={false} placeholder={field.placeholder ?? "Africa/Kampala"} value={text} onChange={(event) => onChange(event.target.value)} />
+              <datalist id={`${common.id}-zones`}>
+                {(Intl.supportedValuesOf?.("timeZone") ?? []).map((zone) => (
+                  <option key={zone} value={zone} />
+                ))}
+              </datalist>
+            </>
+          );
+        case "currency":
+          return (
+            <Input {...common} spellCheck={false} maxLength={3} className="font-mono uppercase" placeholder={field.placeholder ?? "UGX"} value={text} onChange={(event) => onChange(event.target.value.toUpperCase())} />
+          );
+        case "locale":
+          return <Input {...common} spellCheck={false} className="font-mono" placeholder={field.placeholder ?? "en-GB"} value={text} onChange={(event) => onChange(event.target.value)} />;
+        case "postcode":
+          return <Input {...common} autoCapitalize="characters" spellCheck={false} placeholder={field.placeholder ?? "SW1A 1AA"} value={text} onChange={(event) => onChange(event.target.value.toUpperCase())} />;
         default:
           return (
             <WithSuggestion suggest={suggest} disabled={disabled} onChange={onChange}>

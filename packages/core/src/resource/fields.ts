@@ -49,9 +49,45 @@ export interface CommonOptions<T> {
  * - country: an ISO 3166-1 alpha-2 code (`UG`), chosen from a searchable list
  * - color: a hex colour (`#f2541d`)
  * - slug: lowercase words joined by hyphens (`my-first-post`)
+ * - username: a handle (`ada_lovelace`), letters, digits, underscore and dot
+ * - ip: an IPv4 or IPv6 address
+ * - uuid: a UUID of any version
+ * - timezone: an IANA zone (`Africa/Kampala`), checked against the runtime's own list
+ * - locale: a BCP-47 tag (`en-GB`), chosen from a list
+ * - currency: an ISO 4217 code (`UGX`), chosen from a list
+ * - postcode: a postal code, stored upper case
  */
-export type StringFormat = "email" | "url" | "tel" | "domain" | "country" | "color" | "slug";
-export const STRING_FORMATS: readonly StringFormat[] = ["email", "url", "tel", "domain", "country", "color", "slug"];
+export type StringFormat =
+  | "email"
+  | "url"
+  | "tel"
+  | "domain"
+  | "country"
+  | "color"
+  | "slug"
+  | "username"
+  | "ip"
+  | "uuid"
+  | "timezone"
+  | "locale"
+  | "currency"
+  | "postcode";
+export const STRING_FORMATS: readonly StringFormat[] = [
+  "email",
+  "url",
+  "tel",
+  "domain",
+  "country",
+  "color",
+  "slug",
+  "username",
+  "ip",
+  "uuid",
+  "timezone",
+  "locale",
+  "currency",
+  "postcode",
+];
 
 export interface StringOptions extends CommonOptions<string> {
   maxLength?: number;
@@ -63,9 +99,25 @@ export interface TextOptions extends CommonOptions<string> {
   maxLength?: number;
   minLength?: number;
 }
+/**
+ * What a number means, which decides how it is shown and entered.
+ *
+ * The column is the same either way — a number is a number. The format changes the
+ * input's step and affixes, and how the value is rendered in a table.
+ *
+ * - money: an amount, grouped and shown to two decimal places
+ * - percent: shown with a % sign; stored as entered, so 20 means 20%
+ * - rating: a small whole number, entered as stars
+ */
+export type NumberFormat = "money" | "percent" | "rating";
+export const NUMBER_FORMATS: readonly NumberFormat[] = ["money", "percent", "rating"];
+
 export interface NumberOptions extends CommonOptions<number> {
   min?: number;
   max?: number;
+  format?: NumberFormat;
+  /** money only: an ISO 4217 code for display, e.g. "UGX". Defaults to the app's. */
+  currency?: string;
 }
 export type BooleanOptions = CommonOptions<boolean>;
 export type DateOptions = CommonOptions<string>;

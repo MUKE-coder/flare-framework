@@ -19,6 +19,8 @@ function options(field: ParsedField): Record<string, unknown> {
   if (!field.required) opts.required = false;
   if (field.unique) opts.unique = true;
   if (field.format) opts.format = field.format;
+  // money / percent / rating: the same option name as a string's, on a number.
+  if (field.numberFormat) opts.format = field.numberFormat;
   if (field.widget) opts.widget = field.widget;
   if (field.kind === "belongsTo" && !field.required) opts.onDelete = "set null";
   if (field.maxBytes !== undefined) opts.maxBytes = field.maxBytes;

@@ -30,11 +30,31 @@ category:belongsTo(Category)?, notes:hasMany(Note)
 | `belongsTo(Other)` | foreign key | searchable relation picker |
 | `hasMany(Other)` | nothing — the other side's key | a table of children on the record page |
 
-## String formats
+## Formats (all stored as text)
 
-`email`, `url`, `tel` (or `phone`), `domain`, `country`, `color`, `slug`.
-Each one validates, and changes the input and how the value renders — an
-email becomes a `mailto:` link, a color shows its swatch.
+`email`, `url` (alias `website`), `tel` (alias `phone`), `domain`, `country`,
+`color`, `slug`, `username`, `ip`, `uuid`, `timezone`, `locale`, `currency`,
+`postcode`.
+
+## Number shorthands
+
+`money`, `percent`, `rating` — an ordinary `float`/`int` column; the shorthand
+changes the input and how it is shown. `money` refuses negatives unless `min`
+allows them; `rating` is bounded 0–5 unless `min`/`max` say otherwise.
+
+## Relationships
+
+`belongsTo` is the only real one — a foreign key column. `hasMany` stores
+nothing; it is a view of the other side.
+
+- **One to many:** `category:belongsTo(Category)?` on the *many* side, and
+  `products: field.hasMany("Product")` on the one side to see the children.
+- **One to one:** `user:belongsTo(User)!` — the `!` makes the key unique.
+- **Many to many:** no such field. Make the join a resource with two
+  `belongsTo` (`OrderItem`), because it nearly always grows columns. For a
+  fixed vocabulary with no data of its own, use `multiselect` instead.
+- `onDelete` defaults to `set null` when optional and `cascade` when required;
+  `restrict` refuses the delete and answers 409.
 
 ## File fields
 

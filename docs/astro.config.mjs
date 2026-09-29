@@ -79,6 +79,8 @@ export default defineConfig({
           items: [
             { label: "Authentication", slug: "guides/auth" },
             { label: "Themes", slug: "guides/themes" },
+            { label: "Relationships", slug: "guides/relationships" },
+            { label: "File uploads", slug: "guides/file-uploads" },
             { label: "File storage (R2)", slug: "guides/storage" },
             { label: "Email (Resend)", slug: "guides/mail" },
             { label: "Roles & policies", slug: "guides/roles-and-policies" },

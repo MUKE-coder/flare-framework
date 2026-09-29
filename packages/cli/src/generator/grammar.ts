@@ -1,4 +1,4 @@
-import { camelCase, FILE_CATEGORIES, STRING_FORMATS, type FileCategory, type StringFormat } from "@flaredev/core";
+import { camelCase, FILE_CATEGORIES, STRING_FORMATS, type FileCategory, type NumberFormat, type StringFormat } from "@flaredev/core";
 
 /**
  * The `--fields` grammar of `flare gen resource`:
@@ -7,7 +7,9 @@ import { camelCase, FILE_CATEGORIES, STRING_FORMATS, type FileCategory, type Str
  *   birthday:date?, publishedAt:datetime?, status:enum(draft,published),
  *   avatar:file:[image,pdf]?, company:belongsTo(Company)?, notes:hasMany(Note)
  *
- * Formats (stored as text): email, url, tel (or phone), domain, country, color, slug.
+ * Formats (stored as text): email, url (or website), tel (or phone), domain, country,
+ * color, slug, username, ip, uuid, timezone, locale, currency, postcode.
+ * Number shorthands: money, percent, rating.
  * Choices: select(a,b) (= enum), radio(a,b) (enum with radio buttons),
  * multiselect(a,b) (any number, stored as a JSON array).
  *
@@ -36,6 +38,8 @@ export interface ParsedField {
   unique: boolean;
   /** enum / multiselect values */
   options?: string[];
+  /** money, percent or rating — how a number is entered and shown. */
+  numberFormat?: NumberFormat;
   /** enum input: radio buttons instead of a dropdown */
   widget?: "radio";
   /** file categories */
@@ -48,8 +52,31 @@ export interface ParsedField {
 }
 
 const SIMPLE_KINDS = ["string", "text", "int", "float", "boolean", "date", "datetime"] as const;
-const FORMAT_ALIASES: Record<string, StringFormat> = { phone: "tel" };
-const ALL_KINDS = [...SIMPLE_KINDS, ...STRING_FORMATS, "phone", "enum", "select", "radio", "multiselect", "file", "belongsTo", "hasMany"];
+const FORMAT_ALIASES: Record<string, StringFormat> = { phone: "tel", website: "url" };
+
+/**
+ * Number shorthands. The column is an ordinary int or float; the format decides how it
+ * is entered and shown — grouped digits for money, a % sign, stars for a rating.
+ */
+const NUMBER_SHORTHANDS: Record<string, { kind: "int" | "float"; format: NumberFormat }> = {
+  money: { kind: "float", format: "money" },
+  percent: { kind: "float", format: "percent" },
+  rating: { kind: "int", format: "rating" },
+};
+const ALL_KINDS = [
+  ...SIMPLE_KINDS,
+  ...STRING_FORMATS,
+  "phone",
+  "website",
+  ...Object.keys(NUMBER_SHORTHANDS),
+  "enum",
+  "select",
+  "radio",
+  "multiselect",
+  "file",
+  "belongsTo",
+  "hasMany",
+];
 
 export class FieldGrammarError extends Error {
   constructor(message: string) {
@@ -159,6 +186,10 @@ export function parseField(spec: string): ParsedField {
   } else if ((STRING_FORMATS as readonly string[]).includes(type) || type in FORMAT_ALIASES) {
     field.kind = "string";
     field.format = FORMAT_ALIASES[type] ?? (type as StringFormat);
+  } else if (type in NUMBER_SHORTHANDS) {
+    const shorthand = NUMBER_SHORTHANDS[type]!;
+    field.kind = shorthand.kind;
+    field.numberFormat = shorthand.format;
   } else if ((match = /^(enum|select|radio|multiselect)\((.*)\)$/.exec(type))) {
     const choice = match[1]!;
     field.kind = choice === "multiselect" ? "multiselect" : "enum";

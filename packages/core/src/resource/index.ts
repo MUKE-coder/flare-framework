@@ -6,6 +6,8 @@ export {
   FILE_CATEGORIES,
   STRING_FORMATS,
   type StringFormat,
+  type NumberFormat,
+  NUMBER_FORMATS,
   type MultiSelectField,
   type Field,
   type FieldKind,

@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.8.0
+
+**Twelve more field types.**
+
+Seven string formats — `username`, `ip`, `uuid`, `timezone`, `locale`,
+`currency`, `postcode` — each with its own validation, input and display. A
+time zone is checked against the runtime's own list rather than a regex, and
+the input offers that list; a currency code, a UUID and a postcode are
+normalised on the way in.
+
+Three number shorthands: `money`, `percent` and `rating`. The column stays an
+ordinary float or int — the shorthand decides the input and the display. Money
+gets its currency where the number is and refuses negatives unless the
+descriptor allows them. A rating is a row of stars, bounded 0–5 unless you say
+otherwise. A percent is left alone, because 150% is a real number.
+
+Two aliases: `website` for `url`, alongside the existing `phone` for `tel`.
+
+```bash
+npx flare gen resource Vendor --fields 'handle:username!, timezone:timezone?, fee:money, commission:percent, score:rating?'
+```
+
+**`flare rm resource` works on the Next.js stack.** It removed the files and
+then reached for drizzle-kit to write a drop migration — on an app that has no
+drizzle-kit. It now points at `prisma migrate dev`, which works from the
+schema it just rewrote.
+
+New pages: [relationships](https://flare-docs.codetotech.com/guides/relationships/),
+covering one-to-many, one-to-one and many-to-many with how each appears in a
+form, and [file uploads](https://flare-docs.codetotech.com/guides/file-uploads/),
+with an example per category.
+
 ## 0.7.3
 
 **Cursor paging failed on the Next.js stack for any date-sorted list — which is

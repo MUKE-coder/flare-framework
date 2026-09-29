@@ -37,9 +37,38 @@ validation, input and display:
 | `country` | ISO 3166-1 code: `UG` | searchable country list with flags | 🇺🇬 Uganda |
 | `color` | `#f2541d` | colour picker + hex | swatch |
 | `slug` | `my-first-post` (typed text is slugified) | text input | text |
+| `username` | `ada_lovelace` — letters, digits, `_` and `.`, 2–32 | text input with an `@` prefix | text |
+| `ip` | `192.168.1.1` or `2001:db8::1` | monospace input | monospace |
+| `uuid` | `3f2504e0-4f89-11d3-9a0c-0305e82c3301`, lower-cased | monospace input | monospace |
+| `timezone` | IANA zone: `Africa/Kampala` | input with the browser's own zone list | text |
+| `locale` | BCP-47 tag: `en-GB` | monospace input | text |
+| `currency` | ISO 4217 code: `UGX`, upper-cased | three-letter input | text |
+| `postcode` | `SW1A 1AA`, upper-cased | text input | text |
+
+`website` is an alias for `url`, and `phone` for `tel`.
+
+## Number shorthands
+
+The column is an ordinary `int` or `float` — the shorthand changes how the
+number is entered and shown, not how it is stored:
+
+| Syntax | Column | Admin input | Shown as |
+| --- | --- | --- | --- |
+| `money` | `float` | grouped digits with a currency prefix | `1,250.00` |
+| `percent` | `float` | grouped digits with a `%` suffix | `12.5%` |
+| `rating` | `int` | a row of stars, click to set, click again to clear | ★★★★☆ |
+
+`money` cannot be negative unless the descriptor sets a `min` — a refund
+resource would say `field.float({ format: "money", min: -1000 })`. A `rating`
+is bounded 0–5 unless `min`/`max` say otherwise. A `percent` is left alone,
+because 150% is a real number.
 
 ```bash
-npx flare gen resource Vendor --fields 'name:string, email:email, phone:tel?, website:url?, domain:domain?, country:country?, brandColor:color?, handle:slug!?, tier:radio(bronze,silver,gold), services:multiselect(design,build,hosting)?'
+npx flare gen resource Vendor --fields 'name:string, handle:username!, fee:money, commission:percent, score:rating?'
+```
+
+```bash
+npx flare gen resource Supplier --fields 'name:string, email:email, phone:tel?, website:website?, domain:domain?, country:country?, timezone:timezone?, currency:currency?, brandColor:color?, tier:radio(bronze,silver,gold), services:multiselect(design,build,hosting)?'
 ```
 
 A field named `email`, `…Email`, `url`, `website` or `…Url` declared as

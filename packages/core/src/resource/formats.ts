@@ -123,3 +123,46 @@ export function slugify(value: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+/** An IPv4 or IPv6 address. */
+export const isIpAddress = (value: string) =>
+  /^(?:\d{1,3}\.){3}\d{1,3}$/.test(value)
+    ? value.split(".").every((part) => Number(part) <= 255)
+    : /^[0-9a-f:]+$/i.test(value) && value.includes(":") && value.split("::").length <= 2;
+
+/** A UUID, any version. */
+export const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+
+/**
+ * An IANA time zone such as `Africa/Kampala`.
+ *
+ * Checked against the runtime's own list rather than a regex, because the list is the
+ * only thing that knows which names are real.
+ */
+export function isTimezone(value: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** A BCP-47 language tag such as `en`, `en-GB` or `sw-UG`. */
+export function isLocale(value: string): boolean {
+  if (!/^[A-Za-z]{2,3}(?:-[A-Za-z]{4})?(?:-(?:[A-Za-z]{2}|\d{3}))?$/.test(value)) return false;
+  try {
+    return new Intl.Locale(value).language.length >= 2;
+  } catch {
+    return false;
+  }
+}
+
+/** An ISO 4217 currency code such as `UGX` or `USD`. Three letters, upper case. */
+export const isCurrencyCode = (value: string) => /^[A-Z]{3}$/.test(value);
+
+/** A handle: letters, digits, underscore and dot, 2–32 characters, not starting with a dot. */
+export const isUsername = (value: string) => /^[A-Za-z0-9_][A-Za-z0-9_.]{1,31}$/.test(value);
+
+/** A postal code, loosely: letters, digits, spaces and hyphens, 2–12 characters. */
+export const isPostcode = (value: string) => /^[A-Za-z0-9][A-Za-z0-9 -]{0,10}[A-Za-z0-9]$/.test(value);

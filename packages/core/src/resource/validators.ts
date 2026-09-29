@@ -1,7 +1,21 @@
 import { z } from "zod";
 import { storedFields, type Resource } from "./define.js";
 import type { CreateInput, Field, StoredField, UpdateInput } from "./fields.js";
-import { isColor, isCountryCode, isDomain, isPhoneNumber, isSlug, normalizeDomain } from "./formats.js";
+import {
+  isColor,
+  isCountryCode,
+  isCurrencyCode,
+  isDomain,
+  isIpAddress,
+  isLocale,
+  isPhoneNumber,
+  isPostcode,
+  isSlug,
+  isTimezone,
+  isUsername,
+  isUuid,
+  normalizeDomain,
+} from "./formats.js";
 
 /**
  * Zod schemas derived from a descriptor at runtime. Unknown keys are rejected,
@@ -58,6 +72,22 @@ export function fieldSchema(def: StoredField): z.ZodType {
           return s.transform((value) => value.toLowerCase()).refine((value) => value === "" || isColor(value), "Enter a colour such as #f2541d");
         case "slug":
           return s.refine((value) => value === "" || isSlug(value), "Use lowercase letters, numbers and hyphens, e.g. my-first-post");
+        case "username":
+          return s.refine((value) => value === "" || isUsername(value), "2 to 32 characters: letters, digits, underscore and dot");
+        case "ip":
+          return s.refine((value) => value === "" || isIpAddress(value), "Enter an IP address, e.g. 192.168.1.1");
+        case "uuid":
+          return s.transform((value) => value.toLowerCase()).refine((value) => value === "" || isUuid(value), "Enter a UUID");
+        case "timezone":
+          return s.refine((value) => value === "" || isTimezone(value), "Choose a time zone, e.g. Africa/Kampala");
+        case "locale":
+          return s.refine((value) => value === "" || isLocale(value), "Enter a language tag, e.g. en-GB");
+        case "currency":
+          return s
+            .transform((value) => value.toUpperCase())
+            .refine((value) => value === "" || isCurrencyCode(value), "Enter a three-letter currency code, e.g. UGX");
+        case "postcode":
+          return s.transform((value) => value.toUpperCase()).refine((value) => value === "" || isPostcode(value), "Enter a postal code");
         default:
           return s;
       }
@@ -68,6 +98,11 @@ export function fieldSchema(def: StoredField): z.ZodType {
     case "float": {
       let s = z.number({ error: typeError("Enter a number") });
       if (def.kind === "int") s = s.int("Enter a whole number");
+      // A rating without bounds is a number nobody can render as stars.
+      if (def.format === "rating") {
+        s = s.min(def.min ?? 0, `At least ${def.min ?? 0}`).max(def.max ?? 5, `At most ${def.max ?? 5}`);
+      }
+      if (def.format === "money" && def.min === undefined) s = s.min(0, "Cannot be negative");
       if (def.min !== undefined) s = s.min(def.min, `Must be at least ${def.min}`);
       if (def.max !== undefined) s = s.max(def.max, `Must be at most ${def.max}`);
       return s;

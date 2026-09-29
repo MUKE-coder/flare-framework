@@ -120,9 +120,24 @@ status:enum(draft,published), avatar:file:[image]:5mb?,
 category:belongsTo(Category)?, notes:hasMany(Note)
 ```
 
-`?` = optional. `!` = unique. String formats: `email`, `url`, `tel`,
-`domain`, `country`, `color`, `slug`. File categories: `image`, `video`,
-`audio`, `pdf`, `doc`, `sheet`, `archive`, `any`.
+`?` = optional. `!` = unique.
+
+**String formats** (all text columns): `email`, `url` (alias `website`), `tel`
+(alias `phone`), `domain`, `country`, `color`, `slug`, `username`, `ip`,
+`uuid`, `timezone`, `locale`, `currency`, `postcode`.
+
+**Number shorthands:** `money`, `percent`, `rating` — an ordinary float or int
+column; the shorthand changes the input and the display.
+
+**File categories:** `image`, `pdf`, `document`, `spreadsheet`, `csv`, `text`,
+`video`, `audio`, `archive`, `any`. Size as `:5mb`.
+
+**Relationships.** `belongsTo` is the only real one — a foreign key. `hasMany`
+stores nothing, it is a view of the other side. One-to-many: `belongsTo` on
+the many side. One-to-one: `belongsTo(X)!`, unique. Many-to-many: **there is
+no manyToMany field** — make the join its own resource with two `belongsTo`,
+because it nearly always grows columns (quantity, price). For a fixed
+vocabulary with no data of its own, use `multiselect`.
 
 ## Nothing is hidden — read the code
 

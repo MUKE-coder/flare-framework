@@ -130,6 +130,13 @@ export async function rmResource(rawName: string, options: RmResourceOptions = {
   }
 
   let migrations: string[] = [];
+  // Dropping the table is Prisma's job on the Next.js stack, and it works from the
+  // schema this command just rewrote — there is no drizzle-kit to diff against.
+  if (readStack(appRoot) === "next") {
+    if (entry) log(`
+Next: ${pc.bold("npx prisma migrate dev")} to drop the table.`);
+    return { removed, migrations };
+  }
   if (!options.skipMigration && entry) {
     const result = await generateSchemaMigration(appRoot, `drop_${entry.resource.table}`);
     migrations = result.files;
