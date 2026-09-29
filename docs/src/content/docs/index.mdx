@@ -7,8 +7,9 @@ editUrl: false
 prev: false
 next: false
 banner:
-  content: |
-    Flare 0.6.0: the code that runs your endpoints now lives in your app, not in node_modules. <a href="/concepts/no-magic/">See how</a>
+  # The text comes from src/components/Banner.astro, which reads the version from
+  # package.json. This only has to be non-empty for Starlight to render the slot.
+  content: " "
 ---
 
 import Landing from '../../components/Landing.astro';

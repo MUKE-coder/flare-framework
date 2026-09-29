@@ -1,6 +1,7 @@
 ---
 import { Code } from "@astrojs/starlight/components";
-import { FLARE_VERSION, RELEASE_URL } from "../version";
+import { FLARE_VERSION, RELEASE_HEADLINE, RELEASE_URL } from "../version";
+import prompt from "../prompts/build-with-ai.md?raw";
 /**
  * The docs home page. One idea carries it: describe a resource once, and Flare
  * writes the rest. The hero panel shows exactly that, with real generator output.
@@ -11,6 +12,14 @@ const install = [
   { id: "bun", label: "bun", command: "bun create flare-framework my-app" },
   { id: "sh", label: "macOS / Linux", command: "curl -fsSL https://flare-docs.codetotech.com/install.sh | bash" },
   { id: "ps", label: "Windows", command: "irm https://flare-docs.codetotech.com/install.ps1 | iex" },
+  {
+    id: "ai",
+    label: "AI prompt",
+    // Copies the whole brief, not this line — the line is what to do with it.
+    command: "Paste this into Claude, Cursor, Codex or any coding agent →",
+    copy: prompt,
+    note: true,
+  },
 ];
 
 const generated = [
@@ -187,7 +196,7 @@ const faq = [
     <div class="fl-hero-grid" aria-hidden="true"></div>
     <a class="fl-pill" href={RELEASE_URL}>
       <span class="fl-pill-tag">v{FLARE_VERSION}</span>
-      <span class="fl-pill-text">Passkeys, two-factor and six themes</span>
+      <span class="fl-pill-text">{RELEASE_HEADLINE}</span>
     </a>
     <h1 id="fl-hero-title" class="fl-hero-title">
       <span class="fl-line">The fullstack framework</span>
@@ -215,11 +224,11 @@ const faq = [
       </div>
       {install.map((item, index) => (
         <div class="fl-install-line" role="tabpanel" id={`fl-ip-${item.id}`} aria-labelledby={`fl-i-${item.id}`} hidden={index !== 0}>
-          <span class="fl-prompt" aria-hidden="true">$</span>
-          <code>{item.command}</code>
-          <button class="fl-copy" data-copy={item.command} aria-label="Copy command">
+          <span class="fl-prompt" aria-hidden="true">{item.note ? "✦" : "$"}</span>
+          <code class:list={[item.note && "fl-install-note"]}>{item.command}</code>
+          <button class="fl-copy" data-copy={item.copy ?? item.command} aria-label={item.note ? "Copy the AI prompt" : "Copy command"}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
-            <span class="fl-copy-label">Copy</span>
+            <span class="fl-copy-label">{item.note ? "Copy prompt" : "Copy"}</span>
           </button>
         </div>
       ))}
@@ -776,6 +785,11 @@ const faq = [
   }
 
   /* Install command */
+  .fl-install-note {
+    font-family: inherit;
+    color: var(--sl-color-gray-2);
+  }
+
   .fl-install {
     margin: 2.75rem auto 0;
     max-width: 40rem;

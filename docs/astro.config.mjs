@@ -34,6 +34,8 @@ export default defineConfig({
         // Puts the "Build with AI" strip on every docs page (the splash page opts out
         // and renders its own, larger one).
         Footer: "./src/components/Footer.astro",
+        // Reads the version from package.json, so it can't announce an old release.
+        Banner: "./src/components/Banner.astro",
       },
       logo: {
         src: "./src/assets/flare-mark.svg",

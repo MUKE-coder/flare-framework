@@ -1,0 +1,33 @@
+---
+/**
+ * The banner across the top of every page.
+ *
+ * Starlight's own banner is static frontmatter, which is how it ended up announcing
+ * 0.6.0 while the site shipped 0.8.0. This reads the version from package.json and the
+ * words from src/version.ts, so the two cannot disagree.
+ */
+import { FLARE_VERSION, RELEASE_BANNER } from "../version";
+---
+
+<div class="fl-banner">
+  <strong>Flare {FLARE_VERSION}</strong>: {RELEASE_BANNER.text}
+  <a href={RELEASE_BANNER.href}>{RELEASE_BANNER.label}</a>
+</div>
+
+<style>
+  .fl-banner {
+    padding: 0.6rem 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: var(--fl-on-ember, #fff);
+    background: var(--fl-ember, #ff6b35);
+  }
+
+  .fl-banner a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    white-space: nowrap;
+  }
+</style>
