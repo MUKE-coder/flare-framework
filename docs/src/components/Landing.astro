@@ -34,11 +34,39 @@ const generated = [
   { path: "app/admin/contacts/[id]/edit/page.tsx", what: "Edit form" },
 ];
 
-const stack = ["Cloudflare Workers", "D1", "R2", "Durable Objects", "vinext", "Drizzle", "Better Auth", "Stripe", "Resend"];
+const stack = ["Cloudflare Workers", "Next.js", "D1", "Postgres", "Drizzle", "Prisma", "R2", "Better Auth", "Stripe", "Resend"];
+
+/**
+ * The two stacks, side by side.
+ *
+ * The same descriptors, dashboard and generated code run on both — what changes is the
+ * database, the ORM and where it deploys. Anyone landing here should be able to tell in
+ * a few seconds which one is theirs.
+ */
+const stacks = [
+  {
+    id: "cloudflare",
+    name: "Cloudflare Workers",
+    tag: "default",
+    line: "Cheapest to run, everywhere at once.",
+    command: "pnpm create flare-framework my-app",
+    parts: [["Runtime", "vinext on Workers"], ["Database", "D1 (SQLite)"], ["ORM", "Drizzle"], ["Cache", "Workers KV"], ["Realtime", "Durable Objects"]],
+    body: "A Worker runs in every Cloudflare location without you arranging it, and R2 charges nothing to serve what it stores. The trade is SQLite rather than Postgres, and a runtime that is not Node.",
+  },
+  {
+    id: "next",
+    name: "Next.js on Vercel",
+    tag: "--stack next",
+    line: "Real Postgres, real Node.",
+    command: "pnpm create flare-framework my-app -- --stack next",
+    parts: [["Runtime", "Next.js 16"], ["Database", "Neon Postgres"], ["ORM", "Prisma 7"], ["Cache", "Upstash Redis"], ["Realtime", "not on this stack"]],
+    body: "Extensions, window functions and ranked full-text search; any npm package that assumes Node; preview deployments. It costs more, and realtime has no equivalent here.",
+  },
+];
 
 const batteries = [
   { name: "Authentication", body: "Email and password, Google and GitHub sign-in through Better Auth.", href: "/guides/auth/", icon: "key" },
-  { name: "Database", body: "D1 with Drizzle, typed schema and migrations you can read.", href: "/guides/migrations-and-seeds/", icon: "db" },
+  { name: "Database", body: "D1 with Drizzle, or Postgres with Prisma. Typed schema, migrations you can read.", href: "/guides/migrations-and-seeds/", icon: "db" },
   { name: "Dashboard", body: "Tables, stats, import and export, and forms for every resource, from its descriptor.", href: "/guides/dashboard/", icon: "grid" },
   { name: "Roles and policies", body: "Who can read and write each resource, enforced by the API and the admin.", href: "/guides/roles-and-policies/", icon: "shield" },
   { name: "File storage", body: "Uploads to R2 with type sniffing and size limits built in.", href: "/guides/storage/", icon: "box" },
@@ -200,11 +228,12 @@ const faq = [
     </a>
     <h1 id="fl-hero-title" class="fl-hero-title">
       <span class="fl-line">The fullstack framework</span>
-      <span class="fl-line fl-ember-text">for the Cloudflare edge</span>
+      <span class="fl-line fl-ember-text">for Cloudflare and Next.js</span>
     </h1>
     <p class="fl-hero-lead">
       Describe a resource once. Flare writes the table, the API, the validation and the admin screens, with
-      auth, storage and billing already wired, then deploys it all to Workers.
+      auth, storage and billing already wired — then ships it to Cloudflare Workers or to Vercel, from the
+      same description.
     </p>
     <div class="fl-actions">
       <a class="fl-btn fl-btn-primary" href="/start/quickstart/">Start building</a>
@@ -314,6 +343,52 @@ const faq = [
       <ul>
         {stack.map((name) => <li>{name}</li>)}
       </ul>
+    </section>
+
+    <!-- Two stacks -->
+    <section class="fl-section fl-rail" aria-labelledby="fl-stacks">
+      <p class="fl-step"><span>[ pick one ]</span> Stacks</p>
+      <div class="fl-section-head">
+        <h2 id="fl-stacks">One description,<br /><span class="fl-ember-text">two places to run it</span></h2>
+        <p>
+          Your resources, hooks, policies, seeds and every component are the same on both. What changes is the
+          database, the ORM and where it deploys — so pick for the database, because that is the part you
+          cannot move in an afternoon.
+        </p>
+      </div>
+
+      <div class="fl-stacks">
+        {stacks.map((item) => (
+          <article class="fl-stack-card">
+            <header>
+              <h3>{item.name}</h3>
+              <span class="fl-stack-tag">{item.tag}</span>
+            </header>
+            <p class="fl-stack-line">{item.line}</p>
+            <dl>
+              {item.parts.map(([term, value]) => (
+                <div>
+                  <dt>{term}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <p class="fl-stack-body">{item.body}</p>
+            <div class="fl-install-line">
+              <span class="fl-prompt" aria-hidden="true">$</span>
+              <code>{item.command}</code>
+              <button class="fl-copy" data-copy={item.command} aria-label={`Copy the ${item.name} command`}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
+                <span class="fl-copy-label">Copy</span>
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <p class="fl-stacks-more">
+        <a href="/start/stacks/">Compare them properly</a> — including what each one cannot do.
+      </p>
     </section>
 
     <!-- 01 Create -->
@@ -463,8 +538,8 @@ const faq = [
     <section class="fl-section fl-rail" aria-labelledby="fl-ship">
       <p class="fl-step"><span>[ 05 / 05 ]</span> Ship</p>
       <div class="fl-section-head">
-        <h2 id="fl-ship">Live on Cloudflare<br /><span class="fl-ember-text">in one command</span></h2>
-        <p><code>flare deploy</code> migrates the database first, deploys the Worker, then sets any secret you're missing. Nothing to configure on the dashboard.</p>
+        <h2 id="fl-ship">Live<br /><span class="fl-ember-text">in one command</span></h2>
+        <p><code>flare deploy</code> migrates the database first, deploys the Worker, then sets any secret you're missing — nothing to configure on the dashboard. On the Next.js stack the same command runs the Vercel CLI.</p>
       </div>
       <div class="fl-ship">
         <div class="fl-terminal fl-terminal-tall">
@@ -785,6 +860,87 @@ const faq = [
   }
 
   /* Install command */
+  .fl-stacks {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+    margin-top: 2rem;
+  }
+
+  .fl-stack-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1.5rem;
+    border: 1px solid var(--fl-rule, var(--sl-color-hairline));
+    border-radius: 12px;
+    background: var(--fl-surface, transparent);
+  }
+
+  .fl-stack-card header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .fl-stack-card h3 {
+    margin: 0;
+    font-size: 1.15rem;
+  }
+
+  .fl-stack-tag {
+    font-family: var(--sl-font-mono, ui-monospace, monospace);
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    color: var(--fl-ember, var(--sl-color-text-accent));
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+
+  .fl-stack-line {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .fl-stack-card dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.3rem 1rem;
+    margin: 0;
+    font-size: 0.875rem;
+  }
+
+  .fl-stack-card dl > div {
+    display: contents;
+  }
+
+  .fl-stack-card dt {
+    color: var(--sl-color-gray-3);
+  }
+
+  .fl-stack-card dd {
+    margin: 0;
+  }
+
+  .fl-stack-body {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--sl-color-gray-2);
+  }
+
+  .fl-stack-card .fl-install-line {
+    margin-top: auto;
+  }
+
+  .fl-stacks-more {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: var(--sl-color-gray-2);
+  }
+
   .fl-install-note {
     font-family: inherit;
     color: var(--sl-color-gray-2);
