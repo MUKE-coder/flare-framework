@@ -1,0 +1,190 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  test:
+    name: Unit tests and types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # No version input: it reads packageManager from package.json, and passing both
+      # is an error ("Multiple versions of pnpm specified").
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm typecheck
+
+  cloudflare:
+    name: Cloudflare stack, end to end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # No version input: it reads packageManager from package.json, and passing both
+      # is an error ("Multiple versions of pnpm specified").
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # Scaffolded under examples/ so the workspace links @flaredev/* to this checkout,
+      # which is the point: CI must test the code in the PR, not the last release.
+      - name: Scaffold an app
+        run: node packages/cli/dist/index.js create examples/ci-cf --yes --skip-install --theme mono
+
+      - name: Install its dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Generate a resource
+        working-directory: examples/ci-cf
+        run: |
+          node ../../packages/cli/dist/index.js gen resource Contact \
+            --fields 'name:string, email:email!, status:enum(lead,customer), avatar:file:[image]:5mb?'
+
+      - name: Migrate and seed
+        working-directory: examples/ci-cf
+        run: |
+          node ../../packages/cli/dist/index.js migrate
+          node ../../packages/cli/dist/index.js seed:resource Contact 30
+
+      - name: Typecheck the generated app
+        working-directory: examples/ci-cf
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Build it
+        working-directory: examples/ci-cf
+        run: node ../../packages/cli/dist/index.js build
+
+      # 127.0.0.1 rather than localhost: with no BETTER_AUTH_URL set, the template's
+      # baseURL allowlist covers both, but the checks must use one origin throughout or
+      # sign-up is refused as cross-origin.
+      - name: Serve it and run the checks
+        working-directory: examples/ci-cf
+        run: |
+          node ../../packages/cli/dist/index.js start --port 8787 > server.log 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -sf http://127.0.0.1:8787/api/health > /dev/null && break
+            sleep 2
+          done
+          node ../../scripts/e2e-smoke.mjs http://127.0.0.1:8787 contacts
+
+      - name: Server log
+        if: failure()
+        working-directory: examples/ci-cf
+        run: tail -100 server.log
+
+  next:
+    name: Next.js stack, end to end
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: flare
+          POSTGRES_PASSWORD: flare
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U flare"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+
+      # R2 speaks S3, and so does MinIO — which is how the upload path gets tested
+      # without a Cloudflare account.
+      minio:
+        image: bitnami/minio:latest
+        env:
+          MINIO_ROOT_USER: flare
+          MINIO_ROOT_PASSWORD: flare-secret-123
+          MINIO_DEFAULT_BUCKETS: ci
+        ports: ["9000:9000"]
+        options: >-
+          --health-cmd "curl -sf http://127.0.0.1:9000/minio/health/live"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+      # No version input: it reads packageManager from package.json, and passing both
+      # is an error ("Multiple versions of pnpm specified").
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Scaffold an app
+        run: node packages/cli/dist/index.js create examples/ci-next --stack next --yes --skip-install --theme sky
+
+      - name: Install its dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Point it at the services
+        working-directory: examples/ci-next
+        run: |
+          cat >> .env <<'ENV'
+          DATABASE_URL="postgresql://flare:flare@127.0.0.1:5432/ci?sslmode=disable"
+          BETTER_AUTH_URL=http://127.0.0.1:3000
+          R2_ENDPOINT=http://127.0.0.1:9000
+          R2_BUCKET=ci
+          R2_ACCESS_KEY_ID=flare
+          R2_SECRET_ACCESS_KEY=flare-secret-123
+          ENV
+
+      - name: Generate a resource
+        working-directory: examples/ci-next
+        run: |
+          node ../../packages/cli/dist/index.js gen resource Contact \
+            --fields 'name:string, email:email!, status:enum(lead,customer), avatar:file:[image]:5mb?'
+
+      - name: Migrate
+        working-directory: examples/ci-next
+        run: npx prisma migrate dev --name ci --skip-generate && npx prisma generate
+
+      - name: Seed
+        working-directory: examples/ci-next
+        run: |
+          mkdir -p seeds
+          cp ../../scripts/ci/contacts.seed.ts seeds/contacts.seed.ts
+          node ../../packages/cli/dist/index.js seed
+
+      - name: Typecheck the generated app
+        working-directory: examples/ci-next
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Build it
+        working-directory: examples/ci-next
+        run: npx next build
+
+      - name: Serve it and run the checks
+        working-directory: examples/ci-next
+        run: |
+          npx next start --port 3000 > server.log 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -sf http://127.0.0.1:3000/api/health > /dev/null && break
+            sleep 2
+          done
+          node ../../scripts/e2e-smoke.mjs http://127.0.0.1:3000 contacts
+
+      # The two things HTTP cannot reach: a server action, and a byte in a bucket.
+      - name: Export and upload
+        working-directory: examples/ci-next
+        run: cp ../../scripts/ci/in-app-checks.mts . && npx tsx in-app-checks.mts
+
+      - name: Server log
+        if: failure()
+        working-directory: examples/ci-next
+        run: tail -100 server.log

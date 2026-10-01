@@ -7,6 +7,7 @@
 <p align="center"><strong>Describe a resource once. Get the table, the API, the validation and the admin screens.</strong></p>
 
 [![npm](https://img.shields.io/npm/v/@flaredev/cli?color=ff6b35&label=%40flaredev%2Fcli)](https://www.npmjs.com/package/@flaredev/cli)
+[![CI](https://github.com/MUKE-coder/flare-framework/actions/workflows/ci.yml/badge.svg)](https://github.com/MUKE-coder/flare-framework/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-ff6b35)](./LICENSE)
 [![docs](https://img.shields.io/badge/docs-flare--docs.codetotech.com-ff6b35)](https://flare-docs.codetotech.com)
 
