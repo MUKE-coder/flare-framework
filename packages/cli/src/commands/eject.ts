@@ -4,6 +4,7 @@ import pc from "picocolors";
 import { readStack, type Stack } from "../stack.js";
 import { CLOUDFLARE_ONLY } from "../versions.js";
 import { templatesDir } from "../utils/fs.js";
+import { joinMarkers, splitMarkers } from "../generator/markers.js";
 import { findAppRoot } from "./run.js";
 
 /**
@@ -107,8 +108,50 @@ export function compareTracked(appRoot: string, stack: Stack, filter?: string): 
       const target = join(appRoot, path);
       if (!existsSync(target)) return { path, state: "missing" as const, theirs };
       const mine = readFileSync(target, "utf8");
-      return { path, state: mine === theirs ? ("same" as const) : ("changed" as const), mine, theirs };
+      if (mine === theirs) return { path, state: "same" as const, mine, theirs };
+      // What `update` would actually write: upstream's code, this app's generated block.
+      const merged = mergeGeneratedBlock(mine, theirs);
+      if (merged !== undefined) {
+        // Already upstream apart from the block a generator owns, so there is nothing to
+        // report and nothing to do.
+        if (merged === mine) return { path, state: "same" as const, mine, theirs };
+        return { path, state: "changed" as const, mine, theirs: merged };
+      }
+      return { path, state: "changed" as const, mine, theirs };
     });
+}
+
+/**
+ * Flare's version of a file, with this app's generated block kept.
+ *
+ * Some tracked files have a `// generated:start` block that a *generator* owns, not the
+ * person: `lib/dashboard-nav.ts` holds the sidebar links `flare gen security` and
+ * `flare gen apikeys` add, and `lib/security.ts` holds the guard's configuration. Taking
+ * the template wholesale would quietly remove them, so an app that ran `flare update`
+ * lost its Security and API keys links and had to re-run both generators to find out why.
+ *
+ * `update` is meant to discard *your* edits to Flare's code. Generator output is neither:
+ * it is this app's state, written into a slot the template provides. So the code around
+ * the markers comes from upstream and the block stays.
+ *
+ * Returns the merged text, or undefined when there is nothing to merge — no block on one
+ * side or the other, or a file whose markers are malformed, where overwriting is the
+ * honest outcome.
+ */
+export function mergeGeneratedBlock(mine: string, theirs: string): string | undefined {
+  let ours: ReturnType<typeof splitMarkers>;
+  let upstream: ReturnType<typeof splitMarkers>;
+  try {
+    ours = splitMarkers(mine);
+    upstream = splitMarkers(theirs);
+  } catch {
+    // Markers that don't parse are not a block worth preserving.
+    return undefined;
+  }
+  if (!ours || !upstream) return undefined;
+  if (ours.block === upstream.block) return undefined;
+  // The hash travels with the block: it is what says whether the block was hand-edited.
+  return joinMarkers({ ...upstream, block: ours.block, hash: ours.hash });
 }
 
 /** A unified-ish diff: just the lines that differ, with a little context. */

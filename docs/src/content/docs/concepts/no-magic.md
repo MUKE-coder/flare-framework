@@ -114,6 +114,15 @@ quietly. Both accept a filter (`flare diff store`) to look at one file.
 Neither runs on its own. If you never call them, your copies stay exactly as
 you left them.
 
+A file with a `// generated:start` block is handled in two halves. The code
+around the markers is Flare's, so an update takes the new version of it; the
+block is not, so it stays. That block holds your app's state rather than an
+edit to Flare — the sidebar links `flare gen security` and `flare gen apikeys`
+write, for instance — and an update that removed them would mean re-running
+both generators to work out what happened. `flare diff` is quiet about such a
+file for the same reason: if the only difference is a block a generator owns,
+there is nothing to report.
+
 ## Editing it
 
 Go ahead. Some things people do:
