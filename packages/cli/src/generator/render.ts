@@ -92,6 +92,8 @@ export function renderTableModule(entry: LoadedResource, all: LoadedResource[]):
   else if (fields.some(([key]) => key === sortKey)) addIndex(sortKey, sortKey);
   // "Newest first" is what the dashboard, the audit trail and most APIs ask for.
   addIndex("createdAt", "created_at");
+  // Every read of a soft-deleting resource filters on this, so it is not an optional one.
+  if (resource.softDelete) addIndex("deletedAt", "deleted_at");
 
   const targets = [...new Set(fields.flatMap(([, def]) => (def.kind === "belongsTo" ? [resources.get(def.target)!] : [])))]
     .filter((target) => target.name !== resource.name)
@@ -122,6 +124,8 @@ export function renderTableModule(entry: LoadedResource, all: LoadedResource[]):
     `      .notNull()`,
     `      .default(${TIMESTAMP_DEFAULT})`,
     `      .$onUpdate(() => new Date()),`,
+    // Nullable, and null is the normal state: a stamped date is what "deleted" means.
+    ...(entry.resource.softDelete ? [`    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),`] : []),
     "  },",
     ...(extras.length ? ["  (table) => [", ...extras, "  ],"] : []),
     ");",
@@ -328,8 +332,20 @@ export function renderItemRoute(entry: LoadedResource, stack: Stack = "cloudflar
     ...write(
       "DELETE",
       "delete",
-      [`    const result = await store.delete(id);`, `    return result.ok ? new Response(null, { status: 204 }) : failureResponse(result);`].join("\n"),
-      `DELETE /api/${entry.resource.slug}/[id] — remove one ${one}.`,
+      (entry.resource.softDelete
+        ? [
+            `    // This resource keeps what it deletes. ?force=true removes the row for good,`,
+            `    // which is what emptying the trash does.`,
+            `    const force = new URL(request.url).searchParams.get("force") === "true";`,
+            `    const result = await store.delete(id, { force });`,
+          ]
+        : [`    const result = await store.delete(id);`]
+      )
+        .concat(`    return result.ok ? new Response(null, { status: 204 }) : failureResponse(result);`)
+        .join("\n"),
+      entry.resource.softDelete
+        ? `DELETE /api/${entry.resource.slug}/[id] — move one ${one} to the trash. ?force=true removes it for good.`
+        : `DELETE /api/${entry.resource.slug}/[id] — remove one ${one}.`,
     ),
   ].join("\n");
 }

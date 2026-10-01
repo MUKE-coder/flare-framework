@@ -81,8 +81,12 @@ function fromIndexName(name: string): string {
 
 export function prismaRows(delegate: PrismaDelegate, client: unknown): ResourceRows {
   /** The search and filter half of a where clause — everything but the cursor. */
-  function matching(query: Pick<RowsQuery, "search" | "filters">): Record<string, unknown> {
+  function matching(query: Pick<RowsQuery, "search" | "filters" | "deleted">): Record<string, unknown> {
     const where: Record<string, unknown> = { ...query.filters };
+    // A soft-deleting resource hides its deleted rows. Set on the query rather than in
+    // `filters` because "only" is `not: null`, which the filter shape cannot say.
+    if (query.deleted === "exclude") where.deletedAt = null;
+    else if (query.deleted === "only") where.deletedAt = { not: null };
     if (query.search && query.search.fields.length > 0) {
       // Insensitive on purpose: SQLite's LIKE is case-insensitive for ASCII, so this is
       // what keeps search behaving the same on both stacks.

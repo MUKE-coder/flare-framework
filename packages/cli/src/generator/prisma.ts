@@ -173,10 +173,14 @@ export function renderPrismaModel(entry: LoadedResource, all: LoadedResource[]):
 
   lines.push(`  createdAt DateTime @default(now()) @map("created_at")`);
   lines.push(`  updatedAt DateTime @updatedAt @map("updated_at")`);
+  // Nullable, and null is the normal state: a stamped date is what "deleted" means.
+  if (entry.resource.softDelete) lines.push(`  deletedAt DateTime? @map("deleted_at")`);
 
   // The same indexes the Cloudflare stack creates, for the same reasons: sorting a list,
   // filtering by status, and finding the rows that point at a record.
   indexes.push(`  @@index([createdAt])`);
+  // Every read of a soft-deleting resource filters on this, so it is not an optional one.
+  if (entry.resource.softDelete) indexes.push(`  @@index([deletedAt])`);
   const sortField = resource.defaultSort.field;
   if (!["createdAt", "updatedAt"].includes(sortField) && resource.fields[sortField]) indexes.push(`  @@index([${sortField}])`);
   for (const [key, def] of storedFields(resource)) {

@@ -25,8 +25,13 @@ import { findAppRoot } from "./run.js";
  * the storage adapter, the cache, the API helpers and every dashboard component are
  * copied too, so a fix to any of them could never reach an existing app — which is the
  * whole thing these commands exist to prevent.
+ *
+ * `app` for the same reason, and it was missed until a change to
+ * `app/dashboard/actions.ts` had nowhere to go. The per-resource routes and pages under
+ * `app/api/<slug>/` and `app/dashboard/<slug>/` are not affected: they have no template to
+ * compare against, so they fall out below — `flare sync-types` is what keeps those current.
  */
-const TRACKED = ["lib", "components"];
+const TRACKED = ["app", "lib", "components"];
 
 /**
  * Copies that are the app's own, not Flare's.

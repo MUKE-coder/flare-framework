@@ -24,6 +24,8 @@ export interface ListQuery {
    * rows); a cursor turns that into a range scan (~100ms).
    */
   cursor?: Cursor;
+  /** Which rows a soft-deleting resource returns: ?deleted=only is the Trash view. */
+  deleted?: "exclude" | "only" | "all";
 }
 
 /** The last row of the page you came from, and which way you're going. */
@@ -135,6 +137,18 @@ export function parseListQuery(
 
   const q = params.get("q")?.trim().slice(0, MAX_SEARCH_LENGTH) || undefined;
 
+  /**
+   * `?deleted=only` is the Trash view; `?deleted=all` is both. Ignored by a resource that
+   * does not soft-delete, rather than refused: a client asking for deleted rows of a table
+   * that keeps none has asked for nothing, which is what it gets.
+   */
+  let deleted: ListQuery["deleted"];
+  const rawDeleted = params.get("deleted");
+  if (rawDeleted !== null) {
+    if (rawDeleted === "only" || rawDeleted === "all" || rawDeleted === "exclude") deleted = rawDeleted;
+    else issues.push({ param: "deleted", message: `must be "exclude", "only" or "all"` });
+  }
+
   const rawCursor = params.get("cursor");
   let cursor: Cursor | undefined;
   if (rawCursor) {
@@ -157,5 +171,5 @@ export function parseListQuery(
     else filters[key] = value;
   }
 
-  return issues.length ? { issues } : { query: { page, perPage, sort, q, filters, cursor } };
+  return issues.length ? { issues } : { query: { page, perPage, sort, q, filters, cursor, deleted } };
 }

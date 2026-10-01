@@ -30,6 +30,16 @@ export interface RowsQuery {
   search?: { term: string; fields: string[] };
   /** field → value, or null for "is null". */
   filters: Record<string, unknown>;
+  /**
+   * Which rows a soft-deleting resource should return.
+   *
+   * `"exclude"` — the default everywhere except the Trash view — means `deleted_at is
+   * null`. `filters` cannot express the other two: it says "equals this value, or is
+   * null", and `"only"` needs `is not null`.
+   *
+   * Absent on a resource without `softDelete`, where there is no column to compare.
+   */
+  deleted?: "exclude" | "only" | "all";
   sort: { field: string; direction: "asc" | "desc" };
   /**
    * Keyset pagination: everything after (or before) this row, compared on
@@ -66,7 +76,7 @@ export interface ResourceRows {
   readonly db: unknown;
   find(query: RowsQuery): Promise<Row[]>;
   /** How many rows match, giving up at `limit` so a huge table is never fully counted. */
-  countUpTo(query: Pick<RowsQuery, "search" | "filters">, limit: number): Promise<number>;
+  countUpTo(query: Pick<RowsQuery, "search" | "filters" | "deleted">, limit: number): Promise<number>;
   byId(id: string): Promise<Row | null>;
   titles(ids: string[], titleField: string): Promise<{ id: string; title: unknown }[]>;
   insert(values: Row): Promise<Row>;

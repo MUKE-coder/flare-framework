@@ -128,7 +128,8 @@ export function createResourceStore(options: ResourceStoreOptions) {
   // can't be asked the same question without a round trip, so that check stays here.
   const columns = "columns" in rows ? (rows.columns as Record<string, { name: string }>) : undefined;
   if (columns) {
-    for (const key of ["id", "createdAt", "updatedAt", ...fields.map(([key]) => key)]) {
+    const expected = ["id", "createdAt", "updatedAt", ...(resource.softDelete ? ["deletedAt"] : []), ...fields.map(([key]) => key)];
+    for (const key of expected) {
       if (!columns[key]) {
         throw new Error(`Resource "${resource.name}": table has no column for "${key}". Run \`flare sync-types\` and create a migration.`);
       }
@@ -249,6 +250,9 @@ export function createResourceStore(options: ResourceStoreOptions) {
 
   const isFailure = (value: unknown): value is Failure => value !== null && typeof value === "object" && "ok" in value;
 
+  /** Whether a row has been soft-deleted. Always false on a resource that removes rows. */
+  const isDeleted = (row: Row) => resource.softDelete && row.deletedAt != null;
+
   return {
     resource,
 
@@ -274,7 +278,10 @@ export function createResourceStore(options: ResourceStoreOptions) {
       };
 
       const searchable = fields.filter(([, def]) => isSearchable(def)).map(([key]) => key);
-      const matching = { search: q ? { term: q, fields: searchable } : undefined, filters };
+      // A resource that keeps deleted rows hides them unless this list asked for them.
+      // Absent otherwise, so an adapter has nothing to compare on a table with no column.
+      const deleted = resource.softDelete ? (parsed.query.deleted ?? "exclude") : undefined;
+      const matching = { search: q ? { term: q, fields: searchable } : undefined, filters, deleted };
 
       // Reading backwards from a "previous page" cursor means flipping the order and
       // flipping the rows back afterwards.
@@ -327,13 +334,16 @@ export function createResourceStore(options: ResourceStoreOptions) {
       };
     },
 
-    async get(id: string): Promise<Result<Record<string, unknown>>> {
+    async get(id: string, options: { deleted?: "exclude" | "only" | "all" } = {}): Promise<Result<Record<string, unknown>>> {
       const limit = await confine();
       if (isFailure(limit)) return limit;
       const record = await rows.byId(id);
       if (!record) return notFound();
       // Not 403: a user who may not see this record should not learn that it exists.
       if (limit && !owns(record, limit)) return notFound();
+      // `rows.byId` takes an id and nothing else, so hiding a deleted row happens here.
+      // `options.deleted` is how the Trash view and `restore` reach one.
+      if (isDeleted(record) && options.deleted !== "only" && options.deleted !== "all") return notFound();
       return { ok: true, data: withComputed(record) };
     },
 
@@ -445,21 +455,60 @@ export function createResourceStore(options: ResourceStoreOptions) {
       });
     },
 
-    delete(id: string): Promise<Result<{ id: string }>> {
+    /**
+     * Delete a record. On a `softDelete` resource this stamps `deletedAt` instead of
+     * removing the row, and `force` removes it for good.
+     *
+     * The hooks run either way and in the same order. `beforeDelete` is where a deletion
+     * is refused or cleaned up after, and that it happens to be reversible this time does
+     * not make it a different event.
+     */
+    delete(id: string, options: { force?: boolean } = {}): Promise<Result<{ id: string }>> {
       return writing("delete", async () => {
         const context = await hookContext();
         const limit = await confine();
         if (isFailure(limit)) return limit;
 
-        const current = limit || hooks.beforeDelete ? await rows.byId(id) : null;
+        const soft = resource.softDelete && options.force !== true;
+        const current = limit || soft || hooks.beforeDelete ? await rows.byId(id) : null;
         if (limit && (!current || !owns(current, limit))) return notFound();
 
         if (hooks.beforeDelete) {
           await hooks.beforeDelete({ ...context, id, current });
         }
-        if (!(await rows.remove(id))) return notFound();
+
+        if (soft) {
+          if (!current) return notFound();
+          // Already in the trash: say not found rather than moving the date, so the
+          // original deletion time survives being deleted twice.
+          if (isDeleted(current)) return notFound();
+          if (!(await rows.update(id, { deletedAt: new Date(), updatedAt: new Date() }))) return notFound();
+        } else if (!(await rows.remove(id))) {
+          return notFound();
+        }
+
         await hooks.afterDelete?.({ ...context, id });
         return { ok: true, data: { id } };
+      });
+    },
+
+    /**
+     * Put a soft-deleted record back. `404` for one that is not in the trash, and for a
+     * resource that does not keep deleted rows at all — there is nothing to restore.
+     */
+    restore(id: string): Promise<Result<Record<string, unknown>>> {
+      return writing("update", async () => {
+        if (!resource.softDelete) return notFound();
+        const limit = await confine();
+        if (isFailure(limit)) return limit;
+
+        const current = await rows.byId(id);
+        if (!current) return notFound();
+        if (limit && !owns(current, limit)) return notFound();
+        if (!isDeleted(current)) return notFound();
+
+        const record = await rows.update(id, { deletedAt: null, updatedAt: new Date() });
+        return record ? { ok: true, data: withComputed(record) } : notFound();
       });
     },
   };

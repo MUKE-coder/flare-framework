@@ -21,6 +21,7 @@ import { site } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { ColumnMenu } from "./column-menu";
 import { ExportButton } from "./export-button";
+import { TrashToggle } from "./trash-toggle";
 import { isInlineEditable } from "./editable";
 import { InlineCell } from "./inline-cell";
 import type { RelationMeta } from "./fields/field-widget";
@@ -54,6 +55,8 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
   const owned = await confinedField(resource.name);
   const omit = owned ? [owned] : undefined;
   const params = toSearchParams(searchParams);
+  // Which view this is. State in the URL like ?page and ?sort, so the trash is linkable.
+  const viewingTrash = resource.softDelete && params.get("deleted") === "only";
   const store = dashboardStore(resource.name);
 
   let result = await store.list(params);
@@ -111,6 +114,7 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
       <div className="flex flex-wrap items-center justify-between gap-2">
         <ResourceTableToolbar resource={forClient} />
         <div className="flex flex-wrap items-center gap-2">
+          {resource.softDelete && <TrashToggle basePath={basePath} viewingTrash={viewingTrash} />}
           <SaveViewButton resourceName={resource.name} label={resource.pluralLabel} />
           <ColumnMenu columns={allColumns.map(({ key, label }) => ({ key, label }))} visible={columns.map((column) => column.key)} />
           <ExportButton resourceName={resource.name} pluralLabel={resource.pluralLabel} />
@@ -307,6 +311,7 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
                         record={overlayForms ? row : undefined}
                         relations={relations}
                         omit={omit}
+                        inTrash={viewingTrash}
                         listHref={basePath}
                         editHref={resourcePath(resource, id, "edit")}
                         detailHref={resourcePath(resource, id)}

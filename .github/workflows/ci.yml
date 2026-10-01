@@ -71,6 +71,11 @@ jobs:
         working-directory: examples/ci-cf
         run: node ../../packages/cli/dist/index.js gen resource Note --fields 'title:string, body:markdown, labels:tags?, settings:json?'
 
+      # A delete stamps deletedAt instead of removing the row; the dashboard grows a Trash.
+      - name: Generate a soft-deleting resource
+        working-directory: examples/ci-cf
+        run: node ../../packages/cli/dist/index.js gen resource Ticket --fields 'subject:string!, status:enum(open,closed)' --soft-delete
+
       - name: Switch on API keys
         working-directory: examples/ci-cf
         run: node ../../packages/cli/dist/index.js gen apikeys
@@ -107,6 +112,7 @@ jobs:
           node ../../scripts/e2e-ownership.mjs http://127.0.0.1:8787 invoices
           node ../../scripts/e2e-apikeys.mjs http://127.0.0.1:8787 invoices
           node ../../scripts/e2e-field-kinds.mjs http://127.0.0.1:8787 notes
+          node ../../scripts/e2e-soft-delete.mjs http://127.0.0.1:8787 tickets
 
       # No working-directory: the step runs on any failure, including one before the app
       # was scaffolded, and naming a missing directory fails the step instead of the run.
@@ -197,6 +203,11 @@ jobs:
         working-directory: examples/ci-next
         run: node ../../packages/cli/dist/index.js gen resource Note --fields 'title:string, body:markdown, labels:tags?, settings:json?'
 
+      # A delete stamps deletedAt instead of removing the row; the dashboard grows a Trash.
+      - name: Generate a soft-deleting resource
+        working-directory: examples/ci-next
+        run: node ../../packages/cli/dist/index.js gen resource Ticket --fields 'subject:string!, status:enum(open,closed)' --soft-delete
+
       - name: Switch on API keys
         working-directory: examples/ci-next
         run: node ../../packages/cli/dist/index.js gen apikeys
@@ -238,6 +249,7 @@ jobs:
           node ../../scripts/e2e-ownership.mjs http://127.0.0.1:3000 invoices
           node ../../scripts/e2e-apikeys.mjs http://127.0.0.1:3000 invoices
           node ../../scripts/e2e-field-kinds.mjs http://127.0.0.1:3000 notes
+          node ../../scripts/e2e-soft-delete.mjs http://127.0.0.1:3000 tickets
 
       # The two things HTTP cannot reach: a server action, and a byte in a bucket.
       - name: Export and upload

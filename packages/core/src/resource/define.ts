@@ -1,7 +1,7 @@
 import { STRING_FORMATS, type CreateInput, type Field, type RecordOf, type StoredField, type UpdateInput } from "./fields.js";
 import { camelCase, humanize, kebabCase, pascalCase, pluralize, snakeCase } from "./naming.js";
 
-export const RESERVED_FIELD_NAMES = ["id", "createdAt", "updatedAt"] as const;
+export const RESERVED_FIELD_NAMES = ["id", "createdAt", "updatedAt", "deletedAt"] as const;
 
 type FieldKey<Fields> = Extract<keyof Fields, string>;
 
@@ -27,6 +27,20 @@ export interface ResourceConfig<Fields extends Record<string, Field>> {
   defaultSort?: { field: FieldKey<Fields> | "createdAt" | "updatedAt"; direction: "asc" | "desc" };
   /** Page size for list endpoints and tables. Default 25. */
   perPage?: number;
+  /**
+   * Keep deleted records instead of removing them.
+   *
+   * Adds a nullable `deletedAt` column. A delete stamps it; every read leaves those rows
+   * out, so nothing else in the app has to know. The dashboard grows a Trash view with
+   * Restore and Delete forever, and `?deleted=only` lists them over the API.
+   *
+   * Two things it does not change, both worth knowing before switching it on. A unique
+   * value is still taken by a deleted row — an email freed by deleting a user cannot be
+   * signed up again until the row is really gone. And a foreign key still points at it, so
+   * a deleted parent keeps its children valid, which is usually what you wanted but is a
+   * decision rather than an accident.
+   */
+  softDelete?: boolean;
   /**
    * Your logic, beside the fields it belongs to. Every write — the REST API, the
    * dashboard's forms, a seed, an import — goes through the same store, so a hook here
@@ -81,6 +95,8 @@ export interface Resource<Fields extends Record<string, Field> = Record<string, 
   titleField: string;
   defaultSort: { field: string; direction: "asc" | "desc" };
   perPage: number;
+  /** Deleted records are kept and hidden, not removed. See ResourceConfig.softDelete. */
+  softDelete: boolean;
   /** Fields with labels filled in. */
   fields: Fields & Record<string, Field & { label: string }>;
   /** Type-only helpers: `typeof contact.$types.record`. Always undefined at runtime. */
@@ -194,6 +210,7 @@ export function defineResource<const Fields extends Record<string, Field>>(confi
     titleField,
     defaultSort,
     perPage,
+    softDelete: config.softDelete === true,
     fields: fields as Resource<Fields>["fields"],
     $types: undefined as unknown as Resource<Fields>["$types"],
   };

@@ -87,6 +87,7 @@ export default defineConfig({
             { label: "Email (Resend)", slug: "guides/mail" },
             { label: "Roles & policies", slug: "guides/roles-and-policies" },
             { label: "API keys", slug: "guides/api-keys" },
+            { label: "Soft delete", slug: "guides/soft-delete" },
             { label: "The dashboard", slug: "guides/dashboard" },
             { label: "Where your code goes", slug: "guides/your-code" },
             { label: "Caching", slug: "guides/caching" },

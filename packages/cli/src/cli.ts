@@ -114,6 +114,7 @@ export function createCli() {
     .option("--fields <fields>", "resource: fields, e.g. 'name:string, email:string!, status:enum(lead,customer)' (single quotes: bash treats ! in double quotes as history)")
     .option("--group <name>", "resource: sidebar heading to file it under, e.g. Sales")
     .option("--icon <name>", "resource: lucide icon for the sidebar, e.g. users")
+    .option("--soft-delete", "resource: keep deleted rows and hide them, with a Trash view in the dashboard")
     .option("--method <verb>", "endpoint: GET (default), POST, PATCH, PUT or DELETE")
     .option("--action <action>", "endpoint: policy action to require (read, create, update, delete)")
     .option("--record", "endpoint: put it under one record, /api/<resource>/[id]/<name>")
@@ -128,6 +129,7 @@ export function createCli() {
     .option("--skip-install", "billing/apikeys: write files without adding the dependency")
     .option("--skip-migration", "billing/security/apikeys: skip generating the schema migration")
     .example("flare gen resource Contact --fields 'name:string, email:string!, company:belongsTo(Company)?'")
+    .example("flare gen resource Invoice --fields 'number:string!' --soft-delete   # a delete goes to the Trash")
     .example("flare gen endpoint Order publish --method POST --record")
     .example("flare gen migration backfill_contact_status")
     .example("flare gen migration add_phone_to_contacts --from-schema")
@@ -146,6 +148,7 @@ export function createCli() {
           fields?: string;
           group?: string;
           icon?: string;
+          softDelete?: boolean;
           method?: string;
           action?: string;
           record?: boolean;
@@ -171,7 +174,14 @@ export function createCli() {
         if (["resource", "migration", "policy"].includes(generator) && !name) {
           throw new Error(`flare gen ${generator} needs a name, e.g. flare gen ${generator} ${generator === "migration" ? "add_phone_to_contacts" : "Contact"}`);
         }
-        if (generator === "resource") return genResource(name!, { fields: options.fields, force: options.force, group: options.group, icon: options.icon });
+        if (generator === "resource")
+          return genResource(name!, {
+            fields: options.fields,
+            force: options.force,
+            group: options.group,
+            icon: options.icon,
+            softDelete: options.softDelete,
+          });
         if (generator === "endpoint") {
           if (!name || !second) throw new Error("flare gen endpoint needs a resource and a name, e.g. flare gen endpoint Order publish");
           return genEndpoint(name, second, { method: options.method, action: options.action, record: options.record });

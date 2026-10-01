@@ -24,6 +24,7 @@ package manager started the command. `--pm npm` overrides.
 | `flare gen billing` | Stripe checkout, portal and webhooks |
 | `flare gen security` | Zone rules and the detector layer (Cloudflare only) |
 | `flare gen apikeys` | API keys, so a cron job, script or mobile app can call the API |
+| `flare gen resource X --soft-delete` | A delete stamps `deletedAt` instead of removing the row |
  | API keys for cron jobs, scripts and mobile apps |
 
 `--force` overwrites a generated block someone has hand-edited. It is the

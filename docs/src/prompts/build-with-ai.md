@@ -141,6 +141,13 @@ because it nearly always grows columns (quantity, price). For a fixed
 vocabulary with no data of its own, use `multiselect`; for labels nobody
 decided in advance, `tags`.
 
+**Deleting.** `--soft-delete` on a resource keeps the row and stamps `deletedAt`;
+every read hides it and the dashboard grows a Trash view with Restore. Don't
+hand-roll a `deleted` boolean and filter it yourself — the store already does it
+for every path, and a boolean you filter in one place is a boolean somebody
+forgets in another. One thing to know before using it: a deleted row still holds
+its unique values.
+
 **Three kinds worth knowing.** `tags` for a free list of labels. `json` for
 what is not table-shaped — a settings blob, a payload — validated as parseable
 and nothing more. `markdown` (alias `richtext`) for long text with a

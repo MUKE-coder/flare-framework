@@ -16,6 +16,8 @@ export interface GenResourceOptions {
   group?: string;
   /** lucide-react icon name for the sidebar, e.g. "users". */
   icon?: string;
+  /** Keep deleted rows and hide them, with a Trash view in the dashboard. */
+  softDelete?: boolean;
   fields?: string;
   cwd?: string;
   /** Overwrite hand-edited generated blocks (including the descriptor's fields). */
@@ -78,7 +80,7 @@ export async function genResource(rawName: string, options: GenResourceOptions):
 
     if (!exists) {
       mkdirSync(dirname(path), { recursive: true });
-      writeFileSync(path, renderDescriptor(name, fields, { group: options.group, icon: options.icon }));
+      writeFileSync(path, renderDescriptor(name, fields, { group: options.group, icon: options.icon, softDelete: options.softDelete }));
       log(`${pc.green("create".padEnd(9))} ${relativePath}`);
     } else {
       try {

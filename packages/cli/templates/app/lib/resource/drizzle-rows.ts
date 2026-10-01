@@ -15,7 +15,7 @@
  * itself has no dialect in it. Behaviour is unchanged on purpose: the same LIKE search,
  * the same `(sort, id)` cursor comparison, the same capped count.
  */
-import { and, asc, count, desc, eq, getTableColumns, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, getTableColumns, inArray, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
 import type { BaseSQLiteDatabase, SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import type { ConstraintHit, ResourceRows, Row, RowsQuery } from "./rows";
 
@@ -43,8 +43,15 @@ export function drizzleRows(table: SQLiteTable, getDb: () => AnyDatabase): Resou
   const byId = (id: string) => eq(idColumn, id);
 
   /** The search and filter half of a where clause — everything but the cursor. */
-  function matching(query: Pick<RowsQuery, "search" | "filters">): SQL[] {
+  function matching(query: Pick<RowsQuery, "search" | "filters" | "deleted">): SQL[] {
     const conditions: SQL[] = [];
+    // A soft-deleting resource hides its deleted rows. `filters` cannot say this: it means
+    // "equals, or is null", and "only" needs the opposite of its null case.
+    const deletedAt = columns.deletedAt;
+    if (query.deleted && deletedAt) {
+      if (query.deleted === "exclude") conditions.push(isNull(deletedAt));
+      else if (query.deleted === "only") conditions.push(isNotNull(deletedAt));
+    }
     if (query.search && query.search.fields.length > 0) {
       const pattern = `%${query.search.term.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
       const searchable = query.search.fields.map((key) => columns[key]!);

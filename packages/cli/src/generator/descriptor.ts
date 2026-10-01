@@ -88,14 +88,22 @@ export function renderFieldsBlock(fields: ParsedField[]): string {
  * would at runtime, so an invalid descriptor is never written. The fields block is
  * tracked, so re-running `gen resource --fields` can tell whether it was edited by hand.
  */
-export function renderDescriptor(name: string, fields: ParsedField[], options: { group?: string; icon?: string } = {}): string {
+export function renderDescriptor(
+  name: string,
+  fields: ParsedField[],
+  options: { group?: string; icon?: string; softDelete?: boolean } = {},
+): string {
   defineResource({ name, fields: Object.fromEntries(fields.map((f) => [f.key, toField(f)])) });
   const block = renderFieldsBlock(fields);
   // Both show up in the sidebar: the icon on the item, the group as its heading.
+  // softDelete sits with them because it is a property of the resource, not of a field.
   const heading = [
     options.icon ? `  icon: ${literal(options.icon)},
 ` : "",
     options.group ? `  group: ${literal(options.group)},
+` : "",
+    options.softDelete ? `  // A delete stamps deletedAt instead of removing the row; the dashboard grows a Trash view.
+  softDelete: true,
 ` : "",
   ].join("");
 

@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { ExternalLinkIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import { ExternalLinkIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon, Undo2Icon as UndoIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { ClientResource } from "@flaredev/core";
-import { deleteRecordAction } from "@/app/dashboard/actions";
+import { deleteRecordAction, restoreRecordAction } from "@/app/dashboard/actions";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -43,6 +43,7 @@ export function RowActions({
   detailHref,
   canUpdate = true,
   canDelete = true,
+  inTrash = false,
 }: {
   resource: ClientResource;
   id: string;
@@ -57,6 +58,8 @@ export function RowActions({
   detailHref: string;
   canUpdate?: boolean;
   canDelete?: boolean;
+  /** Viewing the trash of a softDelete resource: restore and empty, not edit and delete. */
+  inTrash?: boolean;
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
@@ -66,10 +69,23 @@ export function RowActions({
 
   function onDelete() {
     startTransition(async () => {
-      const result = await deleteRecordAction(resourceName, id);
+      // In the trash, Delete means for good — there is nowhere further to move it.
+      const result = await deleteRecordAction(resourceName, id, { force: inTrash });
       if (result.ok) {
-        toast.success(`${label} deleted.`);
+        toast.success(inTrash ? `${label} deleted for good.` : `${label} moved to the trash.`);
         setConfirming(false);
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  function onRestore() {
+    startTransition(async () => {
+      const result = await restoreRecordAction(resourceName, id);
+      if (result.ok) {
+        toast.success(`${label} restored.`);
         router.refresh();
       } else {
         toast.error(result.error);
@@ -97,7 +113,15 @@ export function RowActions({
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          {canUpdate && (
+          {canUpdate && inTrash && (
+            <DropdownMenuGroup>
+              <DropdownMenuItem onSelect={onRestore}>
+                <UndoIcon />
+                Restore
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          )}
+          {canUpdate && !inTrash && (
             <DropdownMenuGroup>
               {record ? (
                 <DropdownMenuItem onSelect={() => setEditing(true)}>
@@ -119,7 +143,7 @@ export function RowActions({
             <DropdownMenuGroup>
               <DropdownMenuItem variant="destructive" onSelect={() => setConfirming(true)}>
                 <Trash2Icon />
-                Delete
+                {inTrash ? "Delete forever" : "Delete"}
               </DropdownMenuItem>
             </DropdownMenuGroup>
           )}
@@ -143,8 +167,14 @@ export function RowActions({
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this {label.toLowerCase()}?</AlertDialogTitle>
-            <AlertDialogDescription>This can&apos;t be undone.</AlertDialogDescription>
+            <AlertDialogTitle>
+              {inTrash ? `Delete this ${label.toLowerCase()} for good?` : `Delete this ${label.toLowerCase()}?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {inTrash
+                ? "The record and its uploaded files are removed. This cannot be undone."
+                : "It moves to the trash, where you can restore it."}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
