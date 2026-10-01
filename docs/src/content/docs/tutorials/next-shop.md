@@ -410,7 +410,8 @@ can fix.
 
 Realtime is the real gap. On Cloudflare every channel is a Durable Object
 with its own storage and open websockets; there is no equivalent here, so
-`realtimeChannel().publish()` is a no-op, and the observability page links to
+`realtimeChannel().publish()` delivers nothing — it warns once per channel and
+lets the write through — and the observability page links to
 Vercel's dashboard instead of charting your traffic in-app.
 [The stacks page](/start/stacks/) has the full list, kept honest.
 

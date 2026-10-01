@@ -103,7 +103,9 @@ scale-to-zero, not anything in your code.
 
 ## What doesn't come with this stack
 
-Realtime. `realtimeChannel().publish()` is a no-op here, because Cloudflare's
-half of it is a Durable Object per channel and Vercel has no equivalent. The
+Realtime. `realtimeChannel().publish()` delivers nothing here, because
+Cloudflare's half of it is a Durable Object per channel and Vercel has no
+equivalent. It warns once per channel rather than failing quietly, and the write
+that triggered it still succeeds. The
 observability page links to Vercel's own dashboard rather than charting your
 traffic in the app. [Choosing a stack](/start/stacks/) is the honest list.

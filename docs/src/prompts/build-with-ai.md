@@ -57,7 +57,8 @@ Deploy with `flare deploy`.
 (yours, never regenerated). Migrate with `prisma migrate dev` locally and
 `flare migrate` (= `prisma migrate deploy`) in production. Deploy with
 `flare deploy` (= `vercel deploy --prod`). Cache is Upstash Redis. Realtime
-does not exist on this stack — `realtimeChannel().publish()` is a no-op.
+does not exist on this stack: `realtimeChannel().publish()` delivers nothing and
+warns once per channel. Don't build a feature on it here.
 
 Things that differ in practice, not just on paper:
 

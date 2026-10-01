@@ -158,7 +158,8 @@ jobs:
 
       - name: Migrate
         working-directory: examples/ci-next
-        run: npx prisma migrate dev --name ci --skip-generate && npx prisma generate
+        # Prisma 7 dropped --skip-generate; migrate dev runs the generators itself.
+        run: npx prisma migrate dev --name ci
 
       - name: Seed
         working-directory: examples/ci-next

@@ -135,6 +135,30 @@ either side.
 | Deploy | `flare deploy` | `flare deploy` (= `vercel deploy --prod`) |
 | Fill a table | `flare seed:resource Product 25k` | `flare seed:make` + `flare seed` |
 
+## Stack differences, in one table
+
+Everything that behaves differently, in one place. If a command or a feature is
+not here, it works the same on both.
+
+| | Cloudflare | Next.js |
+| --- | --- | --- |
+| `flare migrate` | applies pending D1 migrations | runs `prisma migrate deploy` |
+| Writing a migration | `flare gen migration --from-schema` | `npx prisma migrate dev` |
+| `flare seed` | the local D1 database | the database in `DATABASE_URL` |
+| `flare seed:resource` | fills a table from its descriptor | **not available** — use `flare seed:make <name> --resource <R>`, then `flare seed` |
+| `--remote`, `--env`, `--database` | target the deployed D1 database | **ignored** — there is one database, the one in `DATABASE_URL` |
+| `flare dev` / `build` / `start` | vinext and wrangler | `next dev` / `next build` / `next start` |
+| `flare deploy` | migrates, builds, pushes to Workers, syncs secrets and zone rules | `vercel deploy --prod` |
+| `realtimeChannel().publish()` | delivered by a Durable Object per channel | **does nothing**, and warns once per channel saying so |
+| Websocket connections | `/realtime/<channel>/ws` | refused — `authorizeRealtime` returns `false` |
+| Observability page | reads Cloudflare's Analytics API | reports "unconfigured" and points at Vercel's dashboard |
+| Full-text search | `LIKE` over indexed columns | the same, plus Postgres `tsvector` if you write it |
+| Request CPU | 10ms free, 30s paid | the function's configured timeout |
+| Node APIs | Workers runtime — no filesystem, no native modules | all of them |
+
+`flare --help` reads the stack from your `package.json`, so it describes the one
+you are actually on rather than listing both.
+
 ## Where they genuinely differ
 
 Beyond the table at the top, these are the differences that change what you
@@ -163,7 +187,9 @@ stacks use R2 for storage.
 
 **Realtime.** Cloudflare gives every channel a Durable Object — one address,
 its own storage, websockets that stay open. Vercel has no equivalent, so
-`realtimeChannel().publish()` is a no-op on that stack.
+`realtimeChannel().publish()` delivers nothing. It logs a warning the first
+time, once per channel, rather than failing quietly; the write that triggered
+it still succeeds.
 
 ## Can I switch later?
 
@@ -220,8 +246,10 @@ Being straight about it:
 
 - **Realtime.** Cloudflare gives every channel a Durable Object — one
   address, its own storage, websockets that stay open. Vercel has no
-  equivalent, so `realtimeChannel().publish()` is a no-op. A hosted pub/sub
-  behind the same two functions is the way to add it.
+  equivalent, so `realtimeChannel().publish()` delivers nothing — it warns
+  once per channel and lets the write succeed. `lib/realtime.ts` is two
+  functions in your app; a hosted pub/sub (Ably, Pusher, Upstash) behind them
+  is the way to add it.
 - **Traffic analytics in-app.** The observability page reads Cloudflare's
   analytics API on the other stack; here it points you at Vercel's dashboard
   rather than holding a token that can read your whole account.

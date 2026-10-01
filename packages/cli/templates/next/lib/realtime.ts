@@ -3,8 +3,8 @@
  *
  * The Cloudflare stack gives every channel a Durable Object: one address, one thread,
  * its own storage, and websockets that stay open. Vercel has no equivalent — functions
- * don't hold connections — so rather than pretend, this says so, and publishing is a
- * no-op that never breaks a write.
+ * don't hold connections — so rather than pretend, publishing warns once per channel
+ * and drops the event, which never breaks the write that triggered it.
  *
  * If you need it here, the shape to reach for is a hosted pub/sub (Ably, Pusher,
  * Upstash) behind these same two functions.
