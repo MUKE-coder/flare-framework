@@ -158,8 +158,10 @@ jobs:
 
       - name: Migrate
         working-directory: examples/ci-next
-        # Prisma 7 dropped --skip-generate; migrate dev runs the generators itself.
-        run: npx prisma migrate dev --name ci
+        # Prisma 7 dropped --skip-generate, and its migrate dev does not run the
+        # generators either — so lib/generated/prisma has to be asked for. Seed and
+        # typecheck both import it, and both run before the build that would make it.
+        run: npx prisma migrate dev --name ci && npx prisma generate
 
       - name: Seed
         working-directory: examples/ci-next
