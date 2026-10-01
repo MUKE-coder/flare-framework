@@ -7,6 +7,11 @@ import {
 import { env } from "cloudflare:workers";
 import { auth } from "./auth";
 
+// Re-exported so `import type { RealtimeChannel } from "@/lib/realtime"` compiles on both
+// stacks. The Next.js copy has no hub to import it from and declares the same shape, so
+// without this a type that is identical in both apps would only be importable in one.
+export type { RealtimeChannel } from "@flaredev/core/realtime/server";
+
 /**
  * Who may open a realtime connection, per channel. `worker/index.ts` calls this for
  * every `/realtime/<channel>/ws` upgrade, after rejecting cross-site origins.

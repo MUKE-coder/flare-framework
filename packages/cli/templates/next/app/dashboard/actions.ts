@@ -41,20 +41,58 @@ async function removeUploads(resource: Resource, record: Record<string, unknown>
   }
 }
 
-export async function deleteRecordAction(resourceName: string, id: string): Promise<ActionResult<{ id: string }>> {
+/**
+ * Delete a record, or empty it from the trash with `force`.
+ *
+ * Uploads are only cleaned up when the row really goes. A soft delete is meant to be
+ * reversible, and a restore that gave back a record with its files missing would be a
+ * worse outcome than keeping the bytes a little longer.
+ */
+export async function deleteRecordAction(
+  resourceName: string,
+  id: string,
+  options: { force?: boolean } = {},
+): Promise<ActionResult<{ id: string }>> {
   const denied = await allowed(resourceName, "delete");
   if (denied) return denied;
 
   const store = dashboardStore(resourceName);
-  const existing = await store.get(id);
-  const result = await store.delete(id);
+  const force = options.force === true;
+  const soft = store.resource.softDelete && !force;
+  // `deleted: "all"` so emptying the trash can read the row it is about to remove.
+  const existing = await store.get(id, { deleted: "all" });
+  const result = await store.delete(id, { force });
   if (result.ok) {
-    await removeUploads(store.resource, existing.ok ? existing.data : null);
+    if (!soft) await removeUploads(store.resource, existing.ok ? existing.data : null);
     await recordAudit({
       action: "delete",
       resource: resourceName,
       recordId: id,
       recordLabel: existing.ok ? recordTitle(store.resource, existing.data) : null,
+      // Which kind of delete this was, since on a softDelete resource they are different
+      // events with the same name.
+      changes: store.resource.softDelete ? { trash: soft ? "moved to" : "emptied from" } : null,
+    });
+    revalidatePath(resourcePath(store.resource));
+  }
+  return result;
+}
+
+/** Put a record back from the trash. Only a `softDelete` resource has anything to restore. */
+export async function restoreRecordAction(resourceName: string, id: string): Promise<ActionResult<Record<string, unknown>>> {
+  // Restoring is a change to the record, so it needs the permission that changes records.
+  const denied = await allowed(resourceName, "update");
+  if (denied) return denied;
+
+  const store = dashboardStore(resourceName);
+  const result = await store.restore(id);
+  if (result.ok) {
+    await recordAudit({
+      action: "update",
+      resource: resourceName,
+      recordId: id,
+      recordLabel: recordTitle(store.resource, result.data),
+      changes: { trash: "restored from" },
     });
     revalidatePath(resourcePath(store.resource));
   }
