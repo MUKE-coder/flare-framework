@@ -3,6 +3,7 @@ import pc from "picocolors";
 import * as prompts from "@clack/prompts";
 import { FLARE_VERSION } from "@flaredev/core";
 import { createApp, printNextSteps, toAppName } from "./commands/create.js";
+import { genApiKeys } from "./commands/gen-apikeys.js";
 import { genBilling } from "./commands/gen-billing.js";
 import { genSecurity } from "./commands/gen-security.js";
 import { setTheme } from "./commands/theme.js";
@@ -34,7 +35,7 @@ import { formatCount, formatDuration } from "./terminal.js";
  * the "Unknown generator" error did not, so the error told you a working generator
  * didn't exist.
  */
-const GENERATORS = ["resource", "endpoint", "migration", "policy", "billing", "security"] as const;
+const GENERATORS = ["resource", "endpoint", "migration", "policy", "billing", "security", "apikeys"] as const;
 
 /**
  * The stack of the app `flare` was run in, or undefined outside one (`flare create`).
@@ -124,8 +125,8 @@ export function createCli() {
     .option("--own-except <roles>", "policy: roles that see every row despite --own, e.g. admin")
     .option("--provider <provider>", "billing: payment provider (default: stripe)")
     .option("--mode <mode>", "billing: subscriptions (the default; includes one-time checkout)")
-    .option("--skip-install", "billing: write files without installing the stripe dependency")
-    .option("--skip-migration", "billing/security: skip generating the schema migration")
+    .option("--skip-install", "billing/apikeys: write files without adding the dependency")
+    .option("--skip-migration", "billing/security/apikeys: skip generating the schema migration")
     .example("flare gen resource Contact --fields 'name:string, email:string!, company:belongsTo(Company)?'")
     .example("flare gen endpoint Order publish --method POST --record")
     .example("flare gen migration backfill_contact_status")
@@ -134,6 +135,8 @@ export function createCli() {
     .example("flare gen policy Invoice --roles staff --own userId --own-except admin   # each user sees only their own")
     .example("flare gen billing --provider stripe --mode subscriptions")
     .example("flare gen security")
+    .example("flare gen apikeys                                   # API keys for cron jobs, scripts and mobile apps")
+    .example("flare gen apikeys                                     # bearer keys for crons, scripts and mobile apps")
     .action(
       async (
         generator: string,
@@ -161,6 +164,10 @@ export function createCli() {
         if (generator === "billing")
           return genBilling({ provider: options.provider, mode: options.mode, force: options.force, skipInstall: options.skipInstall, skipMigration: options.skipMigration });
         if (generator === "security") return genSecurity({ force: options.force, skipMigration: options.skipMigration });
+        if (generator === "apikeys")
+          return genApiKeys({ force: options.force, skipInstall: options.skipInstall, skipMigration: options.skipMigration });
+        if (generator === "apikeys")
+          return genApiKeys({ force: options.force, skipInstall: options.skipInstall, skipMigration: options.skipMigration });
         if (["resource", "migration", "policy"].includes(generator) && !name) {
           throw new Error(`flare gen ${generator} needs a name, e.g. flare gen ${generator} ${generator === "migration" ? "add_phone_to_contacts" : "Contact"}`);
         }

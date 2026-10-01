@@ -1,6 +1,7 @@
 import { applyEdits, modify, parse as parseJsonc } from "jsonc-parser";
 import { renderDescriptor } from "./descriptor.js";
 import { parseFields } from "./grammar.js";
+import { renderNavBlock } from "./nav.js";
 
 /**
  * `flare gen security` scaffolding: security.config.ts, the SecurityEvent resource,
@@ -536,12 +537,11 @@ export function addSecurityBindings(source: string): { text: string; added: stri
 }
 
 /** The generated block of lib/dashboard-nav.ts, with the Security link. */
-export const renderAdminNavBlock = (): string => `export interface DashboardLink {
-  label: string;
-  href: string;
-  /** A resource icon name, e.g. "shield" (see components/dashboard/resource-icon.tsx). */
-  icon: string;
-}
-
-export const generatedDashboardLinks: DashboardLink[] = [{ label: "Security", href: "/dashboard/security", icon: "shield" }];
-`;
+/**
+ * The sidebar link, merged into whatever is already in lib/dashboard-nav.ts.
+ *
+ * It used to render the array with only Security in it, which removed any link another
+ * generator had added (and vice versa). `source` is the current file.
+ */
+export const renderAdminNavBlock = (source = ""): string =>
+  renderNavBlock(source, [{ label: "Security", href: "/dashboard/security", icon: "shield" }]);

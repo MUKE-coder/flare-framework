@@ -23,6 +23,8 @@ package manager started the command. `--pm npm` overrides.
 | `flare gen migration <name>` | An empty migration, or `--from-schema` to diff |
 | `flare gen billing` | Stripe checkout, portal and webhooks |
 | `flare gen security` | Zone rules and the detector layer (Cloudflare only) |
+| `flare gen apikeys` | API keys, so a cron job, script or mobile app can call the API |
+ | API keys for cron jobs, scripts and mobile apps |
 
 `--force` overwrites a generated block someone has hand-edited. It is the
 only way past the codegen contract, and it discards their edits.

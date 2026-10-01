@@ -88,7 +88,10 @@ export async function genSecurity(options: GenSecurityOptions = {}): Promise<{ f
 
   // The sidebar link. Apps created before lib/dashboard-nav.ts existed don't have the seam.
   const navPath = join(appRoot, "lib/dashboard-nav.ts");
-  if (existsSync(navPath) && splitMarkers(readFileSync(navPath, "utf8"))) write("lib/dashboard-nav.ts", renderAdminNavBlock());
+  if (existsSync(navPath) && splitMarkers(readFileSync(navPath, "utf8"))) {
+    // The current file, so a link another generator added survives this one.
+    write("lib/dashboard-nav.ts", renderAdminNavBlock(readFileSync(navPath, "utf8")));
+  }
   else log(pc.yellow(`lib/dashboard-nav.ts not found: link to /dashboard/security from your dashboard sidebar yourself.`));
 
   const wranglerPath = join(appRoot, "wrangler.jsonc");

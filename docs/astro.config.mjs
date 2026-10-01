@@ -86,6 +86,7 @@ export default defineConfig({
             { label: "File storage (R2)", slug: "guides/storage" },
             { label: "Email (Resend)", slug: "guides/mail" },
             { label: "Roles & policies", slug: "guides/roles-and-policies" },
+            { label: "API keys", slug: "guides/api-keys" },
             { label: "The dashboard", slug: "guides/dashboard" },
             { label: "Where your code goes", slug: "guides/your-code" },
             { label: "Caching", slug: "guides/caching" },

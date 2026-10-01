@@ -183,6 +183,11 @@ validators, the OpenAPI document, formatting helpers, fake data.
 
    Policies are data, not functions. `definePolicy` rejects a callback, so
    never write `read: (user) => …`.
+
+   For a client with no browser — a cron job, a script, a mobile app — run
+   `flare gen apikeys` rather than inventing a token. A key *is* the user who
+   created it: same role, and with `own`, the same rows. There are no per-key
+   permissions, so do not try to configure one.
 6. **Never import a server module into a `"use client"` file** — `@/db`,
    `@/lib/db`, `cloudflare:workers`, or anything reaching them. The build
    fails with a message that points nowhere near the cause.

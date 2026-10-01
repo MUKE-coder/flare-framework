@@ -197,7 +197,30 @@ leave writes same-origin.
 If your front end is on a different domain, cookies are the harder problem,
 not CORS. A session cookie has to be `SameSite=None; Secure` to travel, and
 both ends must be HTTPS. Better Auth's cross-subdomain cookie options cover
-it; a bearer token is often simpler.
+it.
+
+### A client that has no cookies at all
+
+A cron job, a shell script, a mobile app or a partner integration cannot hold
+a session cookie. Give it an [API key](/guides/api-keys/):
+
+```bash
+npx flare gen apikeys
+```
+
+Then `Authorization: Bearer <key>` (or `x-api-key`) works on every generated
+route, as the user who created the key:
+
+```bash
+curl https://myapp.workers.dev/api/invoices \
+  -H "Authorization: Bearer flare_live_…"
+```
+
+The CSRF guard does not get in the way, and that is not an exception made for
+keys. `crossOrigin()` only refuses a request that carries a *different*
+`Origin` — which is a browser telling you the request came from another site.
+A script sends no `Origin` at all, so it passes; and a page on another origin
+cannot reach your API anyway, because nothing here answers a CORS preflight.
 
 ## Endpoints of your own
 

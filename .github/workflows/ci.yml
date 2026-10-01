@@ -63,6 +63,15 @@ jobs:
           node ../../packages/cli/dist/index.js gen resource Invoice --fields 'number:string!, total:money, userId:string'
           node ../../packages/cli/dist/index.js gen policy Invoice --roles '*' --own userId --own-except admin
 
+      # Opt-in, so it has to be generated to be tested. The install follows because the
+      # generator adds @better-auth/api-key to package.json.
+      - name: Switch on API keys
+        working-directory: examples/ci-cf
+        run: node ../../packages/cli/dist/index.js gen apikeys
+
+      - name: Install the key plugin
+        run: pnpm install --no-frozen-lockfile
+
       - name: Migrate and seed
         working-directory: examples/ci-cf
         run: |
@@ -90,6 +99,7 @@ jobs:
           done
           node ../../scripts/e2e-smoke.mjs http://127.0.0.1:8787 contacts
           node ../../scripts/e2e-ownership.mjs http://127.0.0.1:8787 invoices
+          node ../../scripts/e2e-apikeys.mjs http://127.0.0.1:8787 invoices
 
       # No working-directory: the step runs on any failure, including one before the app
       # was scaffolded, and naming a missing directory fails the step instead of the run.
@@ -165,6 +175,22 @@ jobs:
           node ../../packages/cli/dist/index.js gen resource Contact \
             --fields 'name:string, email:email!, status:enum(lead,customer), avatar:file:[image]:5mb?'
 
+      # The same two features as the Cloudflare job. Worth running on both: ownership's
+      # dashboard counts are a raw parameterised query on this stack, and the apikey table
+      # is a Prisma model here rather than a Drizzle one.
+      - name: Generate a resource confined by ownership
+        working-directory: examples/ci-next
+        run: |
+          node ../../packages/cli/dist/index.js gen resource Invoice --fields 'number:string!, total:money, userId:string'
+          node ../../packages/cli/dist/index.js gen policy Invoice --roles '*' --own userId --own-except admin
+
+      - name: Switch on API keys
+        working-directory: examples/ci-next
+        run: node ../../packages/cli/dist/index.js gen apikeys
+
+      - name: Install the key plugin
+        run: pnpm install --no-frozen-lockfile
+
       - name: Migrate
         working-directory: examples/ci-next
         # Prisma 7 dropped --skip-generate, and its migrate dev does not run the
@@ -196,6 +222,8 @@ jobs:
             sleep 2
           done
           node ../../scripts/e2e-smoke.mjs http://127.0.0.1:3000 contacts
+          node ../../scripts/e2e-ownership.mjs http://127.0.0.1:3000 invoices
+          node ../../scripts/e2e-apikeys.mjs http://127.0.0.1:3000 invoices
 
       # The two things HTTP cannot reach: a server action, and a byte in a bucket.
       - name: Export and upload
