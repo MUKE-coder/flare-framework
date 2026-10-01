@@ -219,21 +219,31 @@ npx flare gen policy Product --roles admin,staff --delete-roles admin
 ```
 
 ```ts title="policies/product.policy.ts"
-export const read = () => true;                                   // the shop is public
-export const create = (session) => ["admin", "staff"].includes(session.role ?? "");
-export const update = create;
-export const remove = (session) => session.role === "admin";
+export default definePolicy({
+  resource: "Product",
+  // generated:start
+  read: ["admin", "staff"],
+  create: ["admin", "staff"],
+  update: ["admin", "staff"],
+  delete: ["admin"],
+  // generated:end
+});
 ```
 
-Returning an object filters rows instead of refusing outright — how a customer
-sees only their own orders:
+A policy is **roles per action** — plain data, not functions. `"*"` means any
+signed-in user. Both the API and the dashboard read this file, so the rule
+holds in both.
 
-```ts
-export const read = (session) =>
-  session.role === "admin" ? true : { customerId: session.userId };
-```
+:::caution[Policies do not scope rows yet]
+A policy decides *who may do this to this resource*, not *which rows they may
+see*. Anyone with the `staff` role here reads every product.
 
-Both the API and the dashboard read this file, so the rule holds in both.
+"Customers see only their own orders" has no first-class answer today. Until
+it does, scope the query yourself in a hand-written endpoint
+(`flare gen endpoint`) or a dashboard page, and keep the resource's own API
+closed to the roles that should not see everything. Per-record ownership is
+the next thing being built.
+:::
 
 ## Something CRUD does not cover
 

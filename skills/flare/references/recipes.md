@@ -65,13 +65,23 @@ the repo.
 npx flare gen policy Invoice --roles admin,finance --delete-roles admin
 ```
 
-Then narrow it by row if you need to:
+A policy is roles per action — plain data, not functions:
 
 ```ts
-read: (session) => session.role === "admin" ? true : { ownerId: session.userId },
+export default definePolicy({
+  resource: "Invoice",
+  read: ["admin", "finance"],
+  create: ["admin", "finance"],
+  update: ["admin", "finance"],
+  delete: ["admin"],
+});
 ```
 
-Returning an object filters the query; returning `false` refuses.
+**There is no per-row scoping.** A policy cannot say "only your own records";
+anyone with the role reads every row. If an app needs ownership, scope the
+query in a hand-written endpoint and do not expose the resource's own list
+route to that role. Do not invent a function-shaped policy — `definePolicy`
+takes string arrays and will reject anything else.
 
 ## An endpoint the resource doesn't give you
 
