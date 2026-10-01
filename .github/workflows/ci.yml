@@ -28,6 +28,16 @@ jobs:
       - run: pnpm test
       - run: pnpm typecheck
 
+      # The lockfile shipped in the template, checked the way a new app will check it.
+      #
+      # 0.9.0 shipped one that pnpm 12 refuses — it pinned packages published hours earlier,
+      # and pnpm 12 enforces a 24-hour minimum release age on install. Nothing here could
+      # have caught it: this repo pins pnpm 11, which has no such policy, and CI scaffolds
+      # into examples/ where the workspace links @flaredev/* and no lockfile is copied at
+      # all. The script reproduces what `flare create` actually hands somebody.
+      - name: The shipped lockfile installs under pnpm 12
+        run: node scripts/verify-lockfile.mjs
+
   cloudflare:
     name: Cloudflare stack, end to end
     runs-on: ubuntu-latest

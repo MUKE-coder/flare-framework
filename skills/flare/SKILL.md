@@ -4,7 +4,7 @@ description: Build applications with the Flare framework — resource descriptor
 license: MIT
 metadata:
   author: MUKE-coder
-  version: "0.9.0"
+  version: "0.9.1"
 ---
 
 # Building with Flare

@@ -10,7 +10,7 @@
  * publishing — RELEASING.md has it in the release steps.
  */
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -45,11 +45,26 @@ try {
   cpSync(join(app, "package-lock.json"), join(locksDir, "package-lock.json"));
   console.log("✔ templates/locks/package-lock.json");
 
-  // pnpm resolves differently from npm, so it needs its own file. minimum-release-age would
-  // otherwise skip versions published in the last day and lock older ones than we ask for.
-  run("pnpm", ["install", "--lockfile-only", "--config.minimum-release-age=0"], app);
+  // pnpm resolves differently from npm, so it needs its own file.
+  //
+  // The policy stays ON here, which it did not in 0.9.0. It was switched off with
+  // `--config.minimum-release-age=0` to stop pnpm "locking older versions than we ask
+  // for", and what that also did was let every pick be hours old. 0.9.0 shipped a lockfile
+  // pinning vite@8.3.2 and @vinext/types@1.0.1, both published that morning; pnpm 12
+  // enforces a 24-hour minimum release age on install, so every new app failed its first
+  // command with ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION until those versions aged out.
+  //
+  // This repo pins pnpm 11, which has no such policy, so nothing here could have caught it.
+  run("pnpm", ["install", "--lockfile-only"], app);
   cpSync(join(app, "pnpm-lock.yaml"), join(locksDir, "pnpm-lock.yaml"));
   console.log("✔ templates/locks/pnpm-lock.yaml");
+
+  // The check that would have caught 0.9.0, in its own script because getting it right
+  // took three attempts: it needs pnpm 12 (the repo pins 11, which has no such policy), a
+  // directory that did not just write the lockfile, and a cold store. Each of those,
+  // missing, makes the check pass on a file a user cannot install.
+  console.log();
+  run(process.execPath, [join(root, 'scripts/verify-lockfile.mjs')], root);
 
   // Yarn 1 has no lockfile-only mode, so this one really installs — a few minutes, once
   // per release. Without it a yarn user waits eight minutes for their first app while

@@ -13,6 +13,13 @@ Flare publishes three packages together, always at the same version:
    about half the time. It pins the version being released, so it has to run
    after the bump. Regenerate `templates/app/worker-configuration.d.ts` too when
    the wrangler version changes: `wrangler types` inside a scaffolded app.
+
+   It ends by running `scripts/verify-lockfile.mjs`, which checks the lockfile
+   the way a new app will: pnpm 12, a fresh directory, a cold store. If that
+   fails because a version `versions.ts` pins was published in the last 24
+   hours, **the release waits** — pnpm 12 refuses a lockfile containing one, and
+   resolution cannot pick anything else for an exact pin. 0.9.0 shipped before
+   this check existed and every new app failed its first install.
 3. Commit on `main` with a clean tree.
 4. `pnpm release:check` builds, runs the tests and does a dry-run publish.
 5. `npm login` (once per machine), then `pnpm release`. pnpm publishes in
