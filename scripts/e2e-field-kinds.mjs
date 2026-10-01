@@ -65,12 +65,29 @@ check("markdown round-trips unchanged", created.body?.body === markdown, JSON.st
 // Tags are an array, not a joined string.
 check("tags come back as an array", Array.isArray(created.body?.labels) && created.body.labels.length === 2, JSON.stringify(created.body?.labels));
 
+/**
+ * Deep equality that does not care about key order.
+ *
+ * Postgres `jsonb` is a parsed binary representation, so it normalises key order; SQLite
+ * keeps the text as given. Key order is not part of what JSON means, so an order-sensitive
+ * comparison here would be asserting something neither database promises — and would pass
+ * on one stack and fail on the other, which is exactly what it did.
+ */
+function same(a, b) {
+  if (a === b) return true;
+  if (typeof a !== typeof b || a === null || b === null || typeof a !== "object") return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  if (Array.isArray(a)) return a.length === b.length && a.every((value, index) => same(value, b[index]));
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((key) => same(a[key], b[key]));
+}
+
 // JSON keeps its shape, including nesting and null.
-check("json keeps its shape", JSON.stringify(created.body?.settings) === JSON.stringify(settings), JSON.stringify(created.body?.settings));
+check("json keeps its shape", same(created.body?.settings, settings), JSON.stringify(created.body?.settings));
 
 // And again after a fresh read, so this is the database and not the response being echoed.
 const fetched = await call(`/api/${slug}/${id}`);
-check("all three survive a read", fetched.body?.body === markdown && JSON.stringify(fetched.body?.settings) === JSON.stringify(settings), JSON.stringify(fetched.body).slice(0, 200));
+check("all three survive a read", fetched.body?.body === markdown && same(fetched.body?.settings, settings), JSON.stringify(fetched.body).slice(0, 200));
 check("and the tags with them", JSON.stringify(fetched.body?.labels) === JSON.stringify(["urgent", "q3"]), JSON.stringify(fetched.body?.labels));
 
 // A duplicate tag is refused, case-insensitively.

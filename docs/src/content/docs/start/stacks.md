@@ -152,6 +152,7 @@ not here, it works the same on both.
 | `realtimeChannel().publish()` | delivered by a Durable Object per channel | **does nothing**, and warns once per channel saying so |
 | Websocket connections | `/realtime/<channel>/ws` | refused — `authorizeRealtime` returns `false` |
 | Observability page | reads Cloudflare's Analytics API | reports "unconfigured" and points at Vercel's dashboard |
+| A `json` field's key order | kept as written (stored as text) | normalised (`jsonb` is parsed, not text) |
 | Full-text search | `LIKE` over indexed columns | the same, plus Postgres `tsvector` if you write it |
 | Request CPU | 10ms free, 30s paid | the function's configured timeout |
 | Node APIs | Workers runtime — no filesystem, no native modules | all of them |

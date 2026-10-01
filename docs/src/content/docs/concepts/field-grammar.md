@@ -66,6 +66,12 @@ object, for a settings bag where a bare string is a mistake. If you find
 yourself reaching for it to hold something with a known shape, that shape
 wants fields of its own.
 
+One difference between the stacks worth knowing: Postgres `jsonb` is a parsed
+representation, so it **normalises key order**, while D1 stores the text you
+gave it. Values, nesting and types are identical either way — only the order
+of an object's keys can change, which is not part of what JSON means. Don't
+write code that depends on it.
+
 **`markdown`** is a `text` column with a different editor: Write and Preview
 panes, and the record page renders it. Not a WYSIWYG editor — that means a
 large dependency and stored HTML you have to sanitise everywhere it appears,
