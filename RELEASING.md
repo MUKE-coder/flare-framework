@@ -3,9 +3,11 @@
 Flare publishes three packages together, always at the same version:
 `@flaredev/core`, `@flaredev/cli` and `create-flare-framework`.
 
-1. Bump `version` in `packages/core`, `packages/cli` and
-   `packages/create-flare-framework`, plus `FLARE_VERSION` in
-   `packages/core/src/index.ts` (a test fails if they differ).
+1. `node scripts/set-version.mjs <version>` — writes all five places a version
+   lives: the three `package.json` files, `FLARE_VERSION` in
+   `packages/core/src/index.ts`, and the agent skill's metadata. Run with no
+   argument to see what each one says now; it refuses if they disagree. Tests
+   fail if any of them drifts.
 2. `pnpm build && node scripts/build-lockfiles.mjs` — regenerates
    `packages/cli/templates/locks/*`, which is what makes a new app install in
    about half the time. It pins the version being released, so it has to run
