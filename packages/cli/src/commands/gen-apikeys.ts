@@ -121,7 +121,7 @@ function addTable(appRoot: string, stack: Stack, log: (message: string) => void)
     return false;
   }
   const source = readFileSync(path, "utf8");
-  if (stack === "next" ? /model ApiKey\b/.test(source) : /sqliteTable\(\s*\n?\s*"apikey"/.test(source)) {
+  if (stack === "next" ? /model Apikey\b/.test(source) : /sqliteTable\(\s*\n?\s*"apikey"/.test(source)) {
     log(`${pc.dim("kept".padEnd(9))} ${relative} (the apikey table is already there)`);
     return false;
   }

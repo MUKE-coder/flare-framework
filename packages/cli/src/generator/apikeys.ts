@@ -52,13 +52,18 @@ export const apikey = sqliteTable(
 /**
  * The same table as a Prisma model.
  *
+ * `Apikey`, not `ApiKey`. Better Auth looks the table up as `prisma.apikey`, and Prisma
+ * derives that property from the model name by lowercasing its first letter only — so
+ * `ApiKey` would be `prisma.apiKey` and the adapter refuses to start with "Missing tables:
+ * apikey". `Passkey` and `TwoFactor` in base.prisma follow the same rule.
+ *
  * No relation to User: `referenceId` is the plugin's own column and it is not declared as
  * a foreign key, which is why there is nothing to add to `model User` — base.prisma is
  * yours to edit and a generator that needed a back-relation in it would have to.
  */
 export function renderApiKeyModel(): string {
   return `
-model ApiKey {
+model Apikey {
   id                  String    @id @default(uuid())
   configId            String    @default("default") @map("config_id")
   name                String?

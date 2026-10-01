@@ -74,7 +74,11 @@ describe("flare gen apikeys", () => {
 
     const next = app("next");
     await genApiKeys({ cwd: next, ...quiet });
-    expect(read(next, "prisma/schema/base.prisma")).toContain("model ApiKey {");
+    // `Apikey`, not `ApiKey`. Prisma lowercases only the first letter of a model name, so
+    // the client property has to come out as `prisma.apikey` — the name Better Auth looks
+    // up. With `ApiKey` the adapter refuses to start: "Missing tables: apikey".
+    expect(read(next, "prisma/schema/base.prisma")).toContain("model Apikey {");
+    expect(read(next, "prisma/schema/base.prisma")).not.toContain("model ApiKey {");
     expect(read(next, "db/auth-schema.ts")).not.toContain("apikey");
   });
 
