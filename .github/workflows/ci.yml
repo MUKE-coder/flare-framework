@@ -116,7 +116,7 @@ jobs:
         env:
           MINIO_ROOT_USER: flare
           MINIO_ROOT_PASSWORD: flare-secret-123
-          MINIO_DEFAULT_BUCKETS: ci
+          MINIO_DEFAULT_BUCKETS: flare-ci
         ports: ["9000:9000"]
         options: >-
           --health-cmd "curl -sf http://127.0.0.1:9000/minio/health/live"
@@ -145,7 +145,7 @@ jobs:
           DATABASE_URL="postgresql://flare:flare@127.0.0.1:5432/ci?sslmode=disable"
           BETTER_AUTH_URL=http://127.0.0.1:3000
           R2_ENDPOINT=http://127.0.0.1:9000
-          R2_BUCKET=ci
+          R2_BUCKET=flare-ci
           R2_ACCESS_KEY_ID=flare
           R2_SECRET_ACCESS_KEY=flare-secret-123
           ENV

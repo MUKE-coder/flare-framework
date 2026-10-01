@@ -51,3 +51,37 @@ describe("the Next.js stack's database client", () => {
     expect(db).toContain("globalForPrisma");
   });
 });
+
+/**
+ * Realtime has no implementation on this stack — Vercel functions can't hold a websocket
+ * open. That is a defensible gap; a publish that quietly returns is not, because the
+ * calling code reads as though it worked and there is nothing to search for.
+ */
+describe("the Next.js stack's realtime stub", () => {
+  const realtime = readFileSync(join(templatesDir, "next", "lib", "realtime.ts"), "utf8");
+
+  it("warns instead of dropping a publish in silence", () => {
+    expect(realtime).toContain("console.warn");
+    expect(realtime).toMatch(/did nothing/);
+    // Name the channel and event, or the warning can't be traced to a call site.
+    expect(realtime).toContain("${name}");
+    expect(realtime).toContain("${event}");
+  });
+
+  it("says the write still succeeded, and where to change this", () => {
+    expect(realtime).toContain("The write itself succeeded");
+    expect(realtime).toContain("lib/realtime.ts");
+  });
+
+  it("warns once per channel, not once per publish", () => {
+    // A publish in an afterCreate hook runs on every write; a warning per write would
+    // bury the log it is trying to be useful in.
+    expect(realtime).toContain("warned.has(name)");
+    expect(realtime).toContain("warned.add(name)");
+  });
+
+  it("still resolves, so a hook that publishes cannot fail a write", () => {
+    expect(realtime).not.toContain("throw");
+    expect(realtime).toMatch(/publish: async \(event\) =>/);
+  });
+});
