@@ -25,6 +25,8 @@ interface Props {
   id: string;
   record: Record<string, unknown>;
   relations: FormRelations;
+  /** Fields the edit form leaves out — see ResourceForm. */
+  omit?: string[];
   listHref: string;
   editHref: string;
   canUpdate: boolean;
@@ -34,7 +36,7 @@ interface Props {
 }
 
 /** Edit and delete, at the top of a record's own page. Deleting goes back to the list. */
-export function RecordActions({ resource, id, record, relations, listHref, editHref, canUpdate, canDelete, overlayForms }: Props) {
+export function RecordActions({ resource, id, record, relations, omit, listHref, editHref, canUpdate, canDelete, overlayForms }: Props) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -81,6 +83,7 @@ export function RecordActions({ resource, id, record, relations, listHref, editH
         <ResourceFormSheet
           resource={resource}
           relations={relations}
+          omit={omit}
           listHref={listHref}
           mode="edit"
           id={id}

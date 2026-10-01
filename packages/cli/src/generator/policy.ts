@@ -34,21 +34,41 @@ export async function loadPolicies(root: string): Promise<LoadedPolicy[]> {
   return loaded;
 }
 
-/** The roles block of a policy file (unindented), as written between its markers. */
-export function renderPolicyBlock(roles: { read: string[]; create: string[]; update: string[]; delete: string[] }): string {
+export interface PolicyRoles {
+  read: string[];
+  create: string[];
+  update: string[];
+  delete: string[];
+  /** Per-record ownership, when the policy has it. */
+  own?: { field: string; except: string[] };
+}
+
+/** The generated block of a policy file (unindented), as written between its markers. */
+export function renderPolicyBlock(roles: PolicyRoles): string {
   const list = (values: string[]) => `[${values.map((value) => JSON.stringify(value)).join(", ")}]`;
-  return (["read", "create", "update", "delete"] as const).map((action) => `${action}: ${list(roles[action])},`).join("\n") + "\n";
+  const lines = (["read", "create", "update", "delete"] as const).map((action) => `${action}: ${list(roles[action])},`);
+  if (roles.own) lines.push(`own: { field: ${JSON.stringify(roles.own.field)}, except: ${list(roles.own.except)} },`);
+  return lines.join("\n") + "\n";
 }
 
 /** A new policy file for `resource`. */
-export function renderPolicy(resource: string, roles: { read: string[]; create: string[]; update: string[]; delete: string[] }): string {
+export function renderPolicy(resource: string, roles: PolicyRoles): string {
   const block = renderPolicyBlock(roles);
+  const exempt =
+    roles.own && roles.own.except.length > 0 ? `, except ${roles.own.except.map((role) => `\`${role}\``).join(" and ")}` : "";
+  const ownership = roles.own
+    ? `
+ *
+ * \`own\` confines each user to the rows whose \`${roles.own.field}\` holds their own id${exempt}.
+ * It is filled in on create and has to match on read, update and delete. Another user's
+ * record answers 404 rather than 403, because its existence is not theirs to learn.`
+    : "";
   return joinMarkers({
     before: `import { definePolicy } from "@flaredev/core";
 
 /**
  * Who may do what with ${resource} records. Roles come from \`flare role:add\`;
- * "*" means any signed-in user. The API layer and the admin UI both read this.
+ * "*" means any signed-in user. The API layer and the admin UI both read this.${ownership}
  */
 export default definePolicy({
   resource: ${JSON.stringify(resource)},

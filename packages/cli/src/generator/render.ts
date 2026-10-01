@@ -202,7 +202,7 @@ const routeHeader = (entry: LoadedResource, stack: Stack) => {
   return (helpers: string[]) => [
     `import { createResourceStore, ${[adapter, ...helpers].join(", ")} } from "@/lib/resource";`,
     ...source.imports,
-    `import { authorize, currentUser } from "@/lib/api";`,
+    `import { authorize, currentUser, policyFor } from "@/lib/api";`,
     `import { revalidateResource } from "@/lib/cache";`,
     `import ${local} from "@/resources/${entry.stem}.resource";`,
     "",
@@ -210,6 +210,9 @@ const routeHeader = (entry: LoadedResource, stack: Stack) => {
     `  resource: ${local},`,
     `  rows: ${source.rows},`,
     `  currentUser,`,
+    `  // The role half of the policy is checked by authorize() below; the \`own\` half`,
+    `  // restricts which rows exist for this user, which only the store can do.`,
+    `  policy: policyFor(${JSON.stringify(entry.resource.name)}),`,
     `  onChange: revalidateResource,`,
     `});`,
     "",

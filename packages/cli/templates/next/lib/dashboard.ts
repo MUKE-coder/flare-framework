@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { allowedActions, can, columnName, type Policy, type PolicyAction, type Resource } from "@flaredev/core";
+import { allowedActions, can, columnName, ownershipFilter, type Policy, type PolicyAction, type Resource } from "@flaredev/core";
 import { createResourceStore, prismaRows, type PrismaDelegate, type ResourceStore } from "@/lib/resource";
 import { prisma } from "@/lib/db";
 import { policies } from "@/policies";
@@ -59,6 +59,17 @@ export async function adminPermissions(resourceName: string) {
   return allowedActions(policyFor(resourceName), role);
 }
 
+/**
+ * The field the current user is confined by on this resource, or undefined.
+ *
+ * Forms leave it out: the store sets it from the session, so an input for it would throw
+ * away whatever was typed into it. Everyone exempt from `own` sees and edits it normally,
+ * because for them it really is just a field.
+ */
+export async function confinedField(resourceName: string): Promise<string | undefined> {
+  return ownershipFilter(policyFor(resourceName), await currentUser())?.field;
+}
+
 const stores = new Map<string, ResourceStore>();
 
 /** CRUD store for a resource by name (404 for unknown names). */
@@ -70,6 +81,10 @@ export function dashboardStore(name: string): ResourceStore {
     store = createResourceStore({
       resource: entry.resource,
       rows: prismaRows(entry.delegate, prisma),
+      // The admin is not exempt from ownership. A policy that confines staff to their own
+      // rows has to mean the same thing here as it does over the API, or the dashboard is
+      // a way around it.
+      policy: policyFor(name),
       onChange: revalidateResource,
       currentUser,
     });
@@ -98,9 +113,16 @@ export interface ResourceStats {
   values: Record<string, number>;
 }
 
-export function resourceStats(name: string, field?: string, days = 7): Promise<ResourceStats> {
+export async function resourceStats(name: string, field?: string, days = 7): Promise<ResourceStats> {
+  // Counted over the rows this user may see, not the table. A policy with `own` that the
+  // table below obeys and the cards above it don't would report 142 invoices to someone
+  // who owns three — wrong, and a leak besides. The owner is an argument rather than a
+  // closed-over value because unstable_cache keys on the arguments: without it one user's
+  // numbers would be served to the next.
+  const limit = ownershipFilter(policyFor(name), await currentUser());
+
   const read = cached(
-    async (resourceName: string, key: string | undefined, windowDays: number): Promise<ResourceStats> => {
+    async (resourceName: string, key: string | undefined, windowDays: number, owner?: { field: string; value: string }): Promise<ResourceStats> => {
       const entry = (resourceTables as unknown as Record<string, { resource: Resource } | undefined>)[resourceName];
       if (!entry) return { total: 0, current: 0, previous: 0, values: {} };
 
@@ -116,9 +138,18 @@ export function resourceStats(name: string, field?: string, days = 7): Promise<R
         `count(*) filter (where "created_at" >= '${before}' and "created_at" < '${since}')::int as previous`,
         ...(grouped ? [`${grouped} as value`] : []),
       ].join(", ");
-      const query = `select ${select} from ${table}${grouped ? ` group by ${grouped}` : ""}`;
+      // Parameterised, not interpolated. The id comes from a session rather than a URL,
+      // but raw SQL is the one place that distinction should never be relied on.
+      const ownerColumn = owner && entry.resource.fields[owner.field] ? `"${columnName(owner.field)}"` : undefined;
+      const where = ownerColumn ? ` where ${ownerColumn} = $1` : "";
+      const query = `select ${select} from ${table}${where}${grouped ? ` group by ${grouped}` : ""}`;
 
-      const rows = (await prisma.$queryRawUnsafe(query)) as { total: number; current: number; previous: number; value?: unknown }[];
+      const rows = (await (ownerColumn ? prisma.$queryRawUnsafe(query, owner!.value) : prisma.$queryRawUnsafe(query))) as {
+        total: number;
+        current: number;
+        previous: number;
+        value?: unknown;
+      }[];
       const stats: ResourceStats = { total: 0, current: 0, previous: 0, values: {} };
       for (const row of rows) {
         stats.total += Number(row.total ?? 0);
@@ -131,7 +162,7 @@ export function resourceStats(name: string, field?: string, days = 7): Promise<R
     ["flare", "resource-stats"],
     { tags: [resourceTag(name)], revalidate: TTL.medium },
   );
-  return read(name, field, days);
+  return read(name, field, days, limit ?? undefined);
 }
 
 /** How many records a resource has. One field of {@link resourceStats}. */

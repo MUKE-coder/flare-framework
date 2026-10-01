@@ -69,4 +69,14 @@ export {
   toE164,
   type Country,
 } from "./formats.js";
-export { definePolicy, can, allowedActions, PolicyError, type Policy, type PolicyAction, type PolicyConfig } from "./policy.js";
+export {
+  definePolicy,
+  can,
+  allowedActions,
+  ownershipFilter,
+  PolicyError,
+  type Policy,
+  type PolicyAction,
+  type PolicyConfig,
+  type PolicyOwnership,
+} from "./policy.js";

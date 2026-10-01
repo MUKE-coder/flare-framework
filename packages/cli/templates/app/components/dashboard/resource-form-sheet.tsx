@@ -18,6 +18,8 @@ interface Props {
   /** Edit: the record and its id. */
   id?: string;
   record?: Record<string, unknown> | null;
+  /** Fields to leave out — see ResourceForm. */
+  omit?: string[];
   /** Controlled use (a row menu opens it); otherwise pass `trigger`. */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -33,7 +35,7 @@ interface Props {
  * the fields being squeezed into a box. Apps that would rather have a page set
  * `site.dashboard.forms` to "page" (lib/site.ts) and get the same form full width.
  */
-export function ResourceFormSheet({ resource, relations, listHref, mode, id, record, open, onOpenChange, trigger }: Props) {
+export function ResourceFormSheet({ resource, relations, listHref, mode, id, record, omit, open, onOpenChange, trigger }: Props) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isOpen = open ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
@@ -58,6 +60,7 @@ export function ResourceFormSheet({ resource, relations, listHref, mode, id, rec
               record={record}
               relations={relations}
               listHref={listHref}
+              omit={omit}
               onDone={() => setOpen(false)}
             />
           </div>
@@ -68,12 +71,23 @@ export function ResourceFormSheet({ resource, relations, listHref, mode, id, rec
 }
 
 /** The list's "New …" button, with the sheet it opens. */
-export function NewRecordButton({ resource, relations, listHref }: { resource: ClientResource; relations: FormRelations; listHref: string }) {
+export function NewRecordButton({
+  resource,
+  relations,
+  listHref,
+  omit,
+}: {
+  resource: ClientResource;
+  relations: FormRelations;
+  listHref: string;
+  omit?: string[];
+}) {
   return (
     <ResourceFormSheet
       resource={resource}
       relations={relations}
       listHref={listHref}
+      omit={omit}
       mode="create"
       trigger={
         <Button>

@@ -16,7 +16,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { resourcePath, adminPermissions, allResources, dashboardStore, requireAccess } from "@/lib/dashboard";
+import { resourcePath, adminPermissions, allResources, confinedField, dashboardStore, requireAccess } from "@/lib/dashboard";
 import { site } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { ColumnMenu } from "./column-menu";
@@ -50,6 +50,9 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
   const forClient = clientResource(resource);
   const basePath = resourcePath(resource);
   const permissions = await adminPermissions(resource.name);
+  // A field this user is confined by is set from their session, so the forms leave it out.
+  const owned = await confinedField(resource.name);
+  const omit = owned ? [owned] : undefined;
   const params = toSearchParams(searchParams);
   const store = dashboardStore(resource.name);
 
@@ -114,7 +117,7 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
           {permissions.create && <ImportDialog resource={forClient} />}
           {permissions.create &&
             (overlayForms ? (
-              <NewRecordButton resource={forClient} relations={relations} listHref={basePath} />
+              <NewRecordButton resource={forClient} relations={relations} listHref={basePath} omit={omit} />
             ) : (
               <Button asChild>
                 <Link href={resourcePath(resource, "new")}>
@@ -293,6 +296,7 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
                         id={id}
                         record={overlayForms ? row : undefined}
                         relations={relations}
+                        omit={omit}
                         listHref={basePath}
                         editHref={resourcePath(resource, id, "edit")}
                         detailHref={resourcePath(resource, id)}

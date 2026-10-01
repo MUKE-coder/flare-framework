@@ -77,11 +77,30 @@ export default definePolicy({
 });
 ```
 
-**There is no per-row scoping.** A policy cannot say "only your own records";
-anyone with the role reads every row. If an app needs ownership, scope the
-query in a hand-written endpoint and do not expose the resource's own list
-route to that role. Do not invent a function-shaped policy — `definePolicy`
-takes string arrays and will reject anything else.
+### "Only your own records"
+
+Add `own`, naming a field that holds the owning user's id:
+
+```bash
+npx flare gen resource Invoice --fields 'number:string!, total:money, userId:string'
+npx flare gen policy Invoice --roles staff,admin --own userId --own-except admin
+```
+
+```ts
+own: { field: "userId", except: ["admin"] },
+```
+
+For anyone not in `except`: lists and counts cover only their rows,
+`?filter[userId]=<other>` cannot widen that, another user's record is a
+`404` on read/update/delete, `create` fills the field in from the session,
+and a `PATCH` sending a different owner is a `422`. The dashboard obeys the
+same rule. `except` is empty by default, so an admin is confined too until
+you say otherwise.
+
+It is still **data, not a function** — a field name and a list of roles.
+`definePolicy` rejects anything else, so do not write
+`read: (user) => …`. `own` compares one field with the signed-in user's id:
+organisation or team scoping is not this, and needs a hand-written query.
 
 ## An endpoint the resource doesn't give you
 

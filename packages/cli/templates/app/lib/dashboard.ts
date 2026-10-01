@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { allowedActions, can, type Policy, type PolicyAction, type Resource } from "@flaredev/core";
-import { count, sql } from "drizzle-orm";
+import { allowedActions, can, ownershipFilter, type Policy, type PolicyAction, type Resource } from "@flaredev/core";
+import { count, eq, sql } from "drizzle-orm";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import { createResourceStore, drizzleRows, type ResourceStore } from "@/lib/resource";
 import { getDb } from "@/db";
@@ -58,6 +58,17 @@ export async function adminPermissions(resourceName: string) {
   return allowedActions(policyFor(resourceName), role);
 }
 
+/**
+ * The field the current user is confined by on this resource, or undefined.
+ *
+ * Forms leave it out: the store sets it from the session, so an input for it would throw
+ * away whatever was typed into it. Everyone exempt from `own` sees and edits it normally,
+ * because for them it really is just a field.
+ */
+export async function confinedField(resourceName: string): Promise<string | undefined> {
+  return ownershipFilter(policyFor(resourceName), await currentUser())?.field;
+}
+
 const stores = new Map<string, ResourceStore>();
 
 /** CRUD store for a resource by name (404 for unknown names). */
@@ -66,7 +77,16 @@ export function dashboardStore(name: string): ResourceStore {
   if (!entry) notFound();
   let store = stores.get(name);
   if (!store) {
-    store = createResourceStore({ resource: entry.resource, rows: drizzleRows(entry.table, getDb), onChange: revalidateResource, currentUser });
+    store = createResourceStore({
+      resource: entry.resource,
+      rows: drizzleRows(entry.table, getDb),
+      // The admin is not exempt from ownership. A policy that confines staff to their own
+      // rows has to mean the same thing here as it does over the API, or the dashboard is
+      // a way around it.
+      policy: policyFor(name),
+      onChange: revalidateResource,
+      currentUser,
+    });
     stores.set(name, store);
   }
   return store;
@@ -93,9 +113,16 @@ export interface ResourceStats {
   values: Record<string, number>;
 }
 
-export function resourceStats(name: string, field?: string, days = 7): Promise<ResourceStats> {
+export async function resourceStats(name: string, field?: string, days = 7): Promise<ResourceStats> {
+  // Counted over the rows this user may see, not the table. A policy with `own` that the
+  // table above obeys and the cards above it don't would report 142 invoices to someone
+  // who owns three — wrong, and a leak besides. The owner is an argument rather than a
+  // closed-over value because unstable_cache keys on the arguments: without it one user's
+  // numbers would be served to the next.
+  const limit = ownershipFilter(policyFor(name), await currentUser());
+
   const read = cached(
-    async (resourceName: string, key: string | undefined, windowDays: number): Promise<ResourceStats> => {
+    async (resourceName: string, key: string | undefined, windowDays: number, owner?: { field: string; value: string }): Promise<ResourceStats> => {
       const entry = (resourceTables as unknown as Record<string, { table: SQLiteTable } | undefined>)[resourceName];
       if (!entry) return { total: 0, current: 0, previous: 0, values: {} };
 
@@ -118,9 +145,11 @@ export function resourceStats(name: string, field?: string, days = 7): Promise<R
 
       const select: Record<string, unknown> = { total: count(), ...windows };
       if (grouped) select.value = grouped;
-      const query = getDb()
+      let query = getDb()
         .select(select as never)
         .from(entry.table);
+      const ownerColumn = owner ? columns[owner.field] : undefined;
+      if (owner && ownerColumn) query = query.where(eq(ownerColumn as never, owner.value)) as never;
       const rows = (await (grouped ? query.groupBy(grouped as never) : query)) as {
         total: number;
         current: number;
@@ -140,7 +169,7 @@ export function resourceStats(name: string, field?: string, days = 7): Promise<R
     ["flare", "resource-stats"],
     { tags: [resourceTag(name)], revalidate: TTL.medium },
   );
-  return read(name, field, days);
+  return read(name, field, days, limit ?? undefined);
 }
 
 /** How many records a resource has. One field of {@link resourceStats}. */

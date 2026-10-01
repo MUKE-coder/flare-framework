@@ -37,6 +37,7 @@ export function RowActions({
   id,
   record,
   relations = {},
+  omit,
   listHref,
   editHref,
   detailHref,
@@ -48,6 +49,8 @@ export function RowActions({
   /** The record itself, when the form opens in a dialog. */
   record?: Record<string, unknown>;
   relations?: FormRelations;
+  /** Fields the edit form leaves out — see ResourceForm. */
+  omit?: string[];
   listHref: string;
   editHref: string;
   /** The record's own page. */
@@ -127,6 +130,7 @@ export function RowActions({
         <ResourceFormSheet
           resource={resource}
           relations={relations}
+          omit={omit}
           listHref={listHref}
           mode="edit"
           id={id}

@@ -120,6 +120,8 @@ export function createCli() {
     .option("--from-schema", "migration: diff the current tables instead of a blank migration")
     .option("--roles <roles>", "policy: roles allowed to read, create and update, e.g. admin,staff")
     .option("--delete-roles <roles>", "policy: roles allowed to delete (default: the first --roles entry)")
+    .option("--own <field>", "policy: confine each user to rows whose belongsTo(User) field holds their id, e.g. --own userId")
+    .option("--own-except <roles>", "policy: roles that see every row despite --own, e.g. admin")
     .option("--provider <provider>", "billing: payment provider (default: stripe)")
     .option("--mode <mode>", "billing: subscriptions (the default; includes one-time checkout)")
     .option("--skip-install", "billing: write files without installing the stripe dependency")
@@ -129,6 +131,7 @@ export function createCli() {
     .example("flare gen migration backfill_contact_status")
     .example("flare gen migration add_phone_to_contacts --from-schema")
     .example("flare gen policy Invoice --roles admin,staff --delete-roles admin")
+    .example("flare gen policy Invoice --roles staff --own userId --own-except admin   # each user sees only their own")
     .example("flare gen billing --provider stripe --mode subscriptions")
     .example("flare gen security")
     .action(
@@ -147,6 +150,8 @@ export function createCli() {
           fromSchema?: boolean;
           roles?: string;
           deleteRoles?: string;
+          own?: string;
+          ownExcept?: string;
           provider?: string;
           mode?: string;
           skipInstall?: boolean;
@@ -165,7 +170,14 @@ export function createCli() {
           return genEndpoint(name, second, { method: options.method, action: options.action, record: options.record });
         }
         if (generator === "migration") return genMigration(name!, { fromSchema: options.fromSchema });
-        if (generator === "policy") return genPolicy(name!, { roles: options.roles, deleteRoles: options.deleteRoles, force: options.force });
+        if (generator === "policy")
+          return genPolicy(name!, {
+            roles: options.roles,
+            deleteRoles: options.deleteRoles,
+            own: options.own,
+            ownExcept: options.ownExcept,
+            force: options.force,
+          });
         throw new Error(`Unknown generator "${generator}". Available: ${GENERATORS.join(", ")}.`);
       },
     );

@@ -8,7 +8,7 @@
 // `flare diff` shows how your copy differs from the version Flare ships, and
 // `flare update` applies the parts you choose. Neither runs unless you ask.
 
-import { columnName, storedFields, type Resource } from "@flaredev/core";
+import { columnName, ownershipFilter, storedFields, type Policy, type Resource } from "@flaredev/core";
 import { createValidators } from "@flaredev/core";
 import { encodeCursor, isSearchable, parseListQuery, type QueryIssue } from "./query";
 import type { ResourceRows, Row } from "./rows";
@@ -24,7 +24,7 @@ export interface FieldIssue {
 
 export type Failure = {
   ok: false;
-  status: 400 | 404 | 409 | 422;
+  status: 400 | 403 | 404 | 409 | 422;
   error: string;
   /** Validation issues per field. */
   issues?: FieldIssue[];
@@ -93,6 +93,17 @@ export interface ResourceStoreOptions {
    * site, and this file never has to know which stack it is on.
    */
   rows: ResourceRows;
+  /**
+   * The resource's policy, when it has one.
+   *
+   * Only `own` is read here — which rows this user may touch. Whether their role may
+   * perform the action at all is decided before the store is reached, by `authorize` on
+   * the API and by the dashboard's own check.
+   *
+   * Ownership applies only when `currentUser` is also given. A store built without one
+   * has no session to scope to, which is how a seed or a script writes rows for anybody.
+   */
+  policy?: Policy | null;
   /**
    * Called after a write succeeds, for cache invalidation. Runs before the
    * operation returns, so a caller that revalidates tags can't hand back a
@@ -202,6 +213,42 @@ export function createResourceStore(options: ResourceStoreOptions) {
   const hooks = resource.hooks ?? {};
   const hookContext = async () => ({ db: rows.db, user: (await options.currentUser?.()) ?? null });
 
+  /**
+   * Per-record ownership, from the policy.
+   *
+   * Caught here rather than at the first request: a policy naming a field the resource
+   * doesn't have would otherwise scope every query to a column that doesn't exist, which
+   * either errors deep in the adapter or — worse on a flexible store — matches nothing
+   * and looks like an empty table.
+   */
+  const ownership = options.policy?.own;
+  if (ownership && !fields.some(([key]) => key === ownership.field)) {
+    const known = fields.map(([key]) => key).join(", ");
+    throw new Error(
+      `Policy ${resource.name}: own.field is "${ownership.field}", which is not a field on ${resource.name}. Fields: ${known}.`,
+    );
+  }
+
+  /**
+   * The owner this call is confined to: `null` to touch every row, or a Failure.
+   *
+   * Only when a `currentUser` was given — see the option. A policy that restricts rows
+   * and a request with no session is a 403, not an unrestricted query: the API refuses
+   * that earlier, but the dashboard and server actions come through here too, and a
+   * missing session must never widen what a query returns.
+   */
+  async function confine(): Promise<{ field: string; value: string } | Failure | null> {
+    if (!ownership || !options.currentUser) return null;
+    const user = await options.currentUser();
+    if (!user) return fail(403, "Sign in required.");
+    return ownershipFilter(options.policy, user);
+  }
+
+  /** Whether `row` belongs to the confined owner. */
+  const owns = (row: Row, limit: { field: string; value: string }) => row[limit.field] === limit.value;
+
+  const isFailure = (value: unknown): value is Failure => value !== null && typeof value === "object" && "ok" in value;
+
   return {
     resource,
 
@@ -209,7 +256,12 @@ export function createResourceStore(options: ResourceStoreOptions) {
     async list(params: URLSearchParams, options: { maxPerPage?: number } = {}): Promise<Result<ListResult>> {
       const parsed = parseListQuery(resource, params, options);
       if ("issues" in parsed) return fail(400, "Invalid query.", { queryIssues: parsed.issues });
-      const { page, perPage, sort, q, filters, cursor } = parsed.query;
+      const { page, perPage, sort, q, cursor } = parsed.query;
+
+      const limit = await confine();
+      if (isFailure(limit)) return limit;
+      // Last, so `?filter[userId]=someone-else` cannot widen the query past the owner.
+      const filters = limit ? { ...parsed.query.filters, [limit.field]: limit.value } : parsed.query.filters;
 
       /**
        * Whether a sort column holds a date, so the adapter can shape the cursor for it.
@@ -276,11 +328,24 @@ export function createResourceStore(options: ResourceStoreOptions) {
     },
 
     async get(id: string): Promise<Result<Record<string, unknown>>> {
+      const limit = await confine();
+      if (isFailure(limit)) return limit;
       const record = await rows.byId(id);
-      return record ? { ok: true, data: withComputed(record) } : notFound();
+      if (!record) return notFound();
+      // Not 403: a user who may not see this record should not learn that it exists.
+      if (limit && !owns(record, limit)) return notFound();
+      return { ok: true, data: withComputed(record) };
     },
 
-    /** Title-field values for a set of ids (for showing relations). Missing ids are omitted. */
+    /**
+     * Title-field values for a set of ids (for showing relations). Missing ids are omitted.
+     *
+     * Not confined by ownership, and `rows.titles` has no way to be: it returns an id and
+     * a title, not the owner. It is called with ids this resource's rows already point at,
+     * so in practice it shows the names of records you can already see — but if you hand a
+     * confined user a relation picker over a confined resource, the titles are not the
+     * place that restriction is enforced. Filter the ids before calling it.
+     */
     async titles(ids: string[]): Promise<Record<string, string>> {
       const unique = [...new Set(ids.filter(Boolean))];
       if (unique.length === 0) return {};
@@ -294,7 +359,15 @@ export function createResourceStore(options: ResourceStoreOptions) {
         // The hook runs first so it can fill in what the caller couldn't know — an order
         // number, a slug, a tenant — and whatever it returns is validated like any input.
         const supplied = hooks.beforeCreate ? await hooks.beforeCreate({ ...((raw ?? {}) as object) }, context) : raw;
-        const result = validators.create.safeParse(supplied);
+
+        const limit = await confine();
+        if (isFailure(limit)) return limit;
+        // Before validation, not after: the owner field is usually required, and the
+        // client has no business sending it. Set here, a caller cannot create a row in
+        // someone else's name, and cannot fail validation for omitting what it can't know.
+        const body = limit ? { ...((supplied ?? {}) as object), [limit.field]: limit.value } : supplied;
+
+        const result = validators.create.safeParse(body);
         if (!result.success) return invalid(result.error.issues);
         const input = result.data as Record<string, unknown>;
         const now = new Date();
@@ -309,8 +382,32 @@ export function createResourceStore(options: ResourceStoreOptions) {
     update(id: string, raw: unknown): Promise<Result<Record<string, unknown>>> {
       return writing("update", async () => {
         const context = await hookContext();
-        const current = hooks.beforeUpdate || hooks.afterUpdate ? await rows.byId(id) : null;
+        const limit = await confine();
+        if (isFailure(limit)) return limit;
+
+        // A confined update has to read the row first: `rows.update(id, …)` takes an id
+        // and nothing else, so this is where "is it yours" is answered.
+        const current = limit || hooks.beforeUpdate || hooks.afterUpdate ? await rows.byId(id) : null;
+        if (limit) {
+          if (!current) return notFound();
+          if (!owns(current, limit)) return notFound();
+        }
+
         const supplied = hooks.beforeUpdate ? await hooks.beforeUpdate({ ...((raw ?? {}) as object) }, { ...context, id, current }) : raw;
+
+        // Reassigning the owner is refused rather than ignored. Giving a record away is
+        // a reasonable thing to want; doing it by accident, because the field was quietly
+        // dropped, is not.
+        if (limit && supplied && typeof supplied === "object" && limit.field in supplied) {
+          const sent = (supplied as Record<string, unknown>)[limit.field];
+          if (sent !== limit.value) {
+            const label = resource.fields[limit.field]?.label ?? limit.field;
+            return fail(422, `You can't change which user this ${resource.label.toLowerCase()} belongs to.`, {
+              issues: [{ path: limit.field, message: `${label} can't be changed.` }],
+            });
+          }
+        }
+
         const result = validators.update.safeParse(supplied);
         if (!result.success) return invalid(result.error.issues);
         const input = result.data as Record<string, unknown>;
@@ -327,11 +424,22 @@ export function createResourceStore(options: ResourceStoreOptions) {
       const result = validators.create.safeParse(input);
       if (!result.success) return Promise.resolve(invalid(result.error.issues));
       return writing("update", async () => {
+        const limit = await confine();
+        if (isFailure(limit)) return limit;
+        if (limit) {
+          const current = await rows.byId(id);
+          if (!current || !owns(current, limit)) return notFound();
+        }
+
         const values: Row = {};
         for (const [key, def] of fields) {
           values[key] = "default" in def && def.default !== undefined ? def.default : def.required ? undefined : null;
         }
         Object.assign(values, result.data, { updatedAt: new Date() });
+        // PUT resets every field the body left out. Without this the owner field would be
+        // one of them, and a replace would quietly orphan the row it just saved.
+        if (limit) values[limit.field] = limit.value;
+
         const record = await rows.update(id, values);
         return record ? { ok: true, data: withComputed(record) } : notFound();
       });
@@ -340,8 +448,14 @@ export function createResourceStore(options: ResourceStoreOptions) {
     delete(id: string): Promise<Result<{ id: string }>> {
       return writing("delete", async () => {
         const context = await hookContext();
+        const limit = await confine();
+        if (isFailure(limit)) return limit;
+
+        const current = limit || hooks.beforeDelete ? await rows.byId(id) : null;
+        if (limit && (!current || !owns(current, limit))) return notFound();
+
         if (hooks.beforeDelete) {
-          await hooks.beforeDelete({ ...context, id, current: await rows.byId(id) });
+          await hooks.beforeDelete({ ...context, id, current });
         }
         if (!(await rows.remove(id))) return notFound();
         await hooks.afterDelete?.({ ...context, id });

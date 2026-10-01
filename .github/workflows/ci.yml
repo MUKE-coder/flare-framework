@@ -55,6 +55,14 @@ jobs:
           node ../../packages/cli/dist/index.js gen resource Contact \
             --fields 'name:string, email:email!, status:enum(lead,customer), avatar:file:[image]:5mb?'
 
+      # A second resource, confined to its owner. Generated before the build because the
+      # served bundle is built once — a resource added afterwards would not be in it.
+      - name: Generate a resource confined by ownership
+        working-directory: examples/ci-cf
+        run: |
+          node ../../packages/cli/dist/index.js gen resource Invoice --fields 'number:string!, total:money, userId:string'
+          node ../../packages/cli/dist/index.js gen policy Invoice --roles '*' --own userId --own-except admin
+
       - name: Migrate and seed
         working-directory: examples/ci-cf
         run: |
@@ -81,6 +89,7 @@ jobs:
             sleep 2
           done
           node ../../scripts/e2e-smoke.mjs http://127.0.0.1:8787 contacts
+          node ../../scripts/e2e-ownership.mjs http://127.0.0.1:8787 invoices
 
       # No working-directory: the step runs on any failure, including one before the app
       # was scaffolded, and naming a missing directory fails the step instead of the run.

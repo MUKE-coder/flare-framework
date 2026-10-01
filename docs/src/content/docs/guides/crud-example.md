@@ -234,16 +234,24 @@ A policy is **roles per action** — plain data, not functions. `"*"` means any
 signed-in user. Both the API and the dashboard read this file, so the rule
 holds in both.
 
-:::caution[Policies do not scope rows yet]
-A policy decides *who may do this to this resource*, not *which rows they may
-see*. Anyone with the `staff` role here reads every product.
+### "Customers see only their own orders"
 
-"Customers see only their own orders" has no first-class answer today. Until
-it does, scope the query yourself in a hand-written endpoint
-(`flare gen endpoint`) or a dashboard page, and keep the resource's own API
-closed to the roles that should not see everything. Per-record ownership is
-the next thing being built.
-:::
+Roles alone do not say that: with the policy above, anyone with `staff`
+reads every product. Which *rows* a user may see is a second question, and
+`own` answers it. An `Order` resource with a field holding the buyer:
+
+```bash
+npx flare gen resource Order --fields 'reference:string!, total:money, userId:string'
+npx flare gen policy Order --roles customer,staff --own userId --own-except staff
+```
+
+A `customer` now lists only their own orders, gets a `404` for anyone
+else's, and never sends `userId` — it is filled in from their session. Staff
+are exempt and see all of them. The dashboard obeys the same rule, down to
+the counts on the stat cards.
+
+[Roles & policies](/guides/roles-and-policies/#per-record-ownership) has the
+full behaviour, including what `own` deliberately does not cover.
 
 ## Something CRUD does not cover
 

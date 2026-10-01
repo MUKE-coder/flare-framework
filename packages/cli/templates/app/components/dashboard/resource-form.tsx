@@ -27,6 +27,14 @@ export interface ResourceFormProps {
   listHref: string;
   /** In a sheet: close it instead of navigating, and drop the card around the fields. */
   onDone?: () => void;
+  /**
+   * Fields to leave out.
+   *
+   * The owner field of a resource with per-record ownership, for the users it confines:
+   * the store sets it from their session, so an input for it would discard whatever they
+   * typed. A field that ignores you is worse than no field.
+   */
+  omit?: string[];
 }
 
 const WIDE = new Set(["text", "file"]);
@@ -57,10 +65,11 @@ function toSteps(fields: Entry[]): Entry[][] {
  * with the descriptor's zod schemas, then again on the server by the same store the
  * REST API uses; server errors (e.g. unique conflicts) land on their fields.
  */
-export function ResourceForm({ resource, mode, id, record, relations = {}, listHref, onDone }: ResourceFormProps) {
+export function ResourceForm({ resource, mode, id, record, relations = {}, listHref, onDone, omit }: ResourceFormProps) {
   const router = useRouter();
   const validators = useMemo(() => createValidators(resource), [resource]);
-  const fields = useMemo(() => storedFields(resource), [resource]);
+  const hidden = useMemo(() => new Set(omit ?? []), [omit]);
+  const fields = useMemo(() => storedFields(resource).filter(([key]) => !hidden.has(key)), [resource, hidden]);
   const steps = useMemo(() => toSteps(fields), [fields]);
   const [step, setStep] = useState(0);
   const [values, setValues] = useState(() => initialFormValues(resource, record));
