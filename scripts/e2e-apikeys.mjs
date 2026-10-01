@@ -63,12 +63,31 @@ const asClient = (path, key, init = {}) =>
     return { status: response.status, body };
   });
 
-async function signUp(who) {
-  const email = `key-${who.label}-${run}@example.com`;
-  const result = await who.call("/api/auth/sign-up/email", {
+/**
+ * Sign up, waiting out the rate limit rather than failing on it.
+ *
+ * Better Auth rate-limits auth routes per IP in production, which is what `flare start`
+ * and `next start` are. Three check scripts in a row from one runner is enough to trip
+ * it, and the limit working is not a failure — so this waits instead of reporting one.
+ */
+async function signUpWithBackoff(who, email) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const result = await who.call("/api/auth/sign-up/email", {
+      method: "POST",
+      body: JSON.stringify({ email, password: "correct-horse-battery", name: who.label }),
+    });
+    if (result.status !== 429 && !/too many requests/i.test(JSON.stringify(result.body))) return result;
+    await new Promise((resolve) => setTimeout(resolve, 2000 * (attempt + 1)));
+  }
+  return who.call("/api/auth/sign-up/email", {
     method: "POST",
     body: JSON.stringify({ email, password: "correct-horse-battery", name: who.label }),
   });
+}
+
+async function signUp(who) {
+  const email = `key-${who.label}-${run}@example.com`;
+  const result = await signUpWithBackoff(who, email);
   who.id = result.body?.user?.id;
   check(`${who.label} signs up`, result.status === 200 && Boolean(who.id), JSON.stringify(result.body));
   return who;
