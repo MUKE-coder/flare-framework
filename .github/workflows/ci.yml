@@ -104,6 +104,24 @@ jobs:
           --health-cmd "pg_isready -U flare"
           --health-interval 5s --health-timeout 5s --health-retries 10
 
+      # R2 speaks S3, and so does MinIO — which is how the upload path is tested without
+      # a Cloudflare account.
+      #
+      # bitnamilegacy, pinned: bitnami/minio stopped publishing tags altogether, and both
+      # minio/minio on Docker Hub and quay.io now refuse an anonymous pull. This archived
+      # tag still works, and it creates the bucket on startup — the official image would
+      # need `server /data` as its command, which a service container cannot set.
+      minio:
+        image: bitnamilegacy/minio:2025.7.23-debian-12-r5
+        env:
+          MINIO_ROOT_USER: flare
+          MINIO_ROOT_PASSWORD: flare-secret-123
+          MINIO_DEFAULT_BUCKETS: ci
+        ports: ["9000:9000"]
+        options: >-
+          --health-cmd "curl -sf http://127.0.0.1:9000/minio/health/live"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+
     steps:
       - uses: actions/checkout@v4
       # No version input: it reads packageManager from package.json, and passing both
@@ -113,19 +131,6 @@ jobs:
         with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-
-      # R2 speaks S3, and so does MinIO — which is how the upload path is tested without
-      # a Cloudflare account. A step rather than a service container: the official image
-      # takes `server /data` as its command, and a service container cannot set one.
-      - name: Start MinIO
-        run: |
-          docker run -d --name minio -p 9000:9000             -e MINIO_ROOT_USER=flare -e MINIO_ROOT_PASSWORD=flare-secret-123             minio/minio:latest server /data
-          for _ in $(seq 1 30); do
-            curl -sf http://127.0.0.1:9000/minio/health/live > /dev/null && break
-            sleep 2
-          done
-          # The AWS CLI is already on the runner, so the bucket costs no second image.
-          AWS_ACCESS_KEY_ID=flare AWS_SECRET_ACCESS_KEY=flare-secret-123 AWS_DEFAULT_REGION=us-east-1             aws --endpoint-url http://127.0.0.1:9000 s3 mb s3://ci
 
       - name: Scaffold an app
         run: node packages/cli/dist/index.js create examples/ci-next --stack next --yes --skip-install --theme sky
@@ -189,4 +194,4 @@ jobs:
         if: failure()
         run: |
           tail -100 examples/ci-next/server.log 2>/dev/null || echo "no server log"
-          docker logs --tail 50 minio 2>&1 || true
+          docker logs --tail 50 "$(docker ps -aqf name=minio)" 2>&1 || true

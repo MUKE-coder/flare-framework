@@ -4,7 +4,7 @@ description: Build applications with the Flare framework — resource descriptor
 license: MIT
 metadata:
   author: MUKE-coder
-  version: "0.7.3"
+  version: "0.8.1"
 ---
 
 # Building with Flare
@@ -69,6 +69,28 @@ npx flare dev
 
 Then read `references/commands.md` for the rest of the CLI, and
 `references/field-grammar.md` for what can go in `--fields`.
+
+### Reach for a specific type before reaching for `string`
+
+There are more than you would guess, and each one changes the validation, the
+input and how the value is displayed — so the specific one is always less work
+than `string` plus a comment:
+
+- **Text with a shape:** `email`, `url`, `tel`, `domain`, `country`, `color`,
+  `slug`, `username`, `ip`, `uuid`, `timezone`, `locale`, `currency`,
+  `postcode`. All stored as text, all validated.
+- **Numbers with a meaning:** `money` (a currency input, refuses negatives),
+  `percent`, `rating` (stars, 0–5).
+- **Choices:** `enum(a,b)` or `select(a,b)` for a dropdown, `radio(a,b)` for
+  radio buttons, `multiselect(a,b)` for several at once.
+- **Longer text:** `text` for a textarea. **Time:** `date`, `datetime`.
+- **Files:** `file:[image,pdf]:5mb`. The categories allowed in the brackets are
+  `image`, `pdf`, `document`, `spreadsheet`, `csv`, `video`, `audio`, `archive`
+  and `any` — they are not types on their own, so `avatar:image` is an error.
+
+`price:money` rather than `price:float`; `handle:username!` rather than
+`handle:string!`. `references/field-grammar.md` has the full table and what
+each one generates.
 
 ## Nothing is hidden
 
