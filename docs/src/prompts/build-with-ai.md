@@ -169,9 +169,20 @@ validators, the OpenAPI document, formatting helpers, fake data.
 4. **Business logic belongs in `hooks`, not in a route handler.** Hooks run
    for every path in: REST, dashboard, CSV import, seeds. A handler runs for
    one.
-5. **Roles are checked in `policies/<resource>.policy.ts` and nowhere else.**
+5. **Permissions live in `policies/<resource>.policy.ts` and nowhere else.**
    The dashboard and the API both read it. Never check a role in a hook or a
-   page.
+   page. A policy is two separate things: `read`/`create`/`update`/`delete` are
+   arrays of role names, and `own: { field: "userId", except: ["admin"] }`
+   confines each user to their own rows — lists, counts, reads, writes and the
+   dashboard alike. Use `--own` for "users see only their own records" rather
+   than filtering by hand:
+
+   ```bash
+   flare gen policy Order --roles '*' --own userId --own-except staff
+   ```
+
+   Policies are data, not functions. `definePolicy` rejects a callback, so
+   never write `read: (user) => …`.
 6. **Never import a server module into a `"use client"` file** — `@/db`,
    `@/lib/db`, `cloudflare:workers`, or anything reaching them. The build
    fails with a message that points nowhere near the cause.

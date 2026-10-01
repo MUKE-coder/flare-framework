@@ -133,9 +133,12 @@ has the full set with the reasoning.
 4. **Business logic goes in `hooks`, not in the route handler.** Hooks run for
    every path into the resource — REST, dashboard, import, seed. Logic in one
    route handler is logic the dashboard skips.
-5. **Policies decide who may do what.** Never check roles inside a hook or a
-   page; `policies/<resource>.policy.ts` is the one place, and the dashboard
-   and the API both read it.
+5. **Policies decide who may do what, and to which rows.** Never check roles
+   inside a hook or a page; `policies/<resource>.policy.ts` is the one place,
+   and the dashboard and the API both read it. Roles are arrays;
+   `own: { field: "userId", except: ["admin"] }` confines each user to their own
+   records — generate it with `flare gen policy <R> --own <field>`. It is data,
+   not a callback: `definePolicy` rejects `read: (user) => …`.
 6. **Validate on the server, always.** Generated validators are strict — no
    mass assignment. Do not add fields to an insert that the validator does not
    know about.
