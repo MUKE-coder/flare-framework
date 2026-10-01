@@ -21,13 +21,45 @@ import { seedResourceCommand, type SeedResourceOptions } from "./commands/seed-r
 import { syncPlans } from "./commands/billing-sync.js";
 import { syncTypes } from "./commands/sync.js";
 import { setUserRole } from "./commands/user-role.js";
-import { DELEGATED_COMMANDS } from "./commands/run.js";
+import { DELEGATED_COMMANDS, findAppRoot } from "./commands/run.js";
+import { readStack, type Stack } from "./stack.js";
 import { openTunnel, toLocalUrl, tunnelBanner } from "./tunnel.js";
 import { expectedPackages, install } from "./utils/install.js";
 import { formatCount, formatDuration } from "./terminal.js";
 
+/**
+ * The generators `flare gen` accepts.
+ *
+ * Named once because naming them twice went wrong: the help text listed `endpoint` and
+ * the "Unknown generator" error did not, so the error told you a working generator
+ * didn't exist.
+ */
+const GENERATORS = ["resource", "endpoint", "migration", "policy", "billing", "security"] as const;
+
+/**
+ * The stack of the app `flare` was run in, or undefined outside one (`flare create`).
+ *
+ * Only `--help` text uses this. Every command that behaves differently per stack reads
+ * the stack itself; this is so a Next.js app isn't told about D1 and wrangler, which it
+ * has neither of.
+ */
+function currentStack(): Stack | undefined {
+  try {
+    return readStack(findAppRoot(process.cwd()));
+  } catch {
+    return undefined;
+  }
+}
+
 export function createCli() {
   const cli = cac("flare");
+  const stack = currentStack();
+  /** Pick the wording for the stack we're in, or say both when we aren't in an app. */
+  const perStack = (cloudflare: string, next: string, either: string) =>
+    stack === "next" ? next : stack === "cloudflare" ? cloudflare : either;
+  // D1, wrangler environments and bindings exist on one stack only. Saying so beats
+  // listing a flag that silently does nothing.
+  const cloudflareOnly = (text: string) => (stack === undefined ? `${text} (Cloudflare only)` : text);
 
   cli
     .command("create <dir>", "Scaffold a new Flare app")
@@ -77,7 +109,7 @@ export function createCli() {
     });
 
   cli
-    .command("gen <generator> [name] [second]", "Generate code. Generators: resource, endpoint, migration, policy, billing, security")
+    .command("gen <generator> [name] [second]", `Generate code. Generators: ${GENERATORS.join(", ")}`)
     .option("--fields <fields>", "resource: fields, e.g. 'name:string, email:string!, status:enum(lead,customer)' (single quotes: bash treats ! in double quotes as history)")
     .option("--group <name>", "resource: sidebar heading to file it under, e.g. Sales")
     .option("--icon <name>", "resource: lucide icon for the sidebar, e.g. users")
@@ -134,7 +166,7 @@ export function createCli() {
         }
         if (generator === "migration") return genMigration(name!, { fromSchema: options.fromSchema });
         if (generator === "policy") return genPolicy(name!, { roles: options.roles, deleteRoles: options.deleteRoles, force: options.force });
-        throw new Error(`Unknown generator "${generator}". Available: resource, migration, policy, billing, security.`);
+        throw new Error(`Unknown generator "${generator}". Available: ${GENERATORS.join(", ")}.`);
       },
     );
 
@@ -148,46 +180,81 @@ export function createCli() {
     });
 
   cli
-    .command("role:add <name>", "Register a role users can be assigned (local database unless --remote)")
+    .command(
+      "role:add <name>",
+      perStack(
+        "Register a role users can be assigned (local database unless --remote)",
+        "Register a role users can be assigned (the database in DATABASE_URL)",
+        "Register a role users can be assigned",
+      ),
+    )
     .option("--label <label>", "Display label (default: humanized name)")
-    .option("--remote", "Target the deployed database")
-    .option("--env <name>", "Wrangler environment")
+    .option("--remote", cloudflareOnly("Target the deployed database"))
+    .option("--env <name>", cloudflareOnly("Wrangler environment"))
     .example("flare role:add support")
     .action(async (name: string, options: { label?: string; remote?: boolean; env?: string }) => {
       process.exitCode = await addRole(name, options);
     });
 
   cli
-    .command("user:role <email> <role>", "Set a user's role, e.g. make the first admin (local database unless --remote)")
-    .option("--remote", "Target the deployed database")
-    .option("--env <name>", "Wrangler environment")
+    .command(
+      "user:role <email> <role>",
+      perStack(
+        "Set a user's role, e.g. make the first admin (local database unless --remote)",
+        "Set a user's role, e.g. make the first admin (the database in DATABASE_URL)",
+        "Set a user's role, e.g. make the first admin",
+      ),
+    )
+    .option("--remote", cloudflareOnly("Target the deployed database"))
+    .option("--env <name>", cloudflareOnly("Wrangler environment"))
     .example("flare user:role you@example.com admin")
     .action(async (email: string, role: string, options: { remote?: boolean; env?: string }) => {
       process.exitCode = await setUserRole(email, role, options);
     });
 
   cli
-    .command("migrate", "Apply pending D1 migrations (local database unless --remote)")
-    .option("--remote", "Target the deployed database")
-    .option("--env <name>", "Wrangler environment")
-    .option("--database <binding>", "D1 binding, when the app has several")
+    .command(
+      "migrate",
+      perStack(
+        "Apply pending D1 migrations (local database unless --remote)",
+        "Apply pending Prisma migrations to the database in DATABASE_URL (prisma migrate deploy)",
+        "Apply pending migrations: D1 on the Cloudflare stack, Prisma on the Next.js one",
+      ),
+    )
+    .option("--remote", cloudflareOnly("Target the deployed database"))
+    .option("--env <name>", cloudflareOnly("Wrangler environment"))
+    .option("--database <binding>", cloudflareOnly("D1 binding, when the app has several"))
     .action(async (options: { remote?: boolean; env?: string; database?: string }) => {
       process.exitCode = await migrate(options);
     });
 
   cli
-    .command("migrate:rollback", "Undo the most recently applied migrations")
+    .command(
+      "migrate:rollback",
+      perStack(
+        "Undo the most recently applied D1 migrations",
+        "Undo the most recently applied migrations (prisma migrate resolve --rolled-back)",
+        "Undo the most recently applied migrations",
+      ),
+    )
     .option("--steps <n>", "How many migrations to roll back", { default: 1 })
-    .option("--remote", "Target the deployed database (requires --yes)")
+    .option("--remote", cloudflareOnly("Target the deployed database (requires --yes)"))
     .option("--yes", "Confirm a remote rollback")
-    .option("--env <name>", "Wrangler environment")
-    .option("--database <binding>", "D1 binding, when the app has several")
+    .option("--env <name>", cloudflareOnly("Wrangler environment"))
+    .option("--database <binding>", cloudflareOnly("D1 binding, when the app has several"))
     .action(async (options: { steps: number | string; remote?: boolean; yes?: boolean; env?: string; database?: string }) => {
       process.exitCode = await rollback({ ...options, steps: Number(options.steps) });
     });
 
   cli
-    .command("seed [...names]", "Run seed files from seeds/ against the local D1 database")
+    .command(
+      "seed [...names]",
+      perStack(
+        "Run seed files from seeds/ against the local D1 database",
+        "Run seed files from seeds/ against the database in DATABASE_URL",
+        "Run seed files from seeds/ against the local database",
+      ),
+    )
     .example("flare seed            # every seed, in file-name order")
     .example("flare seed contacts   # just seeds/contacts.seed.ts")
     .action(async (names: string[]) => {
@@ -195,13 +262,20 @@ export function createCli() {
     });
 
   cli
-    .command("seed:resource <resource> [count]", "Fill a resource's table with sample rows built from its descriptor")
+    .command(
+      "seed:resource <resource> [count]",
+      perStack(
+        "Fill a resource's table with sample rows built from its descriptor",
+        "Cloudflare only — on this stack use `flare seed:make <name> --resource <Resource>` then `flare seed`",
+        "Fill a resource's table with sample rows built from its descriptor (Cloudflare only)",
+      ),
+    )
     .option("--count <rows>", "How many rows: 1000, 25k, 1m (default: 25)")
-    .option("--remote", "Seed the deployed database instead of the local one (needs --yes)")
+    .option("--remote", cloudflareOnly("Seed the deployed database instead of the local one (needs --yes)"))
     .option("--truncate", "Delete the table's rows first")
     .option("--seed <number>", "Same number, same rows")
-    .option("--env <name>", "Wrangler environment")
-    .option("--database <binding>", "D1 binding, when the app has several")
+    .option("--env <name>", cloudflareOnly("Wrangler environment"))
+    .option("--database <binding>", cloudflareOnly("D1 binding, when the app has several"))
     .option("-y, --yes", "Confirm writing to the remote database")
     .example("flare seed:resource Contact --count 1000")
     .example("flare seed:resource Contact 1m            # a million rows")
@@ -211,7 +285,7 @@ export function createCli() {
     });
 
   cli
-    .command("diff [filter]", "Show how the code Flare copied into this app (lib/resource) differs from the current version")
+    .command("diff [filter]", "Show how the code Flare copied into this app (lib/ and components/) differs from the current version")
     .example("flare diff")
     .example("flare diff store          # just the files whose path contains \"store\"")
     .action((filter: string | undefined) => {
