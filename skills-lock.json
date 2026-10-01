@@ -7,6 +7,12 @@
       "skillPath": "skills/accessibility/SKILL.md",
       "computedHash": "88c64dead9bb55925c7b983f5fd95cfecf30bd8c076fd384cdb17019d1becd87"
     },
+    "agent-browser": {
+      "source": "vercel-labs/agent-browser",
+      "sourceType": "github",
+      "skillPath": "skills/agent-browser/SKILL.md",
+      "computedHash": "80161e6836b3b40f4e83730a290deb40ac14d877d38c97ad5f6d71be37ce74c3"
+    },
     "better-auth-best-practices": {
       "source": "better-auth/skills",
       "sourceType": "github",
@@ -133,17 +139,41 @@
       "skillPath": "skills/stripe-best-practices/SKILL.md",
       "computedHash": "9f8517d4decfaffc88d78cf297403735651409b30aa4ec7b7766dad5b6bf3a0e"
     },
+    "tdd": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/tdd/SKILL.md",
+      "computedHash": "0c09a435ba032b151d6ecc042eee25d4bd9951bfd19262f9aa317c9923d99756"
+    },
+    "token-diet": {
+      "source": "MUKE-coder/claude-token-diet",
+      "sourceType": "github",
+      "skillPath": "skills/token-diet/SKILL.md",
+      "computedHash": "c7fb662244c056001987110bbeb207861b6fecf7767b9f9d2ba87baf38128900"
+    },
     "upstash-redis-js": {
       "source": "upstash/skills",
       "sourceType": "github",
       "skillPath": "skills/upstash-redis-js/SKILL.md",
       "computedHash": "907c7482c24b253174de2d1c1599901e7984caa3696c38e6eb927c059a6fa0f0"
     },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "computedHash": "ca7b0c0c6e5f2750043f7f0cd72d16ac4e2abc48f9b5500d047a4b77a2506212"
+    },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/web-design-guidelines/SKILL.md",
       "computedHash": "d8e7d3afe37dcc8a97b99ffb5afdb4d0919ae0092ea8b68f44eb201f035e33ac"
+    },
+    "webapp-testing": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/webapp-testing/SKILL.md",
+      "computedHash": "3f14af7f5690695209c22fbf8c8d133769a86d64892602c09bb13f135e14e857"
     },
     "workers-best-practices": {
       "source": "cloudflare/skills",

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(./**/node_modules/**)",
+      "Read(./**/dist/**)",
+      "Read(./**/.next/**)",
+      "Read(./**/.wrangler/**)",
+      "Read(./**/.vinext/**)",
+      "Read(./**/lib/generated/**)",
+      "Read(./**/prisma/migrations/**/migration.sql)",
+      "Read(./**/*.min.js)",
+      "Read(./**/*.map)",
+      "Read(./pnpm-lock.yaml)",
+      "Read(./**/pnpm-lock.yaml)",
+      "Read(./**/package-lock.json)",
+      "Read(./packages/cli/templates/locks/**)",
+      "Read(./docs/dist/**)",
+      "Read(./docs/public/*.png)"
+    ]
+  }
+}

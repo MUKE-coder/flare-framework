@@ -83,7 +83,19 @@ function coerce(def: StoredField, raw: string): string | number | boolean | null
  * resource. Only fields the descriptor marks sortable/filterable/searchable are
  * accepted, so clients can't probe arbitrary columns.
  */
-export function parseListQuery(resource: Resource, params: URLSearchParams): { query: ListQuery } | { issues: QueryIssue[] } {
+export function parseListQuery(
+  resource: Resource,
+  params: URLSearchParams,
+  /**
+   * The largest page this caller may ask for.
+   *
+   * The cap exists to stop a request from the outside asking for ten thousand rows at
+   * once. Server-side callers that page through everything deliberately — the CSV
+   * export — pass their own, which is why this is an argument rather than a constant
+   * everything obeys.
+   */
+  options: { maxPerPage?: number } = {},
+): { query: ListQuery } | { issues: QueryIssue[] } {
   const issues: QueryIssue[] = [];
   const fields = new Map(storedFields(resource));
 
@@ -99,7 +111,7 @@ export function parseListQuery(resource: Resource, params: URLSearchParams): { q
   };
 
   const page = positiveInt("page", 1);
-  const perPage = positiveInt("perPage", resource.perPage, MAX_PER_PAGE);
+  const perPage = positiveInt("perPage", resource.perPage, options.maxPerPage ?? MAX_PER_PAGE);
 
   let sort = resource.defaultSort;
   const rawSort = params.get("sort");

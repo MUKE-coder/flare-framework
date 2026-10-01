@@ -120,7 +120,9 @@ export async function exportRecordsAction(resourceName: string, query: string): 
     const params = new URLSearchParams(query);
     params.set("page", String(page));
     params.set("perPage", String(EXPORT_PAGE));
-    const result = await store.list(params);
+    // A bigger page than a request from outside may ask for: this is the server
+    // paging through everything on purpose, and 500 round trips would be absurd.
+    const result = await store.list(params, { maxPerPage: EXPORT_PAGE });
     if (!result.ok) return result;
     rows.push(...result.data.data);
     if (page >= result.data.meta.totalPages) break;

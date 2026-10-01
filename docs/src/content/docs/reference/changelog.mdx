@@ -21,6 +21,23 @@ npx flare --version                 # what this app is on
 pnpm add -D @flaredev/cli@latest    # upgrade it
 ```
 
+<Release version="0.8.1" date="1 October 2026">
+
+**The Export button never worked.**
+
+It asked the store for 500 rows a page; the page-size cap is 100 and applied
+to everything, so every export came back "Invalid query." and the button
+showed an error toast — for every resource, on both stacks, since the feature
+shipped.
+
+The cap is there to stop a request from outside asking for ten thousand rows
+at once, and should never have applied to the server paging through its own
+data on purpose. `store.list` now takes the limit its caller may use; the
+export passes its own, and a request from outside is capped exactly as
+before.
+
+</Release>
+
 <Release version="0.8.0" date="29 September 2026">
 
 **Twelve more field types.**

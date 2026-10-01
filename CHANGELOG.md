@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.1
+
+**The Export button never worked.**
+
+It asked the store for 500 rows a page; the page-size cap is 100 and applied
+to everything, so every export came back "Invalid query." and the button
+showed an error toast — for every resource, on both stacks, since the feature
+shipped.
+
+The cap exists to stop a request from outside asking for ten thousand rows at
+once. It should never have applied to the server paging through its own data
+deliberately. `store.list` now takes the limit the caller may use, the export
+passes its own, and a request from outside is capped exactly as before.
+
 ## 0.8.0
 
 **Twelve more field types.**

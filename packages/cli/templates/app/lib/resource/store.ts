@@ -206,8 +206,8 @@ export function createResourceStore(options: ResourceStoreOptions) {
     resource,
 
     /** `params`: page, perPage, sort, q, filter[field], cursor (as parsed by parseListQuery). */
-    async list(params: URLSearchParams): Promise<Result<ListResult>> {
-      const parsed = parseListQuery(resource, params);
+    async list(params: URLSearchParams, options: { maxPerPage?: number } = {}): Promise<Result<ListResult>> {
+      const parsed = parseListQuery(resource, params, options);
       if ("issues" in parsed) return fail(400, "Invalid query.", { queryIssues: parsed.issues });
       const { page, perPage, sort, q, filters, cursor } = parsed.query;
 
