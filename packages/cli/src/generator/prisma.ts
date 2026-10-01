@@ -41,6 +41,13 @@ function prismaType(resource: Resource, key: string, def: StoredField): string {
     case "multiselect":
       // A Postgres text[]: no JSON to parse, and it can be queried with `has`.
       return "String[]";
+    case "tags":
+      // Also text[]. The difference from multiselect is what may go in it, not how it is
+      // stored — so `has`, `hasEvery` and a GIN index all work the same way.
+      return "String[]";
+    case "json":
+      // Jsonb, not String: it is queryable, indexable, and Prisma hands it back parsed.
+      return "Json";
     default:
       return "String";
   }
@@ -154,7 +161,8 @@ export function renderPrismaModel(entry: LoadedResource, all: LoadedResource[]):
       continue;
     }
 
-    const optional = def.required || def.kind === "multiselect" ? "" : "?";
+    // A Prisma list is never nullable: an empty list is the empty state.
+    const optional = def.required || def.kind === "multiselect" || def.kind === "tags" ? "" : "?";
     lines.push(`  ${key} ${prismaType(resource, key, def)}${optional} ${attributes(key, def).join(" ")}`.trimEnd());
   }
 

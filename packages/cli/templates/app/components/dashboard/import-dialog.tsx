@@ -62,6 +62,11 @@ function exampleFor(key: string, def: StoredField & { label: string }): string {
       return String((def as EnumField).options[0] ?? "");
     case "multiselect":
       return ((def as MultiSelectField).options.slice(0, 2) as string[]).join("; ");
+    case "tags":
+      return "urgent; q3";
+    case "json":
+      // Quoted, because a CSV cell holding JSON has commas in it.
+      return '{"key": "value"}';
     case "belongsTo":
       return "id of an existing " + (def as { target: string }).target;
     default:
@@ -177,6 +182,20 @@ function toValue(def: StoredField, raw: string): unknown {
         .map((part) => part.trim())
         .filter(Boolean)
         .map((part) => matchOption(def, part));
+    case "tags":
+      // Semicolons first so a tag may contain a comma: "a, b; c" is two tags.
+      return text
+        .split(text.includes(";") ? ";" : ",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+    case "json":
+      try {
+        return JSON.parse(text);
+      } catch {
+        // Handed over as typed: the validator reports it against the row and the column,
+        // which is more use than this throwing halfway through a file.
+        return text;
+      }
     default:
       // Dates keep their text: the descriptor's schema decides which formats it takes.
       return text;

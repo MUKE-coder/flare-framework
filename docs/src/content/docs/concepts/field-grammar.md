@@ -19,6 +19,9 @@ list, so `enum(a,b,c)` and `file:[image,pdf]` are each one field.
 | `enum(a,b,c)` or `select(a,b,c)` | `text` + CHECK constraint | dropdown |
 | `radio(a,b,c)` | `text` + CHECK constraint | radio buttons |
 | `multiselect(a,b,c)` | `text` (JSON array) | checkboxes; badges in the table |
+| `tags` | `text` (JSON array) on D1, `String[]` on Postgres | type a label, press Enter; badges in the table |
+| `json` | `text` (JSON) on D1, `jsonb` on Postgres | textarea that says whether it parses |
+| `markdown` (or `richtext`) | `text` | Write / Preview panes; rendered on the record page |
 | `file:[image,pdf,...]` | `text` (R2 key) | file upload, MIME-restricted to the bracketed categories; `:5mb` sets the limit |
 | `belongsTo(Model)` | FK column | relation picker |
 | `hasMany(Model)` | — (inverse relation only) | inline table |
@@ -46,6 +49,37 @@ validation, input and display:
 | `postcode` | `SW1A 1AA`, upper-cased | text input | text |
 
 `website` is an alias for `url`, and `phone` for `tel`.
+
+## Three that hold more than a value
+
+**`tags`** is for labels you did not decide in advance — `labels:tags?` gives
+`["urgent", "q3"]`. `multiselect` is the one to reach for when the vocabulary
+is fixed: it validates against its options and renders a picker. `tags`
+validates only that each one is non-blank, at most 32 characters, and not
+already there — case-insensitively, since "Urgent" and "urgent" as two tags is
+a mistake every time. `minItems`, `maxItems` and `maxLength` set the rest.
+
+**`json`** is for what is not table-shaped: a settings blob, a webhook
+payload, metadata. It is validated as parseable and nothing more, because not
+declaring the shape is the point. `field.json({ object: true })` insists on an
+object, for a settings bag where a bare string is a mistake. If you find
+yourself reaching for it to hold something with a known shape, that shape
+wants fields of its own.
+
+**`markdown`** is a `text` column with a different editor: Write and Preview
+panes, and the record page renders it. Not a WYSIWYG editor — that means a
+large dependency and stored HTML you have to sanitise everywhere it appears,
+where Markdown is text that diffs and survives being edited by a script.
+
+The preview and the record page share one renderer,
+`components/dashboard/fields/markdown.tsx`, which builds React elements
+rather than an HTML string. There is no `dangerouslySetInnerHTML` in it, so
+stored text cannot become markup: a `<img onerror=…>` in the text shows up as
+those characters, and a `[click](javascript:…)` link renders as plain text
+because an href is checked against `https:`, `http:`, `mailto:`, `tel:`, `/`
+and `#`. It handles headings, lists, quotes, code, bold, italic, links and
+`---`; tables, images and raw HTML appear as what you typed. It is in your
+app — swap it for a parser you prefer.
 
 ## Number shorthands
 

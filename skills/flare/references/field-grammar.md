@@ -26,6 +26,9 @@ category:belongsTo(Category)?, notes:hasMany(Note)
 | `enum(a,b)` / `select(a,b)` | text or a Postgres enum | dropdown, shown as a badge |
 | `radio(a,b)` | same | radio buttons |
 | `multiselect(a,b)` | JSON array | multi-select, shown as badges |
+| `tags` | JSON array (text[] on Postgres) | type a label, press Enter; badges |
+| `json` | JSON (jsonb on Postgres) | textarea that says whether it parses |
+| `markdown` (`richtext`) | text | Write / Preview panes, rendered on the record page |
 | `file:[image,pdf]:5mb` | text (an object key) | drop zone; thumbnail for images |
 | `belongsTo(Other)` | foreign key | searchable relation picker |
 | `hasMany(Other)` | nothing — the other side's key | a table of children on the record page |

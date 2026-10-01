@@ -80,6 +80,24 @@ export function fieldJsonSchema(def: StoredField): Schema {
       if (def.maxItems !== undefined) schema.maxItems = def.maxItems;
       return schema;
     }
+    case "tags": {
+      const schema: Schema = {
+        ...base,
+        type: "array",
+        items: { type: "string", maxLength: def.maxLength ?? 32 },
+        uniqueItems: true,
+        examples: [["urgent", "q3"]],
+      };
+      if (def.minItems !== undefined) schema.minItems = def.minItems;
+      if (def.maxItems !== undefined) schema.maxItems = def.maxItems;
+      return schema;
+    }
+    case "json":
+      // No `type`, which in JSON Schema means any. Saying `type: "object"` would be a
+      // promise the field does not make, unless `object: true` made it.
+      return def.object
+        ? { ...base, type: "object", description: base.description ?? "A JSON object." }
+        : { ...base, description: base.description ?? "Any JSON value." };
     case "file":
       return { ...base, type: "string", description: base.description ?? "Storage key of an uploaded file." };
     case "belongsTo":

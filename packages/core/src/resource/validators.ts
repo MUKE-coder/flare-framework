@@ -124,6 +124,30 @@ export function fieldSchema(def: StoredField): z.ZodType {
       if (def.maxItems !== undefined) s = s.refine((values) => values.length <= def.maxItems!, `Choose at most ${def.maxItems}`);
       return s;
     }
+    case "tags": {
+      const maxLength = def.maxLength ?? 32;
+      let s = z
+        .array(
+          z
+            .string({ error: "Each tag is text" })
+            .trim()
+            .min(1, "A tag can't be blank")
+            .max(maxLength, `A tag can be at most ${maxLength} characters`),
+          { error: typeError("Add one or more tags") },
+        )
+        // Case-insensitively: "Urgent" and "urgent" as two tags is a mistake every time.
+        .refine((values) => new Set(values.map((value) => value.toLowerCase())).size === values.length, "Each tag can be added once");
+      const min = def.minItems ?? (def.required ? 1 : 0);
+      if (min > 0) s = s.refine((values) => values.length >= min, min === 1 ? "Add at least one tag" : `Add at least ${min} tags`);
+      if (def.maxItems !== undefined) s = s.refine((values) => values.length <= def.maxItems!, `Add at most ${def.maxItems} tags`);
+      return s;
+    }
+    case "json":
+      // Any JSON value, because not declaring the shape is the point. `object: true` for a
+      // settings blob, where a bare string or array is a mistake rather than a choice.
+      // z.json() is any JSON value and rejects undefined, which is what a required field
+      // needs — z.unknown() would accept a missing value and quietly make it optional.
+      return def.object ? z.record(z.string(), z.json(), { error: typeError("Enter a JSON object") }) : z.json();
     case "file":
       return z.string({ error: typeError("Upload a file") }).regex(OBJECT_KEY, "Invalid file");
     case "belongsTo":

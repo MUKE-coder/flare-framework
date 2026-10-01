@@ -138,7 +138,15 @@ stores nothing, it is a view of the other side. One-to-many: `belongsTo` on
 the many side. One-to-one: `belongsTo(X)!`, unique. Many-to-many: **there is
 no manyToMany field** — make the join its own resource with two `belongsTo`,
 because it nearly always grows columns (quantity, price). For a fixed
-vocabulary with no data of its own, use `multiselect`.
+vocabulary with no data of its own, use `multiselect`; for labels nobody
+decided in advance, `tags`.
+
+**Three kinds worth knowing.** `tags` for a free list of labels. `json` for
+what is not table-shaped — a settings blob, a payload — validated as parseable
+and nothing more. `markdown` (alias `richtext`) for long text with a
+Write/Preview editor, rendered on the record page; it is a `text` column, so
+nothing special happens to the data. Don't reach for `json` to hold something
+with a known shape: that shape wants fields, or a resource, of its own.
 
 ## Nothing is hidden — read the code
 

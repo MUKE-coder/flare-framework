@@ -1,6 +1,15 @@
 "use client";
 
-import { normalizeDomain, optionLabel, slugify, type FileField as FileFieldDef, type MultiSelectField as MultiSelectDef, type StoredField } from "@flaredev/core";
+import {
+  normalizeDomain,
+  optionLabel,
+  slugify,
+  type FileField as FileFieldDef,
+  type JsonField as JsonDef,
+  type MultiSelectField as MultiSelectDef,
+  type StoredField,
+  type TagsField as TagsDef,
+} from "@flaredev/core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
@@ -13,7 +22,10 @@ import { groupDigits, ungroup } from "@/lib/number";
 import { DateField, DateTimeField } from "./date-field";
 import { CountryField } from "./country-field";
 import { FileField } from "./file-field";
+import { JsonField } from "./json-field";
+import { MarkdownField } from "./markdown-field";
 import { MultiSelectField } from "./multi-select-field";
+import { TagsField } from "./tags-field";
 import { PhoneField } from "./phone-field";
 import { RelationField } from "./relation-field";
 
@@ -56,7 +68,21 @@ export function FieldWidget(props: WidgetProps) {
 
   switch (field.kind) {
     case "text":
-      return <Textarea {...common} value={text} rows={4} onChange={(event) => onChange(event.target.value)} />;
+      // A markdown field is the same column; the editor is what differs.
+      return field.format === "markdown" ? (
+        <MarkdownField
+          id={id}
+          value={text}
+          onChange={onChange}
+          invalid={invalid}
+          disabled={disabled}
+          required={field.required}
+          placeholder={field.placeholder}
+          maxLength={field.maxLength}
+        />
+      ) : (
+        <Textarea {...common} value={text} rows={4} onChange={(event) => onChange(event.target.value)} />
+      );
 
     case "int":
     case "float": {
@@ -173,6 +199,12 @@ export function FieldWidget(props: WidgetProps) {
       return (
         <MultiSelectField id={id} field={field as MultiSelectDef & { label: string }} value={text} onChange={onChange} invalid={invalid} disabled={disabled} />
       );
+
+    case "tags":
+      return <TagsField id={id} field={field as TagsDef & { label: string }} value={text} onChange={onChange} invalid={invalid} disabled={disabled} />;
+
+    case "json":
+      return <JsonField id={id} field={field as JsonDef & { label: string }} value={text} onChange={onChange} invalid={invalid} disabled={disabled} />;
 
     case "date":
       return (

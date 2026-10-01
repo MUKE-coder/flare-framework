@@ -2,7 +2,7 @@ import { storedFields, type Resource } from "./define.js";
 
 /**
  * Form state for a resource: strings for text-like inputs, booleans for toggles, and a
- * JSON array string for multiselects.
+ * JSON array string for multiselects and tags.
  * These helpers convert between records, form state, and API input so every admin
  * form handles empty values, numbers, and defaults the same way.
  */
@@ -14,7 +14,9 @@ export function initialFormValues(resource: Pick<Resource, "fields">, record?: R
   for (const [key, def] of storedFields(resource)) {
     const source = record ? record[key] : "default" in def ? def.default : undefined;
     if (def.kind === "boolean") values[key] = source === true || source === 1;
-    else if (def.kind === "multiselect") values[key] = JSON.stringify(Array.isArray(source) ? source : []);
+    else if (def.kind === "multiselect" || def.kind === "tags") values[key] = JSON.stringify(Array.isArray(source) ? source : []);
+    // Indented, because this is the text someone is about to edit by hand.
+    else if (def.kind === "json") values[key] = source === null || source === undefined ? "" : JSON.stringify(source, null, 2);
     else if (source === null || source === undefined) values[key] = "";
     else if (source instanceof Date) values[key] = source.toISOString();
     else values[key] = String(source);
@@ -35,10 +37,28 @@ export function formValuesToInput(resource: Pick<Resource, "fields">, values: Fo
       input[key] = raw === true;
       continue;
     }
-    if (def.kind === "multiselect") {
+    if (def.kind === "multiselect" || def.kind === "tags") {
       const picked = parseMultiValue(raw);
       if (picked.length === 0 && mode === "create" && "default" in def && def.default !== undefined) continue;
       input[key] = picked.length === 0 && !def.required ? null : picked;
+      continue;
+    }
+    if (def.kind === "json") {
+      const source = typeof raw === "string" ? raw.trim() : "";
+      if (source === "") {
+        if (mode === "create" && "default" in def && def.default !== undefined) continue;
+        if (!def.required) input[key] = null;
+        continue;
+      }
+      try {
+        input[key] = JSON.parse(source);
+      } catch {
+        // NaN rather than the raw text, because the text would be *valid* JSON — a JSON
+        // string — and would save silently. z.json() rejects NaN even through
+        // .nullable().optional(), so unparseable input always lands as a field error and
+        // never reaches the API.
+        input[key] = Number.NaN;
+      }
       continue;
     }
     const text = typeof raw === "string" ? raw : "";
@@ -61,7 +81,7 @@ export function formValuesToInput(resource: Pick<Resource, "fields">, values: Fo
   return input;
 }
 
-/** A multiselect's form state (a JSON array string) as the picked values. */
+/** A multiselect's or tags field's form state (a JSON array string) as the picked values. */
 export function parseMultiValue(raw: string | boolean | undefined): string[] {
   if (typeof raw !== "string" || raw === "") return [];
   try {

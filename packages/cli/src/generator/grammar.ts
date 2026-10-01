@@ -1,4 +1,4 @@
-import { camelCase, FILE_CATEGORIES, STRING_FORMATS, type FileCategory, type NumberFormat, type StringFormat } from "@flaredev/core";
+import { camelCase, FILE_CATEGORIES, STRING_FORMATS, type FileCategory, type NumberFormat, type StringFormat, type TextFormat } from "@flaredev/core";
 
 /**
  * The `--fields` grammar of `flare gen resource`:
@@ -27,6 +27,8 @@ export type ParsedKind =
   | "datetime"
   | "enum"
   | "multiselect"
+  | "tags"
+  | "json"
   | "file"
   | "belongsTo"
   | "hasMany";
@@ -38,6 +40,8 @@ export interface ParsedField {
   unique: boolean;
   /** enum / multiselect values */
   options?: string[];
+  /** text: markdown rather than a plain textarea. */
+  textFormat?: TextFormat;
   /** money, percent or rating — how a number is entered and shown. */
   numberFormat?: NumberFormat;
   /** enum input: radio buttons instead of a dropdown */
@@ -51,7 +55,14 @@ export interface ParsedField {
   format?: StringFormat;
 }
 
-const SIMPLE_KINDS = ["string", "text", "int", "float", "boolean", "date", "datetime"] as const;
+const SIMPLE_KINDS = ["string", "text", "int", "float", "boolean", "date", "datetime", "tags", "json"] as const;
+
+/**
+ * Long text written as Markdown. The column is `text` either way; the format decides the
+ * editor and how the value is rendered. `richtext` is the same thing under the name people
+ * reach for first.
+ */
+const TEXT_SHORTHANDS: Record<string, TextFormat> = { markdown: "markdown", richtext: "markdown" };
 const FORMAT_ALIASES: Record<string, StringFormat> = { phone: "tel", website: "url" };
 
 /**
@@ -69,6 +80,7 @@ const ALL_KINDS = [
   "phone",
   "website",
   ...Object.keys(NUMBER_SHORTHANDS),
+  ...Object.keys(TEXT_SHORTHANDS),
   "enum",
   "select",
   "radio",
@@ -186,6 +198,9 @@ export function parseField(spec: string): ParsedField {
   } else if ((STRING_FORMATS as readonly string[]).includes(type) || type in FORMAT_ALIASES) {
     field.kind = "string";
     field.format = FORMAT_ALIASES[type] ?? (type as StringFormat);
+  } else if (type in TEXT_SHORTHANDS) {
+    field.kind = "text";
+    field.textFormat = TEXT_SHORTHANDS[type]!;
   } else if (type in NUMBER_SHORTHANDS) {
     const shorthand = NUMBER_SHORTHANDS[type]!;
     field.kind = shorthand.kind;

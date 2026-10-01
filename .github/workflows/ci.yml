@@ -65,6 +65,12 @@ jobs:
 
       # Opt-in, so it has to be generated to be tested. The install follows because the
       # generator adds @better-auth/api-key to package.json.
+      # markdown, tags and json: long text with a preview, a free list of labels, and a
+      # value whose shape is not declared.
+      - name: Generate a resource using the newer field kinds
+        working-directory: examples/ci-cf
+        run: node ../../packages/cli/dist/index.js gen resource Note --fields 'title:string, body:markdown, labels:tags?, settings:json?'
+
       - name: Switch on API keys
         working-directory: examples/ci-cf
         run: node ../../packages/cli/dist/index.js gen apikeys
@@ -100,6 +106,7 @@ jobs:
           node ../../scripts/e2e-smoke.mjs http://127.0.0.1:8787 contacts
           node ../../scripts/e2e-ownership.mjs http://127.0.0.1:8787 invoices
           node ../../scripts/e2e-apikeys.mjs http://127.0.0.1:8787 invoices
+          node ../../scripts/e2e-field-kinds.mjs http://127.0.0.1:8787 notes
 
       # No working-directory: the step runs on any failure, including one before the app
       # was scaffolded, and naming a missing directory fails the step instead of the run.
@@ -184,6 +191,12 @@ jobs:
           node ../../packages/cli/dist/index.js gen resource Invoice --fields 'number:string!, total:money, userId:string'
           node ../../packages/cli/dist/index.js gen policy Invoice --roles '*' --own userId --own-except admin
 
+      # markdown, tags and json: long text with a preview, a free list of labels, and a
+      # value whose shape is not declared.
+      - name: Generate a resource using the newer field kinds
+        working-directory: examples/ci-next
+        run: node ../../packages/cli/dist/index.js gen resource Note --fields 'title:string, body:markdown, labels:tags?, settings:json?'
+
       - name: Switch on API keys
         working-directory: examples/ci-next
         run: node ../../packages/cli/dist/index.js gen apikeys
@@ -224,6 +237,7 @@ jobs:
           node ../../scripts/e2e-smoke.mjs http://127.0.0.1:3000 contacts
           node ../../scripts/e2e-ownership.mjs http://127.0.0.1:3000 invoices
           node ../../scripts/e2e-apikeys.mjs http://127.0.0.1:3000 invoices
+          node ../../scripts/e2e-field-kinds.mjs http://127.0.0.1:3000 notes
 
       # The two things HTTP cannot reach: a server action, and a byte in a bucket.
       - name: Export and upload

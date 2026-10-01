@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { clientResource, formatValue, optionLabel, relationGraph, statusTone, storedFields, type Resource } from "@flaredev/core";
 import { Badge } from "@/components/ui/badge";
 import { FileCell } from "@/components/dashboard/fields/file-cell";
+import { Markdown } from "@/components/dashboard/fields/markdown";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { recentAudit } from "@/lib/audit";
@@ -115,6 +116,23 @@ export async function RecordDetail({ resource, id }: { resource: Resource; id: s
               } else if (def.kind === "file" && typeof value === "string" && value) {
                 // Bigger here than in the table: this is the page for looking at one record.
                 content = <FileCell resourceName={resource.name} fieldKey={key} value={value} size={96} />;
+              } else if (def.kind === "tags" && Array.isArray(value) && value.length > 0) {
+                content = (
+                  <span className="flex flex-wrap gap-1">
+                    {value.map((item) => (
+                      <Badge key={String(item)} variant="outline">
+                        {String(item)}
+                      </Badge>
+                    ))}
+                  </span>
+                );
+              } else if (def.kind === "json" && value !== null && value !== undefined) {
+                // In full here, indented. The table cell gets one truncated line.
+                content = (
+                  <pre className="bg-muted max-h-80 overflow-auto rounded-md p-3 font-mono text-xs">{JSON.stringify(value, null, 2)}</pre>
+                );
+              } else if (def.kind === "text" && def.format === "markdown" && typeof value === "string" && value.trim()) {
+                content = <Markdown source={value} />;
               } else if (def.kind === "multiselect" && Array.isArray(value) && value.length > 0) {
                 content = (
                   <span className="flex flex-wrap gap-1">

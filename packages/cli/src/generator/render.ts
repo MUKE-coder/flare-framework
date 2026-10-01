@@ -33,6 +33,13 @@ function columnExpression(key: string, def: StoredField, resources: Map<string, 
       // A JSON array of option values; the validators keep it to the listed options.
       expr = `text(${col}, { mode: "json" }).$type<(${def.options.map((option) => q(option)).join(" | ")})[]>()`;
       break;
+    case "tags":
+      // A JSON array of free strings, like multiselect but with no vocabulary to pin.
+      expr = `text(${col}, { mode: "json" }).$type<string[]>()`;
+      break;
+    case "json":
+      expr = `text(${col}, { mode: "json" })`;
+      break;
     case "belongsTo": {
       const target = resources.get(def.target);
       if (!target) {

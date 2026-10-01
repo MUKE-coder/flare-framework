@@ -215,6 +215,16 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
                         // A thumbnail for an image, a filename for anything else — the raw
                         // object key is noise in a table.
                         content = <FileCell resourceName={resource.name} fieldKey={column.key} value={value} />;
+                      } else if (column.def.kind === "tags" && Array.isArray(value) && value.length) {
+                        content = (
+                          <span className="flex flex-wrap gap-1">
+                            {value.map((item) => (
+                              <Badge key={String(item)} variant="outline">
+                                {String(item)}
+                              </Badge>
+                            ))}
+                          </span>
+                        );
                       } else if (column.def.kind === "multiselect" && Array.isArray(value) && value.length) {
                         const def = column.def;
                         content = (

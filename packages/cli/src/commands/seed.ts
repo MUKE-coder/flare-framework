@@ -109,6 +109,10 @@ function sampleValue(key: string, def: StoredField): string | undefined {
       return `fake.pick(${JSON.stringify(def.options)})`;
     case "multiselect":
       return `fake.some(${JSON.stringify(def.options)}, ${Math.max(1, def.minItems ?? 1)})`;
+    case "tags":
+      return `fake.some(["urgent", "follow-up", "q3", "renewal"], ${Math.max(1, def.minItems ?? 1)})`;
+    case "json":
+      return `{ seeded: true }`;
     case "file":
       return undefined;
     case "belongsTo":

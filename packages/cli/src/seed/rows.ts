@@ -120,6 +120,12 @@ function fieldValue(key: string, def: StoredField, fake: Fake, resource: Resourc
       return fake.pick(def.options);
     case "multiselect":
       return fake.some(def.options, Math.max(1, def.minItems ?? 1), def.maxItems ?? def.options.length);
+    case "tags":
+      // Words rather than option values: the point of the field is that there is no list.
+      return fake.some(TAG_WORDS, Math.max(1, def.minItems ?? 1), Math.min(def.maxItems ?? 3, TAG_WORDS.length));
+    case "json":
+      // Shaped like the thing the field usually holds — settings, not lorem ipsum.
+      return { source: fake.pick(["dashboard", "import", "api"]), version: 1, seeded: true };
     case "file":
       // There's no object in R2 to point at, so only fill it when the column demands one.
       return def.required ? `seed/${resource.table}/${fake.count}.bin` : null;
@@ -160,6 +166,12 @@ function digitalish(resource: Resource): boolean {
 }
 
 /** Columns a seeded insert writes, in order: id, the resource's own fields, then the timestamps. */
+/**
+ * Words a seeded `tags` field gets. Short and plausible, because these show up in a
+ * screenshot of the table more often than anything else a seed writes.
+ */
+const TAG_WORDS = ["urgent", "follow-up", "q3", "renewal", "vip", "internal", "archived", "draft"];
+
 export function seedColumns(resource: Resource): string[] {
   return ["id", ...storedFields(resource).map(([key]) => columnName(key)), "created_at", "updated_at"];
 }

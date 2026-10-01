@@ -17,6 +17,8 @@ export type FieldKind =
   | "datetime"
   | "enum"
   | "multiselect"
+  | "tags"
+  | "json"
   | "file"
   | "belongsTo"
   | "hasMany";
@@ -95,9 +97,52 @@ export interface StringOptions extends CommonOptions<string> {
   format?: StringFormat;
   pattern?: string;
 }
+/**
+ * What long text holds.
+ *
+ * The column is `text` either way. `markdown` changes the editor — a split write/preview
+ * pane rather than a plain textarea — and how the value is rendered. Nothing is escaped
+ * or sanitised on the way in: it is stored exactly as typed, and rendered as Markdown
+ * where the dashboard shows it.
+ */
+export type TextFormat = "markdown";
+export const TEXT_FORMATS: readonly TextFormat[] = ["markdown"];
+
 export interface TextOptions extends CommonOptions<string> {
   maxLength?: number;
   minLength?: number;
+  format?: TextFormat;
+}
+
+/**
+ * Free-text labels, as many as you like.
+ *
+ * `multiselect` is the one to reach for when the vocabulary is fixed and known — it
+ * validates against its options and renders a picker. `tags` is for the other case: the
+ * person typing decides what the values are. Stored as a JSON array, like a multiselect,
+ * so a row holds `["urgent", "q3"]` rather than a comma-joined string nobody can query.
+ */
+export interface TagsOptions extends Omit<CommonOptions<string[]>, "unique"> {
+  /** Fewest / most tags. A required field needs at least one. */
+  minItems?: number;
+  maxItems?: number;
+  /** Longest a single tag may be. Default 32. */
+  maxLength?: number;
+  /** Shown in the input before anything is typed, e.g. "add a label". */
+  placeholder?: string;
+}
+
+/**
+ * Anything that is not table-shaped: a settings blob, a webhook payload, metadata.
+ *
+ * Stored as JSON — a `text` column on SQLite, `jsonb` on Postgres. Validated as parseable
+ * and nothing more, because the point of the field is that its shape is not declared. If
+ * you find yourself reaching for it to hold something with a known shape, that shape wants
+ * fields of its own, or a resource of its own.
+ */
+export interface JsonOptions extends Omit<CommonOptions<unknown>, "unique"> {
+  /** Reject anything that is not a JSON object, for a settings blob. Default false. */
+  object?: boolean;
 }
 /**
  * What a number means, which decides how it is shown and entered.
@@ -166,6 +211,8 @@ export type EnumField<O extends string = string, R extends boolean = boolean> = 
   EnumOptions<O> & { options: readonly O[] };
 export type MultiSelectField<O extends string = string, R extends boolean = boolean> = Base<"multiselect", R> &
   MultiSelectOptions<O> & { options: readonly O[] };
+export type TagsField<R extends boolean = boolean> = Base<"tags", R> & TagsOptions;
+export type JsonField<R extends boolean = boolean> = Base<"json", R> & JsonOptions;
 export type FileField<R extends boolean = boolean> = Base<"file", R> &
   FileOptions & {
     /** Accepted categories from the `file:[image,pdf]` grammar. */
@@ -188,6 +235,8 @@ export type Field =
   | DateTimeField
   | EnumField
   | MultiSelectField
+  | TagsField
+  | JsonField
   | FileField
   | BelongsToField
   | HasManyField;
@@ -265,6 +314,15 @@ export const field = {
   /** Any number of a list, picked with checkboxes. Stored as a JSON array. */
   multiselect: <const V extends readonly [string, ...string[]], const O extends MultiSelectOptions<V[number]>>(values: V, options?: O) =>
     build("multiselect", options, { options: values, sortable: false }) as MultiSelectField<V[number], Req<O>> & O,
+  /** Free-text labels, as many as wanted. Stored as a JSON array. */
+  tags: <const O extends TagsOptions>(options?: O) =>
+    build("tags", options, { sortable: false, searchable: false }) as TagsField<Req<O>> & O,
+  /** Anything not table-shaped: a settings blob, a payload, metadata. Stored as JSON. */
+  json: <const O extends JsonOptions>(options?: O) =>
+    build("json", options, { list: false, sortable: false, searchable: false }) as JsonField<Req<O>> & O,
+  /** Long text written as Markdown: a split editor, rendered where it is shown. */
+  markdown: <const O extends Omit<TextOptions, "format">>(options?: O) =>
+    build("text", options, { format: "markdown", list: false, searchable: false }) as TextField<Req<O>> & O,
   email: <const O extends Omit<StringOptions, "format">>(options?: O) => build("string", options, { format: "email" }) as StringField<Req<O>> & O,
   url: <const O extends Omit<StringOptions, "format">>(options?: O) => build("string", options, { format: "url" }) as StringField<Req<O>> & O,
   tel: <const O extends Omit<StringOptions, "format">>(options?: O) => build("string", options, { format: "tel" }) as StringField<Req<O>> & O,

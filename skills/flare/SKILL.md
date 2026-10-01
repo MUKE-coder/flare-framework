@@ -83,7 +83,11 @@ than `string` plus a comment:
   `percent`, `rating` (stars, 0–5).
 - **Choices:** `enum(a,b)` or `select(a,b)` for a dropdown, `radio(a,b)` for
   radio buttons, `multiselect(a,b)` for several at once.
-- **Longer text:** `text` for a textarea. **Time:** `date`, `datetime`.
+- **Longer text:** `text` for a textarea, `markdown` for one with a preview that
+  the record page renders.
+- **Lists and blobs:** `tags` for labels nobody decided in advance (`multiselect`
+  is for a fixed vocabulary), `json` for what is not table-shaped.
+- **Time:** `date`, `datetime`.
 - **Files:** `file:[image,pdf]:5mb`. The categories allowed in the brackets are
   `image`, `pdf`, `document`, `spreadsheet`, `csv`, `video`, `audio`, `archive`
   and `any` — they are not types on their own, so `avatar:image` is an error.

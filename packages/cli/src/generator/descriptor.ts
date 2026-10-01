@@ -31,6 +31,10 @@ function options(field: ParsedField): Record<string, unknown> {
 export function toField(field: ParsedField): Field {
   const opts = options(field);
   switch (field.kind) {
+    // `field.markdown()` rather than `field.text({ format: "markdown" })`: the same field,
+    // written the way someone would write it by hand.
+    case "text":
+      return field.textFormat === "markdown" ? builders.markdown(opts) : builders.text(opts);
     case "enum":
       return builders.enum(field.options as [string, ...string[]], opts);
     case "multiselect":
@@ -57,6 +61,8 @@ export function renderField(field: ParsedField): string {
   const opts = renderOptions(options(field));
   const args = (...parts: string[]) => parts.filter(Boolean).join(", ");
   switch (field.kind) {
+    case "text":
+      return `${field.key}: field.${field.textFormat === "markdown" ? "markdown" : "text"}(${opts}),`;
     case "enum":
       return `${field.key}: field.enum(${args(literal(field.options), opts)}),`;
     case "multiselect":

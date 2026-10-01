@@ -60,6 +60,14 @@ export function formatValue(def: StoredField | { kind: "timestamp" }, value: unk
       return optionLabel(def, String(value));
     case "multiselect":
       return Array.isArray(value) && value.length ? value.map((item) => optionLabel(def, String(item))).join(", ") : "—";
+    case "tags":
+      return Array.isArray(value) && value.length ? value.map(String).join(", ") : "—";
+    case "json": {
+      // One line, because this goes in a table cell. The record page shows it in full.
+      if (value === null || value === undefined) return "—";
+      const text = typeof value === "string" ? value : JSON.stringify(value);
+      return text.length > 60 ? `${text.slice(0, 59)}…` : text;
+    }
     case "string":
       if (def.format === "tel") return formatPhone(String(value));
       if (def.format === "country") return `${flagEmoji(String(value))} ${countryName(String(value), locale.split("-")[0])}`.trim();
