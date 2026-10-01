@@ -48,12 +48,28 @@ export const respond = <T>(result: Result<T>, init?: ResponseInit) => (result.ok
  * Whether this write came from another site.
  *
  * Browsers always send `Origin` on POST, PATCH, PUT and DELETE, so a mismatch is a
- * cross-site request and a request with no Origin at all is not from a browser form.
- * This is the CSRF guard; a route that writes should call it.
+ * cross-site request, and a request with no `Origin` at all is not from a browser form —
+ * which is why a script or a cron job with an API key is not caught by this. It is the
+ * CSRF guard; a route that writes should call it.
+ *
+ * `request.url` alone is not enough to compare against. On the Next.js stack it is built
+ * from the server's own idea of its address and ignores the `Host` header entirely: a
+ * request to `http://127.0.0.1:3000` arrives with `request.url` saying `localhost:3000`,
+ * so a page served from one of those addresses could not write to the other. The host the
+ * client actually addressed is in the headers, and either answer matching is same-site.
+ *
+ * Trusting a forwarded header is sound here, because of what this guard is for. It only
+ * has to hold against a browser, and a page cannot set `Origin` or `X-Forwarded-Host` on
+ * a request it makes. Anything that can set both already sends no cookie worth stealing.
  */
 export const crossOrigin = (request: Request) => {
   const origin = request.headers.get("origin");
-  return origin !== null && origin !== new URL(request.url).origin;
+  if (origin === null) return false;
+  const url = new URL(request.url);
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  if (!host) return origin !== url.origin;
+  const scheme = request.headers.get("x-forwarded-proto") ?? url.protocol.replace(":", "");
+  return origin !== `${scheme}://${host}` && origin !== url.origin;
 };
 
 /**
