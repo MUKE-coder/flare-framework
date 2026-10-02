@@ -103,6 +103,29 @@ export function runNode(argv: string[], cwd: string): Promise<number> {
 }
 
 /**
+ * Like {@link runNode}, but keeps a copy of what the child printed.
+ *
+ * Output is still mirrored, so the command looks the same. The copy is for the cases where
+ * the tool's own last word is the wrong advice: `prisma migrate dev` ends a drift report
+ * with "you may use prisma migrate reset … All data will be lost", and the caller wants to
+ * answer that rather than leave it as the final line.
+ */
+export function runNodeCapturing(argv: string[], cwd: string): Promise<{ code: number; output: string }> {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(process.execPath, argv, { cwd, stdio: ["inherit", "pipe", "pipe"] });
+    let output = "";
+    for (const stream of [child.stdout, child.stderr]) {
+      stream?.on("data", (chunk: Buffer) => {
+        output += chunk.toString();
+        process.stdout.write(chunk);
+      });
+    }
+    child.on("error", reject);
+    child.on("exit", (code, signal) => resolvePromise({ code: code ?? (signal ? 1 : 0), output }));
+  });
+}
+
+/**
  * Run a dev server with its output mirrored, and share it on a Cloudflare quick tunnel
  * once it prints the address it's listening on. With `opened`, the tunnel already exists
  * (opened first so the server could be told its public origin) and only the banner waits.

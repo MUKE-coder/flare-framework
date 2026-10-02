@@ -129,7 +129,7 @@ either side.
 
 | | Cloudflare | Next.js |
 | --- | --- | --- |
-| Write a migration | `flare gen migration --from-schema` | `prisma migrate dev` |
+| Write a migration | `flare gen migration --from-schema` | `flare gen migration` (wraps `prisma migrate dev`) |
 | Apply it | `flare migrate` | `flare migrate` (= `prisma migrate deploy`) |
 | Dev server | `flare dev` | `flare dev` (= `next dev`) |
 | Deploy | `flare deploy` | `flare deploy` (= `vercel deploy --prod`) |
@@ -143,7 +143,7 @@ not here, it works the same on both.
 | | Cloudflare | Next.js |
 | --- | --- | --- |
 | `flare migrate` | applies pending D1 migrations | runs `prisma migrate deploy` |
-| Writing a migration | `flare gen migration --from-schema` | `npx prisma migrate dev` |
+| Writing a migration | `flare gen migration --from-schema` | `flare gen migration` (wraps `prisma migrate dev`) |
 | `flare seed` | the local D1 database | the database in `DATABASE_URL` |
 | `flare seed:resource` | fills a table from its descriptor | **not available** — use `flare seed:make <name> --resource <R>`, then `flare seed` |
 | `--remote`, `--env`, `--database` | target the deployed D1 database | **ignored** — there is one database, the one in `DATABASE_URL` |
@@ -229,7 +229,23 @@ and dashboard pages it writes on Cloudflare. What changes is the schema:
 - **`resources.prisma`** — your resources, written from the descriptors.
   Overwritten every time you run `flare gen resource`.
 
-Migrations are Prisma's: `npx prisma migrate dev` diffs the schema against
+`flare gen migration <name>` writes one. It wraps `prisma migrate dev
+--create-only`, so the migration is written and **not applied**, and then reads
+the SQL back:
+
+- If it would drop anything, it says which statement and what goes, and stops.
+  Two things produce a drop and only you can tell them apart: a field you
+  removed from a descriptor, or a column Prisma cannot see and therefore thinks
+  should not exist.
+- If Prisma reports drift, it stops before Prisma's own suggestion — which is
+  `prisma migrate reset`, and that drops the database. Drift usually means
+  something was added by hand, so resetting is exactly how you lose it.
+
+An index, a trigger or a function is not reported as drift at all; Prisma does
+not look at those. They survive a migration and are lost by a reset, which is
+the other reason not to reach for one.
+
+Underneath it is still Prisma's: `prisma migrate dev` diffs the schema against
 your database and writes the SQL. `flare migrate` applies what is already
 written — it runs `prisma migrate deploy` here — which is the one you want
 against a database that matters, because it never invents a migration.
