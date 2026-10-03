@@ -163,6 +163,20 @@ describe("querying", () => {
     expect(decodeCursor(cursor!)?.value).toBe(200);
   });
 
+  it("puts a number in the cursor even when the adapter gave a bigint", async () => {
+    // Postgres stores money as BigInt and Prisma returns a bigint. JSON.stringify throws on
+    // one, so a cursor built straight from the stored row broke sorting by a money field on
+    // that stack — and only that stack, which is why CI found it and local runs did not.
+    // Two rows, so there is a next page for a cursor to point at.
+    for (const [id, total] of [["b", 500n], ["c", 900n]] as const) {
+      rows.all.push({ id, number: `B-${id}`, total, tip: null, yen: 1, weight: 1, createdAt: new Date(), updatedAt: new Date() });
+    }
+    const page = await store().list(new URLSearchParams({ perPage: "1", sort: "total" }));
+    expect(page.ok, page.ok ? "" : JSON.stringify(page)).toBe(true);
+    const cursor = page.ok ? page.data.meta.nextCursor : undefined;
+    expect(typeof decodeCursor(cursor ?? "")?.value).toBe("number");
+  });
+
   it("pages on from that cursor instead of repeating itself", async () => {
     for (const [number, total] of [["A-1", 1], ["A-2", 2], ["A-3", 3]] as const) {
       await store().create({ number, total, yen: 1, weight: 1 });

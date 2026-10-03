@@ -46,6 +46,11 @@ export const COUNT_LIMIT = 10_000;
 function toCursorValue(value: unknown): string | number | boolean | null {
   if (value instanceof Date) return value.getTime();
   if (value === null || value === undefined) return null;
+  // A money column is BigInt on Postgres, and Prisma hands those back as a bigint.
+  // JSON.stringify throws on one — "Do not know how to serialize a BigInt" — so sorting by
+  // a money field broke the cursor on that stack and nowhere else. Minor units fit a double
+  // to about ninety trillion, which is past any amount a column like this holds.
+  if (typeof value === "bigint") return Number(value);
   if (typeof value === "object") return String(value);
   return value as string | number | boolean;
 }
