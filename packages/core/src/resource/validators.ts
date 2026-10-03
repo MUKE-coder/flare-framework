@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { storedFields, type Resource } from "./define.js";
+import { hasTooManyPlaces, moneyExponent } from "./money.js";
 import type { CreateInput, Field, StoredField, UpdateInput } from "./fields.js";
 import {
   isColor,
@@ -102,7 +103,18 @@ export function fieldSchema(def: StoredField): z.ZodType {
       if (def.format === "rating") {
         s = s.min(def.min ?? 0, `At least ${def.min ?? 0}`).max(def.max ?? 5, `At most ${def.max ?? 5}`);
       }
-      if (def.format === "money" && def.min === undefined) s = s.min(0, "Cannot be negative");
+      if (def.format === "money") {
+        if (def.min === undefined) s = s.min(0, "Cannot be negative");
+        // The column holds whole minor units, so 19.999 cannot be stored as written. It is
+        // refused rather than rounded: a silent change to a number somebody will reconcile
+        // against a bank statement is worse than being told to write it properly. This is
+        // also the last point at which the extra places still exist to complain about.
+        const places = moneyExponent(def.currency);
+        s = s.refine(
+          (value) => !hasTooManyPlaces(value, def.currency),
+          places === 0 ? "A whole amount, with no decimal places" : `At most ${places} decimal place${places === 1 ? "" : "s"}`,
+        );
+      }
       if (def.min !== undefined) s = s.min(def.min, `Must be at least ${def.min}`);
       if (def.max !== undefined) s = s.max(def.max, `Must be at most ${def.max}`);
       return s;

@@ -3,7 +3,7 @@
  * the shape of the value, and the field's name decides what it looks like, so a
  * `city` string reads "Kampala" rather than "City 4".
  */
-import { columnName, createFake, storedFields, type Fake, type Resource, type StoredField } from "@flaredev/core";
+import { columnName, createFake, storedFields, toMinorUnits, type Fake, type Resource, type StoredField } from "@flaredev/core";
 import type { Row, SqlValue } from "./bulk.js";
 
 /** Ids of existing rows in each parent table, keyed by resource name, for belongsTo fields. */
@@ -92,7 +92,14 @@ function numberValue(key: string, def: Extract<StoredField, { kind: "int" | "flo
     min = min ?? low;
     max = max ?? high;
   }
-  return def.kind === "int" ? fake.int(Math.ceil(min), Math.floor(max)) : fake.float(min, max, money ? 2 : 2);
+  const amount = def.kind === "int" ? fake.int(Math.ceil(min), Math.floor(max)) : fake.float(min, max, 2);
+
+  // `seed:resource` writes rows straight through the row adapter, not through the store, so
+  // the conversion the store does at its boundary has to happen here too. A money column
+  // holds whole minor units; seeding 49.99 into it would store 49.99 in a column of cents,
+  // which reads back as 50 pence and makes every seeded price look a hundred times too
+  // small. The name-based guess above is only for picking a range.
+  return def.format === "money" ? toMinorUnits(amount, def.currency) : amount;
 }
 
 /** A field's value, or undefined to leave the column out (its database default applies). */

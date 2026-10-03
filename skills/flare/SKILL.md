@@ -79,8 +79,11 @@ than `string` plus a comment:
 - **Text with a shape:** `email`, `url`, `tel`, `domain`, `country`, `color`,
   `slug`, `username`, `ip`, `uuid`, `timezone`, `locale`, `currency`,
   `postcode`. All stored as text, all validated.
-- **Numbers with a meaning:** `money` (a currency input, refuses negatives),
-  `percent`, `rating` (stars, 0–5).
+- **Numbers with a meaning:** `money`, `percent`, `rating` (stars, 0–5). A money
+  field is stored in whole minor units — the store converts at its boundary, so
+  you still send and read amounts like 19.99. It refuses negatives unless a min
+  allows them, and refuses more decimal places than the currency has rather than
+  rounding them away.
 - **Choices:** `enum(a,b)` or `select(a,b)` for a dropdown, `radio(a,b)` for
   radio buttons, `multiselect(a,b)` for several at once.
 - **Longer text:** `text` for a textarea, `markdown` for one with a preview that

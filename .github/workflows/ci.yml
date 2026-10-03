@@ -86,6 +86,11 @@ jobs:
         working-directory: examples/ci-cf
         run: node ../../packages/cli/dist/index.js gen resource Ticket --fields 'subject:string!, status:enum(open,closed)' --soft-delete
 
+      # Money is stored in whole minor units, which the store converts at its boundary.
+      - name: Generate a resource with money fields
+        working-directory: examples/ci-cf
+        run: node ../../packages/cli/dist/index.js gen resource Item --fields 'name:string!, price:money, qty:int'
+
       - name: Switch on API keys
         working-directory: examples/ci-cf
         run: node ../../packages/cli/dist/index.js gen apikeys
@@ -123,6 +128,7 @@ jobs:
           node ../../scripts/e2e-apikeys.mjs http://127.0.0.1:8787 invoices
           node ../../scripts/e2e-field-kinds.mjs http://127.0.0.1:8787 notes
           node ../../scripts/e2e-soft-delete.mjs http://127.0.0.1:8787 tickets
+          node ../../scripts/e2e-money.mjs http://127.0.0.1:8787 items
 
       # No working-directory: the step runs on any failure, including one before the app
       # was scaffolded, and naming a missing directory fails the step instead of the run.
@@ -218,6 +224,11 @@ jobs:
         working-directory: examples/ci-next
         run: node ../../packages/cli/dist/index.js gen resource Ticket --fields 'subject:string!, status:enum(open,closed)' --soft-delete
 
+      # Money is stored in whole minor units, which the store converts at its boundary.
+      - name: Generate a resource with money fields
+        working-directory: examples/ci-next
+        run: node ../../packages/cli/dist/index.js gen resource Item --fields 'name:string!, price:money, qty:int'
+
       - name: Switch on API keys
         working-directory: examples/ci-next
         run: node ../../packages/cli/dist/index.js gen apikeys
@@ -260,6 +271,7 @@ jobs:
           node ../../scripts/e2e-apikeys.mjs http://127.0.0.1:3000 invoices
           node ../../scripts/e2e-field-kinds.mjs http://127.0.0.1:3000 notes
           node ../../scripts/e2e-soft-delete.mjs http://127.0.0.1:3000 tickets
+          node ../../scripts/e2e-money.mjs http://127.0.0.1:3000 items
 
       # The two things HTTP cannot reach: a server action, and a byte in a bucket.
       - name: Export and upload

@@ -89,12 +89,13 @@ app — swap it for a parser you prefer.
 
 ## Number shorthands
 
-The column is an ordinary `int` or `float` — the shorthand changes how the
-number is entered and shown, not how it is stored:
+`percent` and `rating` are an ordinary `float` and `int` — the shorthand changes
+how the number is entered and shown, not how it is stored. `money` is the
+exception, and the next section says why.
 
 | Syntax | Column | Admin input | Shown as |
 | --- | --- | --- | --- |
-| `money` | `float` | grouped digits with a currency prefix | `1,250.00` |
+| `money` | **integer minor units** | grouped digits with a currency prefix | `1,250.00` |
 | `percent` | `float` | grouped digits with a `%` suffix | `12.5%` |
 | `rating` | `int` | a row of stars, click to set, click again to clear | ★★★★☆ |
 
@@ -102,6 +103,58 @@ number is entered and shown, not how it is stored:
 resource would say `field.float({ format: "money", min: -1000 })`. A `rating`
 is bounded 0–5 unless `min`/`max` say otherwise. A `percent` is left alone,
 because 150% is a real number.
+
+### Money is stored in cents
+
+A `money` column holds whole **minor units** — cents, fils, yen — because a
+column of doubles drifts. Three 7p items add up to `0.21000000000000002` in
+binary floating point, and a total that is a penny out is not something you can
+explain to an accountant.
+
+Nothing above the database sees that. `lib/resource/store.ts` converts at its
+boundary, so you keep writing and reading the units people use:
+
+```ts
+await productClient.create({ name: "Mug", price: 19.99 });  // you send 19.99
+// the column holds 1999
+const { data } = await productClient.list();
+data[0].price;                                              // 19.99 again
+```
+
+The API, the forms, the CSV export, computed values and the typed client all
+work in major units. The integer is the database's business.
+
+Two consequences worth knowing:
+
+- **More decimal places than the currency has is refused, not rounded.** `19.999`
+  is a `422`, because quietly storing `20.00` changes a number somebody will
+  reconcile against a statement. The currency decides how many places: two by
+  default, none for `JPY` or `UGX`, three for `KWD`.
+- **A money field is not filterable by default** (nor is any number — only
+  `enum`, `boolean` and `belongsTo` are). Set `filterable: true` and
+  `?filter[price]=19.99` works, converted the same way.
+
+Flare's own billing tables have always stored amounts this way (`amount:int`,
+rendered as `cents / 100`). This brings `money` fields in line with them.
+
+:::caution[Upgrading an app that already has money columns]
+Before 0.10.0 a `money` field was a `REAL`/`Float` column holding `19.99`.
+Those values are now read as 19 cents. `flare gen migration` will change the
+column type, but it cannot know whether the numbers in it are old-style — so
+multiply them yourself, once, in that migration:
+
+```sql
+-- Cloudflare (D1): multiply, then round, before the column becomes an integer.
+UPDATE products SET price = CAST(ROUND(price * 100) AS INTEGER);
+```
+
+```sql
+-- Postgres: same idea, and the column is BigInt afterwards.
+UPDATE products SET price = ROUND(price * 100);
+```
+
+Check a row before and after. If an app has no rows yet, there is nothing to do.
+:::
 
 ```bash
 npx flare gen resource Vendor --fields 'name:string, handle:username!, fee:money, commission:percent, score:rating?'

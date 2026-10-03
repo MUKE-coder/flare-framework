@@ -30,7 +30,10 @@ function prismaType(resource: Resource, key: string, def: StoredField): string {
     case "int":
       return "Int";
     case "float":
-      return "Float";
+      // Money is whole minor units. BigInt rather than Int because Int tops out at about
+      // $21m in cents, which is a ceiling nobody expects to find in a price column; the
+      // store converts to a plain number at the boundary either way.
+      return def.format === "money" ? "BigInt" : "Float";
     case "boolean":
       return "Boolean";
     case "date":

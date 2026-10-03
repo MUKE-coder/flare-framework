@@ -8,7 +8,7 @@
 // `flare diff` shows how your copy differs from the version Flare ships, and
 // `flare update` applies the parts you choose. Neither runs unless you ask.
 
-import { columnName, ownershipFilter, storedFields, type Policy, type Resource } from "@flaredev/core";
+import { columnName, fromMinorUnits, ownershipFilter, storedFields, toMinorUnits, type Policy, type Resource } from "@flaredev/core";
 import { createValidators } from "@flaredev/core";
 import { encodeCursor, isSearchable, parseListQuery, type QueryIssue } from "./query";
 import type { ResourceRows, Row } from "./rows";
@@ -195,9 +195,48 @@ export function createResourceStore(options: ResourceStoreOptions) {
 
   const notFound = () => fail(404, `${resource.label} not found.`);
 
+  /**
+   * Money fields, and the currency each one counts in.
+   *
+   * A money column holds whole minor units, because a column of doubles drifts — sum a few
+   * thousand prices and the total is a penny out. Everything above this file works in the
+   * units people write, so the conversion happens here and nowhere else: the API sends
+   * 19.99, the form shows 19.99, and only the database sees 1999.
+   */
+  const moneyFields = fields.flatMap(([key, def]) =>
+    (def.kind === "int" || def.kind === "float") && def.format === "money" ? [{ key, currency: def.currency }] : [],
+  );
+
+  /** Amounts as the database stores them: 19.99 -> 1999. */
+  function toStored(values: Row): Row {
+    if (moneyFields.length === 0) return values;
+    const out = { ...values };
+    for (const { key, currency } of moneyFields) {
+      const value = out[key];
+      if (typeof value === "number") out[key] = toMinorUnits(value, currency);
+    }
+    return out;
+  }
+
+  /** Amounts as callers read them: 1999 -> 19.99. */
+  function toAmounts(row: Row): Row {
+    if (moneyFields.length === 0) return row;
+    const out = { ...row };
+    for (const { key, currency } of moneyFields) {
+      const value = out[key];
+      // Prisma hands a BigInt column back as a bigint; D1 gives a number.
+      if (typeof value === "number") out[key] = fromMinorUnits(value, currency);
+      else if (typeof value === "bigint") out[key] = fromMinorUnits(Number(value), currency);
+    }
+    return out;
+  }
+
   const computed = Object.entries(resource.computed ?? {});
   /** Add the descriptor's computed values to a row on its way out. */
-  const withComputed = (row: Record<string, unknown>): Record<string, unknown> => {
+  const withComputed = (stored: Record<string, unknown>): Record<string, unknown> => {
+    // Amounts first: a computed value like `total` is written against the units the
+    // descriptor talks about, so it has to see 19.99 rather than 1999.
+    const row = toAmounts(stored);
     if (computed.length === 0) return row;
     const result = { ...row };
     for (const [key, compute] of computed) {
@@ -265,7 +304,10 @@ export function createResourceStore(options: ResourceStoreOptions) {
       const limit = await confine();
       if (isFailure(limit)) return limit;
       // Last, so `?filter[userId]=someone-else` cannot widen the query past the owner.
-      const filters = limit ? { ...parsed.query.filters, [limit.field]: limit.value } : parsed.query.filters;
+      const parsedFilters = limit ? { ...parsed.query.filters, [limit.field]: limit.value } : parsed.query.filters;
+      // `?filter[price]=19.99` is written in the units the caller knows; the column counts
+      // cents, so it is converted here like any other amount crossing this boundary.
+      const filters = toStored(parsedFilters) as typeof parsedFilters;
 
       /**
        * Whether a sort column holds a date, so the adapter can shape the cursor for it.
@@ -310,8 +352,16 @@ export function createResourceStore(options: ResourceStoreOptions) {
       const exactTotal = counting <= COUNT_LIMIT;
       const total = exactTotal ? counting : COUNT_LIMIT;
 
-      const first = page_[0];
-      const last = page_[page_.length - 1];
+      // Cursors are built from the rows as the database gave them, not from `page_`.
+      // A cursor is compared against the column on the next request, so sorting by a money
+      // field has to carry 1999 — the stored value — and not the 19.99 callers see. Taking
+      // it from the converted rows paged by a number the column does not contain, which
+      // silently returned the same page forever.
+      const stored = hasMore ? found.slice(0, perPage) : found;
+      if (backwards) stored.reverse();
+
+      const first = stored[0];
+      const last = stored[stored.length - 1];
       const moreAfter = backwards ? true : hasMore;
       const moreBefore = backwards ? hasMore : Boolean(cursor) || page > 1;
       const cursorFor = (row: Record<string, unknown> | undefined, direction: "after" | "before") =>
@@ -381,7 +431,7 @@ export function createResourceStore(options: ResourceStoreOptions) {
         if (!result.success) return invalid(result.error.issues);
         const input = result.data as Record<string, unknown>;
         const now = new Date();
-        const record = await rows.insert({ ...input, id: crypto.randomUUID(), createdAt: now, updatedAt: now });
+        const record = await rows.insert(toStored({ ...input, id: crypto.randomUUID(), createdAt: now, updatedAt: now }));
         const saved = withComputed(record);
         await hooks.afterCreate?.(saved, context);
         return { ok: true, data: saved };
@@ -421,7 +471,7 @@ export function createResourceStore(options: ResourceStoreOptions) {
         const result = validators.update.safeParse(supplied);
         if (!result.success) return invalid(result.error.issues);
         const input = result.data as Record<string, unknown>;
-        const record = await rows.update(id, { ...input, updatedAt: new Date() });
+        const record = await rows.update(id, toStored({ ...input, updatedAt: new Date() }));
         if (!record) return notFound();
         const saved = withComputed(record);
         await hooks.afterUpdate?.(saved, { ...context, previous: current });
@@ -450,7 +500,7 @@ export function createResourceStore(options: ResourceStoreOptions) {
         // one of them, and a replace would quietly orphan the row it just saved.
         if (limit) values[limit.field] = limit.value;
 
-        const record = await rows.update(id, values);
+        const record = await rows.update(id, toStored(values));
         return record ? { ok: true, data: withComputed(record) } : notFound();
       });
     },

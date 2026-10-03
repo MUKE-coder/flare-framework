@@ -41,9 +41,15 @@ category:belongsTo(Category)?, notes:hasMany(Note)
 
 ## Number shorthands
 
-`money`, `percent`, `rating` — an ordinary `float`/`int` column; the shorthand
-changes the input and how it is shown. `money` refuses negatives unless `min`
-allows them; `rating` is bounded 0–5 unless `min`/`max` say otherwise.
+`percent` and `rating` are an ordinary `float`/`int` column; the shorthand
+changes the input and how it is shown. `rating` is bounded 0–5 unless `min`/`max`
+say otherwise.
+
+**`money` is stored in whole minor units** — cents, fils, yen — because a column
+of doubles drifts. The store converts at its boundary, so you still send and
+receive `19.99` everywhere; only the column holds `1999`. More decimal places
+than the currency has is a 422, not a silent round. Negatives are refused unless
+`min` allows them.
 
 ## Relationships
 

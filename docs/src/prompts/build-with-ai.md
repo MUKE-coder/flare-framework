@@ -148,6 +148,12 @@ for every path, and a boolean you filter in one place is a boolean somebody
 forgets in another. One thing to know before using it: a deleted row still holds
 its unique values.
 
+**Money.** A `money` field is stored in whole minor units and the store converts
+at its boundary, so send and read `19.99` — never multiply or divide by 100
+yourself, and never read a price expecting cents. More decimal places than the
+currency has is a 422 rather than a round, so don't send a computed figure
+without fixing its precision first.
+
 **Three kinds worth knowing.** `tags` for a free list of labels. `json` for
 what is not table-shaped — a settings blob, a payload — validated as parseable
 and nothing more. `markdown` (alias `richtext`) for long text with a

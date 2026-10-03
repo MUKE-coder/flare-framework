@@ -8,6 +8,7 @@
  */
 import { storedFields, type Resource } from "../resource/define.js";
 import type { StoredField } from "../resource/fields.js";
+import { moneyExponent } from "../resource/money.js";
 import { can, type Policy, type PolicyAction } from "../resource/policy.js";
 import { isFilterable, isSearchable, isSortable } from "./query.js";
 
@@ -64,6 +65,15 @@ export function fieldJsonSchema(def: StoredField): Schema {
       const schema: Schema = { ...base, type: def.kind === "int" ? "integer" : "number" };
       if (def.min !== undefined) schema.minimum = def.min;
       if (def.max !== undefined) schema.maximum = def.max;
+      if (def.format === "money") {
+        // The API speaks in the units people write — 19.99, not 1999 — and will not take
+        // more places than the currency has. `multipleOf` is how JSON Schema says that, so
+        // a generated client refuses 19.999 before the request is made.
+        const places = moneyExponent(def.currency);
+        schema.multipleOf = places === 0 ? 1 : Number(`1e-${places}`);
+        schema.description = base.description ?? `An amount in ${def.currency ?? "the app's currency"}, to ${places} decimal place${places === 1 ? "" : "s"}.`;
+        schema.examples = [places === 0 ? 1500 : 19.99];
+      }
       return schema;
     }
     case "boolean":

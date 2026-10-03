@@ -21,7 +21,10 @@ function columnExpression(key: string, def: StoredField, resources: Map<string, 
       expr = `integer(${col})`;
       break;
     case "float":
-      expr = `real(${col})`;
+      // A money column holds whole minor units — cents, not dollars — because a column of
+      // doubles drifts and a total comes out a penny short. The store converts at the
+      // boundary, so everything above it still works in the units people write.
+      expr = def.format === "money" ? `integer(${col})` : `real(${col})`;
       break;
     case "boolean":
       expr = `integer(${col}, { mode: "boolean" })`;
