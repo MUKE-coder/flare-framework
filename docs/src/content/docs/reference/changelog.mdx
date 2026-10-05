@@ -21,6 +21,123 @@ npx flare --version                 # what this app is on
 pnpm add -D @flaredev/cli@latest    # upgrade it
 ```
 
+<Release version="0.10.0" date="5 October 2026">
+
+**Money is stored in whole minor units. This one needs you to do something.**
+
+Three 7p items add up to 0.21000000000000002 in binary floating point, and a
+column of doubles drifts the same way — which is how a total comes out a penny
+short. A `money` field's column now holds whole minor units: `integer` on D1,
+`BigInt` on Postgres, so nobody finds a $21m ceiling in a price column.
+
+Nothing above the database changes. The API, the forms, the CSV export,
+computed values and the typed client all still speak the units people write:
+you send 19.99, the column holds 1999, you read 19.99 back.
+
+If you have no `money` field, there is nothing to do here.
+
+If you do, and it was created on 0.9.x, the column holds `19.99` and the new
+engine will read that as 19.99 *minor units*. Convert the data when you take
+the new `lib/resource/store.ts`, not before and not after. Multiply by the
+currency's exponent — 100 for most, 1 for JPY and other currencies with no
+minor unit, 1000 for KWD and the Gulf currencies:
+
+```sql
+-- Postgres: the column type changes too
+ALTER TABLE invoices ALTER COLUMN total TYPE bigint USING ROUND(total * 100);
+
+-- D1/SQLite: loosely typed, so only the values need moving
+UPDATE invoices SET total = CAST(ROUND(total * 100) AS INTEGER);
+```
+
+A `money` field declared as `int` is affected the same way unless its currency
+has no minor unit.
+
+**Next.js 16.0.4 carried two critical RCEs, and Vercel refused to deploy it.**
+
+A fresh app on the Next.js stack failed on its very first deploy with
+"Vulnerable version of Next.js detected". The pin is `16.3.8`, which clears
+all 36 advisories that version was sitting inside — among them unauthenticated
+remote code execution in the image optimizer and on Windows hosts. Existing
+apps: change `next` in your own `package.json`, since the pin only decides what
+a *new* app gets.
+
+**Seeding somebody you can sign in as.**
+
+`seedUser({ email, password, name?, role?, emailVerified? })` is on the seed
+context now, on both stacks. It writes the user and the credential account
+together, which is the part that is easy to get wrong by hand: Better Auth
+finds a password account by its `accountId` column, and for a credential
+account that column holds the user's own id — not the provider's name, and not
+the email. Put the email there and the row exists, the hash verifies, and
+signing in still answers "User not found".
+
+**A trailing slash on `BETTER_AUTH_URL` made every sign-in a silent 403.**
+
+Better Auth compares the request's `Origin` against it, and an `Origin` never
+carries a trailing slash — so `https://example.com/`, which is what you get
+copying a domain out of a browser bar or the Vercel dashboard, matched nothing.
+`lib/auth.ts` now trims it and says so on startup, naming the variable and what
+to set it to, and warns separately for a value with no scheme.
+
+**`prisma migrate dev` can no longer offer to drop your data unanswered.**
+
+**Smaller things.** Sorting a Postgres list by a money field threw
+`Do not know how to serialize a BigInt` — cursors are built from the rows as
+the adapter gave them, and Prisma hands back a bigint. The dashboard sidebar
+spent more height on group headings than on its links, enough to put a
+nine-link nav into a scrollbar. The Vercel guide has a
+[first-deploy database checklist](/guides/vercel-deployment/): an empty
+Postgres answers 500 on sign-up, and `POSTGRES_PRISMA_URL` is not the variable
+Prisma reads.
+
+</Release>
+
+<Release version="0.9.1" date="4 October 2026">
+
+**0.9.0 shipped a lockfile pnpm 12 refuses.**
+
+It pinned `vite@8.3.2` and `@vinext/types@1.0.1`, both published that morning.
+pnpm 12 enforces a 24-hour minimum release age, so every new app failed its
+first command with `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` until those
+versions aged out. The lockfiles are regenerated past the cutoff.
+
+This repo pins pnpm 11, which has no such policy, so nothing here could have
+caught it. `scripts/verify-lockfile.mjs` now does, and getting it right took
+three attempts: the check needs pnpm 12 *by name*, a directory that did not
+just write the lockfile, and a cold store. Each of those, missing, makes the
+check pass on a file a user cannot install.
+
+</Release>
+
+<Release version="0.9.0" date="3 October 2026">
+
+**Policies can say "only your own records".**
+
+`flare gen policy Invoice --roles '*' --own userId --own-except admin` confines
+each person to the rows whose `belongsTo(User)` field holds their id. It
+applies to reads, writes and deletes, and to the dashboard's counts.
+
+**API keys, for clients with no browser.** `flare gen apikeys` adds
+`@better-auth/api-key` and a key-management screen, so a script or a service
+can call your API without a session.
+
+**Soft delete.** `flare gen resource Ticket --soft-delete` stamps `deletedAt`
+instead of removing the row, and the dashboard grows a Trash view with restore.
+
+**Three more field kinds:** `markdown` (long text with a preview), `tags` (a
+free list of labels) and `json` (a value whose shape is not declared).
+
+**Fixes.** The CSRF guard refused writes from the right site on Next.js —
+`request.url` ignores the `Host` header, so it now also compares
+`X-Forwarded-Host`. `flare update` deleted files a generator had written.
+`app/` was never tracked by `flare diff`. The Prisma model is `Apikey`, not
+`ApiKey`, because Prisma lowercases only the first letter and Better Auth looks
+up `prisma.apikey`. `pnpm build` never worked off Windows: an unquoted
+`--filter ./packages/**` was glob-expanded by the shell.
+
+</Release>
+
 <Release version="0.8.1" date="1 October 2026">
 
 **The Export button never worked.**
