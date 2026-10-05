@@ -77,7 +77,11 @@ export const APP_DEV_DEPENDENCIES = {
  * range that resolves to something nobody has run.
  */
 export const NEXT_DEPENDENCIES = {
-  next: "16.0.4",
+  // 16.0.4 was carrying 36 advisories, three of them critical: unauthenticated RCE in the
+  // image optimizer and on Windows hosts (both fixed in 16.3.3), and RCE in the flight
+  // protocol. Vercel refuses to build it. A pin is only worth having if it is moved when
+  // one of these lands, so treat a critical against this line as a release of its own.
+  next: "16.3.8",
   "@prisma/client": "7.10.0",
   "@prisma/adapter-pg": "7.10.0",
   pg: "^8.16.3",
