@@ -58,9 +58,15 @@ committed file:
 `.env.example` in your app lists the same set, which is what to copy from.
 
 :::caution
-`BETTER_AUTH_URL` has to match the URL people actually visit. If it points at
-a preview domain, sign-in cookies are set for the wrong origin and every
-session silently fails.
+`BETTER_AUTH_URL` has to match the URL people actually visit, **with no
+trailing slash**. If it points at a preview domain, sign-in cookies are set for
+the wrong origin and every session silently fails. If it ends in `/`, it
+matches no `Origin` header at all — browsers never send one with a trailing
+slash — and every sign-in comes back `403` with nothing in the log to say why.
+
+Flare trims the slash for you and prints a warning naming the variable, so
+this is survivable rather than silent. Set it correctly anyway: the warning is
+only in the function log, where nobody looks until something is already wrong.
 :::
 
 ## Migrations are yours to run
@@ -85,6 +91,53 @@ Run migrations **before** the deploy when they add something the new code
 needs, and **after** when they drop something the old code still uses. That
 ordering is the whole of zero-downtime schema change, and no tool can decide
 it for you.
+
+### The first time: a checklist
+
+A new Postgres database is empty, and nothing in the build fills it. So the
+deploy goes green, you open the app, and sign-up answers `500` — because the
+`users` table does not exist yet. Vercel's logs show the status and not the
+cause, which makes this a slow one to work out.
+
+Once, from your own machine:
+
+1. **Get the connection string under the name Flare reads.** Vercel's Postgres
+   integration sets `POSTGRES_PRISMA_URL` (pooled) and `POSTGRES_URL_NON_POOLING`
+   (direct). Flare and Prisma read `DATABASE_URL`, so a local `.env` holding only
+   the Vercel names fails with `PrismaConfigEnvError: Cannot resolve environment
+   variable: DATABASE_URL`. Pass it for the one command rather than editing
+   `.env`, so there is nothing to remember to undo:
+
+   ```bash
+   DATABASE_URL="<your POSTGRES_PRISMA_URL>" npx flare migrate
+   ```
+
+2. **Apply with `migrate deploy`, which is what `flare migrate` runs.** Do not
+   reach for `prisma migrate dev` when that fails: it wants a shadow database it
+   can create and drop, which a managed Postgres will not permit, so it errors on
+   permissions. It is also the wrong command here — its job is to *write* a
+   migration, against your own database.
+
+   If `prisma/migrations/` is empty there is nothing to apply. Write the first
+   one locally with `npx flare gen migration init`, commit it, and run the above.
+   `npx prisma db push` is the shortcut: it makes the database match the schema
+   with no migration history, which is fine for a prototype and a problem the
+   first time two people need the same change.
+
+3. **Seed, if the app needs rows to be usable.**
+
+   ```bash
+   DATABASE_URL="<your POSTGRES_PRISMA_URL>" npx flare seed
+   ```
+
+   Seeds are not idempotent unless you wrote them that way — running this twice
+   inserts twice.
+
+4. **Check `.env` still points at your own database**, if you edited it rather
+   than passing the variable inline.
+
+After that the schema travels with the code: commit the migration, deploy, and
+run `flare migrate` against production in the order described above.
 
 ## Files go to R2, not Blob
 
