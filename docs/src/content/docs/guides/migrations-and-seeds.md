@@ -119,6 +119,7 @@ A seed is handed:
 | `db` | Drizzle, over your schema, on the local database |
 | `insertMany(table, count, build)` | Many rows at once, batched |
 | `fake` | Sample values: `fullName`, `email`, `phone`, `company`, `city`, `country`, `sentence`, `date`, `pick`, `some`, `int`, `bool` |
+| `seedUser({ email, password, … })` | A user with a credential account, so you can sign in as them |
 | `env` | Local bindings and variables (D1, R2, `.dev.vars`) |
 | `log` | A line of output |
 
@@ -135,6 +136,34 @@ Seeds run in Node against the **local** D1 database through Wrangler's
 
 Generated tables default `id` to `crypto.randomUUID()`, so seeds insert
 without supplying one.
+
+### Somebody to sign in as
+
+A seeded app you cannot log into is not much of a demo. `seedUser` writes the
+user and the credential account together:
+
+```ts
+export default defineSeed(async ({ seedUser, log }) => {
+  const admin = await seedUser({
+    email: "admin@example.com",
+    password: "correct-horse-battery",
+    name: "Demo admin",
+    role: "admin",
+  });
+  log(`sign in as ${admin.email}`);
+});
+```
+
+The same call works on both stacks. It hashes the password the way the sign-up
+route does and marks the address verified, since an unverified user cannot sign
+in when the app requires verification. `role` is optional and takes the same
+values as [`flare user:role`](/guides/auth/#admin-access).
+
+Worth knowing if you ever write those two rows by hand: Better Auth finds a
+password account by its `accountId` column, and for a credential account that
+column holds **the user's own id** — not the provider's name, and not the email.
+Put the email there and everything looks right, the hash even verifies, and
+signing in still answers `User not found`.
 
 ## Seed traps worth knowing
 

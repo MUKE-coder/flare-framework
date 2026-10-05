@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { camelCase, createFake, kebabCase, storedFields, type Resource, type StoredField } from "@flaredev/core";
+import { camelCase, createFake, credentialUserRows, kebabCase, storedFields, type Resource, type SeedUser, type StoredField } from "@flaredev/core";
 import { createJiti } from "jiti";
 import pc from "picocolors";
 import { loadResources } from "../generator/load.js";
@@ -63,16 +63,34 @@ export async function runSeeds(options: SeedOptions = {}): Promise<void> {
   try {
     const db = drizzle(local.db, { schema });
     const insertMany = createInsertMany(local.db, drizzleHelpers);
+    const seedUser = drizzleSeedUser(db, schema);
     for (const file of files) {
       const mod = (await jiti.import(join(appRoot, SEEDS_DIR, file))) as { default?: unknown };
       if (typeof mod.default !== "function") throw new Error(`${SEEDS_DIR}/${file} must \`export default defineSeed(async ({ db }) => { ... })\`.`);
       log(`${pc.cyan("seed")} ${file}`);
-      await mod.default({ db, env: local.env, insertMany, fake: createFake(), log: (message: string) => log(`  ${message}`) });
+      await mod.default({ db, env: local.env, insertMany, seedUser, fake: createFake(), log: (message: string) => log(`  ${message}`) });
     }
     log(pc.green(`\nRan ${files.length} seed(s) against the local database.`));
   } finally {
     await local.dispose();
   }
+}
+
+/**
+ * `seedUser` for the Drizzle stack. Both rows go into the app's own auth tables, so a
+ * seeded user is the same shape as one who signed up through the form.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function drizzleSeedUser(db: any, schema: Record<string, unknown>): SeedUser {
+  return async (input) => {
+    const user = schema.user;
+    const account = schema.account;
+    if (!user || !account) throw new Error("db/schema.ts has no `user` and `account` tables, so there is nothing to sign in against.");
+    const rows = await credentialUserRows(input);
+    await db.insert(user).values(rows.user);
+    await db.insert(account).values(rows.account);
+    return rows.user;
+  };
 }
 
 /** The `fake` call that suits a field, as source for the generated seed. */
@@ -126,19 +144,23 @@ export function renderSeed(resource: Resource | undefined, stack: Stack = "cloud
     return stack === "next"
       ? `import { defineSeed } from "@flaredev/core";
 
-export default defineSeed(async ({ db, insertMany, fake, log }) => {
+export default defineSeed(async ({ db, insertMany, seedUser, fake, log }) => {
   // \`db\` is this app's Prisma client, e.g.:
   // await db.contact.create({ data: { name: "Ada", email: "ada@example.com" } });
   // Or many at once: await insertMany("contact", [{ name: fake.fullName() }]);
+  // Somebody you can sign in as, with the credential account Better Auth looks for:
+  // await seedUser({ email: "ada@example.com", password: "correct-horse-battery", role: "admin" });
   log("nothing to seed yet");
 });
 `
       : `import { defineSeed } from "@flaredev/core";
 
-export default defineSeed(async ({ db, insertMany, fake, log }) => {
+export default defineSeed(async ({ db, insertMany, seedUser, fake, log }) => {
   // Insert rows with Drizzle, e.g.:
   // await db.insert(contacts).values([{ name: "Ada", email: "ada@example.com" }]);
   // Or many at once, batched: insertMany(contacts, 10_000, () => ({ name: fake.fullName() }));
+  // Somebody you can sign in as, with the credential account Better Auth looks for:
+  // await seedUser({ email: "ada@example.com", password: "correct-horse-battery", role: "admin" });
   log("nothing to seed yet");
 });
 `;
@@ -230,7 +252,7 @@ async function runPrismaSeeds(appRoot: string, files: string[], log: (message: s
   const runner = join(appRoot, ".flare-seed-runner.mts");
   const script = [
     `import "dotenv/config";`,
-    `import { createFake } from "@flaredev/core";`,
+    `import { createFake, credentialUserRows } from "@flaredev/core";`,
     `import { prisma } from "./lib/db";`,
     ...files.map((file, index) => `import seed${index} from "./${SEEDS_DIR}/${file.replace(/\.ts$/, "")}";`),
     "",
@@ -247,6 +269,13 @@ async function runPrismaSeeds(appRoot: string, files: string[], log: (message: s
     `      const delegate = client[model];`,
     `      if (!delegate) throw new Error('No Prisma model "' + model + '". Use the camelCase name, e.g. "orderItem".');`,
     `      await delegate.createMany({ data: rows });`,
+    `    },`,
+    `    seedUser: async (input: Parameters<typeof credentialUserRows>[0]) => {`,
+    `      const rows = await credentialUserRows(input);`,
+    `      const models = prisma as unknown as Record<string, { create(args: { data: unknown }): Promise<unknown> }>;`,
+    `      await models.user.create({ data: rows.user });`,
+    `      await models.account.create({ data: rows.account });`,
+    `      return rows.user;`,
     `    },`,
     `    fake: createFake(),`,
     `    log: (message: string) => console.log("  " + message),`,
