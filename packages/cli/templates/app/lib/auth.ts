@@ -16,8 +16,31 @@ import { sendEmailCode, sendMagicLink, sendPasswordReset, sendTwoFactorCode, sen
 
 const vars = env as unknown as Record<string, string | undefined>;
 
-/** Optional: set when serving from a custom domain (e.g. https://example.com). */
-const configuredURL = vars.BETTER_AUTH_URL;
+/**
+ * Optional: set when serving from a custom domain (e.g. https://example.com).
+ *
+ * Better Auth compares the request's Origin header against this string, and an Origin never
+ * carries a trailing slash. So `https://example.com/` — which is what you get copying a
+ * domain out of a browser bar or the Vercel dashboard — matches nothing, and every sign-in
+ * comes back 403 with nothing in the log saying why. Correct it and say so: a warning that
+ * leaves sign-in broken is not much better than the silence it replaces.
+ */
+function authBaseURL(raw: string | undefined): string | undefined {
+  const value = raw?.trim();
+  if (!value) return undefined;
+  // Only a trailing slash is removed. A path stays: an app served under one legitimately
+  // sets BETTER_AUTH_URL to https://example.com/app.
+  const url = value.replace(/\/+$/, "");
+  if (url !== value) {
+    console.warn(`[auth] BETTER_AUTH_URL has a trailing slash, which never matches an Origin header and makes every sign-in 403. Using "${url}" — set BETTER_AUTH_URL to that to silence this.`);
+  }
+  if (url && !/^https?:\/\//.test(url)) {
+    console.warn(`[auth] BETTER_AUTH_URL ("${url}") has no scheme, so it cannot match an Origin. Set it to a full origin, e.g. https://example.com.`);
+  }
+  return url || undefined;
+}
+
+const configuredURL = authBaseURL(vars.BETTER_AUTH_URL);
 
 /** A provider's credentials from the environment, when both are set. */
 function credentials(prefix: string) {

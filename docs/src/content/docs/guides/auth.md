@@ -195,6 +195,24 @@ Set `BETTER_AUTH_URL` once you have a custom domain. Until then, Flare allows
 `*.trycloudflare.com` ([tunnels](/guides/tunnels/)), so local dev, tunnels and
 your first deploy all work with no configuration.
 
+Write it as a bare origin — `https://example.com`, no trailing slash and no
+path. Better Auth compares it against the request's `Origin` header, which
+never carries a trailing slash, so `https://example.com/` matches nothing and
+every sign-in returns `403`. Nothing in the response says which setting is
+wrong, which is what makes it expensive. Copying a domain out of a browser bar
+or the Vercel dashboard is the usual way to acquire the slash.
+
+`lib/auth.ts` trims it and warns on startup rather than letting sign-in break:
+
+```
+[auth] BETTER_AUTH_URL has a trailing slash, which never matches an Origin
+header and makes every sign-in 403. Using "https://example.com" — set
+BETTER_AUTH_URL to that to silence this.
+```
+
+It warns the same way for a value with no `https://`. Both are in `lib/auth.ts`
+in your app, so you can see exactly what it does with the variable.
+
 ## Secrets
 
 `flare create` writes a random `BETTER_AUTH_SECRET` to `.dev.vars`
