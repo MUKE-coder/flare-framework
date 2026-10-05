@@ -96,8 +96,8 @@ export function DashboardSidebar({
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
+      <SidebarContent className="gap-0">
+        <SidebarGroup className="px-2 py-1">
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -113,8 +113,8 @@ export function DashboardSidebar({
         </SidebarGroup>
 
         {byGroup(resources).map(([heading, group]) => (
-          <SidebarGroup key={heading}>
-            <SidebarGroupLabel>{heading}</SidebarGroupLabel>
+          <SidebarGroup key={heading} className="px-2 py-1">
+            <SidebarGroupLabel className="mt-1 h-6">{heading}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.map((resource) => {
@@ -149,8 +149,8 @@ export function DashboardSidebar({
           </SidebarGroup>
         ))}
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Manage</SidebarGroupLabel>
+        <SidebarGroup className="px-2 py-1">
+          <SidebarGroupLabel className="mt-1 h-6">Manage</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {manage.map((link) => (
@@ -168,8 +168,8 @@ export function DashboardSidebar({
         </SidebarGroup>
 
         {links.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+          <SidebarGroup className="px-2 py-1">
+            <SidebarGroupLabel className="mt-1 h-6">Platform</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {links.map((link) => {
