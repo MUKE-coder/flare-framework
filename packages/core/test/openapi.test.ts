@@ -13,6 +13,18 @@ const Deal = defineResource({
   },
 });
 const Note = defineResource({ name: "Note", fields: { body: field.text() } });
+const Profile = defineResource({
+  name: "Profile",
+  fields: {
+    handle: field.string({ format: "username" }),
+    ip: field.string({ format: "ip" }),
+    uuid: field.string({ format: "uuid" }),
+    timezone: field.string({ format: "timezone" }),
+    locale: field.string({ format: "locale" }),
+    currency: field.string({ format: "currency" }),
+    postcode: field.string({ format: "postcode" }),
+  },
+});
 const policies = {
   Deal: definePolicy({ resource: "Deal", read: ["*"], create: ["admin", "staff"], update: ["admin"], delete: ["admin"] }),
 };
@@ -50,5 +62,17 @@ describe("openApiDocument", () => {
     expect(names).toEqual(expect.arrayContaining(["page", "perPage", "sort", "q", "filter[stage]"]));
     expect(list.operationId).toBe("listDeals");
     expect(build("admin").paths["/api/deals/{id}"]!.patch!.operationId).toBe("updateDeal");
+  });
+
+  it("documents extended string formats in schema", () => {
+    const doc = openApiDocument({ resources: [Profile], role: "admin" }) as unknown as Doc;
+    const props = doc.components.schemas.ProfileCreate!.properties;
+    expect(props.handle).toMatchObject({ type: "string", pattern: "^[A-Za-z0-9_][A-Za-z0-9_.]{1,31}$" });
+    expect(props.ip).toMatchObject({ type: "string", description: "An IPv4 or IPv6 address." });
+    expect(props.uuid).toMatchObject({ type: "string", format: "uuid" });
+    expect(props.timezone).toMatchObject({ type: "string", description: "An IANA time zone identifier." });
+    expect(props.locale).toMatchObject({ type: "string", pattern: "^[A-Za-z]{2,3}(?:-[A-Za-z]{4})?(?:-(?:[A-Za-z]{2}|\\d{3}))?$" });
+    expect(props.currency).toMatchObject({ type: "string", pattern: "^[A-Z]{3}$" });
+    expect(props.postcode).toMatchObject({ type: "string", pattern: "^[A-Za-z0-9][A-Za-z0-9 -]{0,10}[A-Za-z0-9]$" });
   });
 });
