@@ -182,7 +182,7 @@ export default defineSeed(async ({ db, insertMany, seedUser, fake, log }) => {
 /** How many to create. createMany sends them in one statement. */
 const COUNT = 50;
 
-export default defineSeed(async ({ insertMany, fake, log }) => {
+export default defineSeed(async ({ insertMany, seedUser, fake, log }) => {
   await insertMany(
     ${JSON.stringify(camelCase(resource.name))},
     Array.from({ length: COUNT }, () => ({
@@ -191,6 +191,8 @@ ${body}
     })),
   );
   log(\`inserted \${COUNT.toLocaleString()} ${resource.pluralLabel.toLowerCase()}\`);
+  // Seed a user you can sign in as (run after the rows above):
+  // await seedUser({ email: "admin@example.com", password: "correct-horse-battery", role: "admin" });
 });
 `;
   }
@@ -201,11 +203,13 @@ import { ${table} } from "@/db/schema";
 /** How many to create. insertMany batches them, so hundreds of thousands are fine. */
 const COUNT = 50;
 
-export default defineSeed(async ({ insertMany, fake, log }) => {
+export default defineSeed(async ({ db, insertMany, seedUser, fake, log }) => {
   const rows = await insertMany(${table}, COUNT, () => ({
 ${[...lines, ...todos].join("\n")}
   }));
   log(\`inserted \${rows.toLocaleString()} ${resource.pluralLabel.toLowerCase()}\`);
+  // Seed a user you can sign in as (run after the rows above):
+  // await seedUser({ email: "admin@example.com", password: "correct-horse-battery", role: "admin" });
 });
 `;
 }
