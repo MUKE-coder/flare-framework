@@ -24,7 +24,7 @@ export interface ResourceConfig<Fields extends Record<string, Field>> {
   group?: string;
   /** Field used to represent a record in lists and relation pickers. Default: first string field. */
   titleField?: FieldKey<Fields>;
-  defaultSort?: { field: FieldKey<Fields> | "createdAt" | "updatedAt"; direction: "asc" | "desc" };
+  defaultSort?: { field: FieldKey<Fields> | "id" | "createdAt" | "updatedAt"; direction: "asc" | "desc" };
   /** Page size for list endpoints and tables. Default 25. */
   perPage?: number;
   /**
@@ -189,7 +189,7 @@ export function defineResource<const Fields extends Record<string, Field>>(confi
   }
 
   const defaultSort = config.defaultSort ?? { field: "createdAt", direction: "desc" as const };
-  if (!["createdAt", "updatedAt"].includes(defaultSort.field) && !stored.some(([key]) => key === defaultSort.field)) {
+  if (!["id", "createdAt", "updatedAt"].includes(defaultSort.field) && !stored.some(([key]) => key === defaultSort.field)) {
     fail(`defaultSort field "${defaultSort.field}" isn't a stored field.`);
   }
 

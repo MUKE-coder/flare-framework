@@ -162,7 +162,7 @@ function rolesNote(policy: Policy | undefined, action: PolicyAction): string {
 
 function listParameters(resource: Resource): Schema[] {
   const fields = storedFields(resource);
-  const sortable = ["createdAt", "updatedAt", ...fields.filter(([, def]) => isSortable(def)).map(([key]) => key)];
+  const sortable = ["id", "createdAt", "updatedAt", ...fields.filter(([, def]) => isSortable(def)).map(([key]) => key)];
   const parameters: Schema[] = [
     { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 } },
     { name: "perPage", in: "query", schema: { type: "integer", minimum: 1, maximum: 100, default: resource.perPage } },

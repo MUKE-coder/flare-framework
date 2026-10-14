@@ -38,3 +38,25 @@ describe("the page-size cap", () => {
     expect("issues" in parse({ perPage: "101" })).toBe(true);
   });
 });
+
+describe("sorting", () => {
+  it("allows sorting by system id field", () => {
+    const asc = parse({ sort: "id" });
+    expect("query" in asc).toBe(true);
+    if ("query" in asc) {
+      expect(asc.query.sort).toEqual({ field: "id", direction: "asc" });
+    }
+
+    const desc = parse({ sort: "-id" });
+    expect("query" in desc).toBe(true);
+    if ("query" in desc) {
+      expect(desc.query.sort).toEqual({ field: "id", direction: "desc" });
+    }
+  });
+
+  it("rejects unknown sort fields", () => {
+    const invalid = parse({ sort: "nonexistent" });
+    expect("issues" in invalid).toBe(true);
+  });
+});
+
