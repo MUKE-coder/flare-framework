@@ -21,6 +21,62 @@ npx flare --version                 # what this app is on
 pnpm add -D @flaredev/cli@latest    # upgrade it
 ```
 
+<Release version="Unreleased" date="merged, ships in 0.12.0">
+
+**The first changes that came from somebody else.**
+
+Seven pull requests are merged and waiting on the next release. All of this is
+other people's work, and it is the first time that sentence has been true of
+Flare.
+
+From [@PrinceBadru](https://github.com/PrinceBadru):
+
+- **Sorting by `id` works** — `?sort=id`, `?sort=-id`, and
+  `defaultSort: { field: "id" }` in a descriptor. Both query engines always
+  supported it; the parser and the descriptor validator refused it, and the
+  OpenAPI document did not list it.
+  ([#11](https://github.com/MUKE-coder/flare-framework/pull/11))
+- **The OpenAPI document describes every string format.** `username`, `ip`,
+  `uuid`, `timezone`, `locale`, `currency` and `postcode` had no pattern,
+  format or example in the spec, so a generated client validated less than the
+  server did. The patterns match the runtime validators exactly.
+  ([#12](https://github.com/MUKE-coder/flare-framework/pull/12))
+- **IPv6 validation rejects what it should.** `:`, `:::`, `12345::1` and
+  oversized groups were accepted by an `ip` field. Same PR removed a duplicated
+  `apikeys` branch in the CLI's generator dispatch.
+  ([#12](https://github.com/MUKE-coder/flare-framework/pull/12))
+- **`seedUser` is in the generated seed again.** The resource seed template
+  destructured `insertMany`, `fake` and `log` but not `seedUser`, so seeding an
+  account you could sign in as meant writing `user` and `account` rows by hand
+  — and getting the `accountId` mapping wrong gives a 401 that explains nothing.
+  ([#7](https://github.com/MUKE-coder/flare-framework/pull/7))
+- **A trailing slash on `BETTER_AUTH_URL` no longer silently 403s** the
+  `next-shop` example. An `Origin` header never carries one, so
+  `https://example.com/` — which is what copying from a browser bar gives you —
+  matched nothing. The CLI template already handled this; the example did not.
+  ([#9](https://github.com/MUKE-coder/flare-framework/pull/9))
+- **The Next.js README says how to migrate a production database.** Vercel
+  builds do not run migrations, `prisma migrate dev` cannot make a shadow
+  database on serverless Postgres, and Vercel sets `POSTGRES_PRISMA_URL` where
+  Prisma reads `DATABASE_URL`. Three ways to a 500 on a first deploy, now
+  written down where you are standing when you hit them.
+  ([#10](https://github.com/MUKE-coder/flare-framework/pull/10))
+- **The `next-shop` example is off the vulnerable Next.js line**, which Vercel
+  refuses to build.
+  ([#8](https://github.com/MUKE-coder/flare-framework/pull/8))
+
+From [@BillWGong](https://github.com/BillWGong):
+
+- **Three broken links** in a checked-in agent skill, pointing beside the file
+  rather than into `rules/`.
+  ([#1](https://github.com/MUKE-coder/flare-framework/pull/1))
+
+If you want your name here, the
+[issues](https://github.com/MUKE-coder/flare-framework/issues) are triaged and
+the roadmap items have write-ups. Nobody starts from a blank canvas.
+
+</Release>
+
 <Release version="0.11.0" date="30 October 2026">
 
 **If you are on 0.10.0, upgrade: `npm install` is broken there.**
