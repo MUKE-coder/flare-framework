@@ -54,6 +54,20 @@ export function fieldJsonSchema(def: StoredField): Schema {
           return { ...schema, pattern: "^#[0-9a-f]{6}$", description: "Hex colour.", examples: ["#f2541d"] };
         case "slug":
           return { ...schema, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$", examples: ["my-first-post"] };
+        case "username":
+          return { ...schema, pattern: "^[A-Za-z0-9_][A-Za-z0-9_.]{1,31}$", description: "Username: 2–32 characters (letters, digits, underscore, dot).", examples: ["ada_lovelace"] };
+        case "ip":
+          return { ...schema, description: "An IPv4 or IPv6 address.", examples: ["192.168.1.1", "2001:db8::1"] };
+        case "uuid":
+          return { ...schema, format: "uuid", description: "A UUID, any version.", examples: ["123e4567-e89b-12d3-a456-426614174000"] };
+        case "timezone":
+          return { ...schema, description: "An IANA time zone identifier.", examples: ["Africa/Kampala", "America/New_York"] };
+        case "locale":
+          return { ...schema, pattern: "^[A-Za-z]{2,3}(?:-[A-Za-z]{4})?(?:-(?:[A-Za-z]{2}|\\d{3}))?$", description: "A BCP-47 language tag.", examples: ["en-GB", "sw-UG"] };
+        case "currency":
+          return { ...schema, pattern: "^[A-Z]{3}$", description: "ISO 4217 currency code.", examples: ["UGX", "USD"] };
+        case "postcode":
+          return { ...schema, pattern: "^[A-Za-z0-9][A-Za-z0-9 -]{0,10}[A-Za-z0-9]$", description: "Postal code.", examples: ["SW1A 1AA", "90210"] };
         default:
           return schema;
       }

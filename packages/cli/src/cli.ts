@@ -171,8 +171,6 @@ export function createCli() {
         if (generator === "security") return genSecurity({ force: options.force, skipMigration: options.skipMigration });
         if (generator === "apikeys")
           return genApiKeys({ force: options.force, skipInstall: options.skipInstall, skipMigration: options.skipMigration });
-        if (generator === "apikeys")
-          return genApiKeys({ force: options.force, skipInstall: options.skipInstall, skipMigration: options.skipMigration });
         if (["resource", "migration", "policy"].includes(generator) && !name) {
           throw new Error(`flare gen ${generator} needs a name, e.g. flare gen ${generator} ${generator === "migration" ? "add_phone_to_contacts" : "Contact"}`);
         }

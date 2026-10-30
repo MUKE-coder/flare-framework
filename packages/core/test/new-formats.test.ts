@@ -62,6 +62,12 @@ describe("the new string formats", () => {
 
   it("accepts IPv6", () => {
     expect(check({ serverIp: "2001:db8::1" }).success).toBe(true);
+    expect(check({ serverIp: "::" }).success).toBe(true);
+    expect(check({ serverIp: "fe80::1ff:fe23:4567:890a" }).success).toBe(true);
+  });
+
+  it.each([":", ":::", "12345::1", "2001:db8:::1", "not-an-ip"])("rejects invalid IP %s", (ip) => {
+    expect(check({ serverIp: ip }).success).toBe(false);
   });
 });
 

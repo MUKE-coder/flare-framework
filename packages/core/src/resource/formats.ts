@@ -124,11 +124,30 @@ export function slugify(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+function isIpv4(value: string): boolean {
+  if (!/^(?:\d{1,3}\.){3}\d{1,3}$/.test(value)) return false;
+  return value.split(".").every((part) => {
+    const num = Number(part);
+    return num >= 0 && num <= 255;
+  });
+}
+
+function isIpv6(value: string): boolean {
+  if (!value || value.includes(":::")) return false;
+  const doubleColonParts = value.split("::");
+  if (doubleColonParts.length > 2) return false;
+  if (doubleColonParts.length === 2) {
+    const left = doubleColonParts[0] ? doubleColonParts[0].split(":") : [];
+    const right = doubleColonParts[1] ? doubleColonParts[1].split(":") : [];
+    if (left.length + right.length >= 8) return false;
+    return [...left, ...right].every((p) => /^[0-9a-f]{1,4}$/i.test(p));
+  }
+  const parts = value.split(":");
+  return parts.length === 8 && parts.every((p) => /^[0-9a-f]{1,4}$/i.test(p));
+}
+
 /** An IPv4 or IPv6 address. */
-export const isIpAddress = (value: string) =>
-  /^(?:\d{1,3}\.){3}\d{1,3}$/.test(value)
-    ? value.split(".").every((part) => Number(part) <= 255)
-    : /^[0-9a-f:]+$/i.test(value) && value.includes(":") && value.split("::").length <= 2;
+export const isIpAddress = (value: string) => isIpv4(value) || isIpv6(value);
 
 /** A UUID, any version. */
 export const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
