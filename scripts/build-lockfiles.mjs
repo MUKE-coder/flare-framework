@@ -93,7 +93,11 @@ for (const stack of stacks) {
       console.log(`· skipped templates/locks/${stack}/yarn.lock (--skip-yarn)`);
     } else {
       console.log(`\nResolving ${stack} with yarn (this one actually installs)…`);
-      run("yarn", ["install", "--ignore-scripts", "--non-interactive"], app);
+      // --ignore-engines: yarn 1 enforces `engines` where npm and pnpm only warn, and one
+      // transitive package of the Vercel CLI caps itself at Node 24. Resolution is all we
+      // want here, and refusing to write a lockfile because of the Node running the build
+      // would tie the lockfile to whoever cut the release.
+      run("yarn", ["install", "--ignore-scripts", "--non-interactive", "--ignore-engines"], app);
       cpSync(join(app, "yarn.lock"), join(locksDir, "yarn.lock"));
       console.log(`✔ templates/locks/${stack}/yarn.lock`);
     }

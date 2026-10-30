@@ -1,5 +1,9 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@/lib/generated/prisma/client";
+// Relative, not "@/lib/generated/prisma/client". The alias is resolved by the bundler,
+// and `flare seed` runs this file through tsx instead, which does not resolve it under
+// `moduleResolution: "bundler"` — the seed died on its first import before reaching the
+// database. The generated client lives inside lib/ anyway, so this is the shorter path.
+import { PrismaClient } from "./generated/prisma/client";
 
 /**
  * The Prisma client, one per process.

@@ -249,6 +249,18 @@ export async function makeSeed(rawName: string, options: { resource?: string; cw
  * `createMany`, so a seed is written the way the rest of the app talks to the database.
  */
 async function runPrismaSeeds(appRoot: string, files: string[], log: (message: string) => void): Promise<void> {
+  // Prisma 7's `migrate dev` no longer runs generators, so a freshly migrated app may have
+  // no client yet — and the first thing a seed imports is the app's db module, which needs
+  // it. Generating here costs a fraction of a second and replaces a module-not-found stack
+  // from inside tsx with nothing at all going wrong.
+  if (!existsSync(join(appRoot, "lib", "generated", "prisma"))) {
+    log(pc.dim("Generating the Prisma client first (migrate dev no longer does)…"));
+    const prisma = resolveBin(appRoot, "prisma", "prisma");
+    if ((await runNode([prisma, "generate"], appRoot)) !== 0) {
+      throw new Error("`prisma generate` failed, so there is no client for the seeds to use.");
+    }
+  }
+
   const runner = join(appRoot, ".flare-seed-runner.mts");
   const script = [
     `import "dotenv/config";`,
