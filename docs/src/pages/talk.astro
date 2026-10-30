@@ -59,12 +59,39 @@ const md = (text: string) =>
       html, body { margin: 0; padding: 0; background: #0b0b0b; }
       body { font-family: var(--sans); -webkit-font-smoothing: antialiased; }
 
-      .deck { scroll-snap-type: y mandatory; overflow-y: auto; height: 100dvh; }
+      /*
+       * A carousel, not a scroller: one slide occupies the viewport and the rest are
+       * hidden. They all stay in the DOM so the deck is still one page to print, one page
+       * to search, and a slide is still addressable by its #id.
+       */
+      .deck { position: fixed; inset: 0; overflow: hidden; background: #0b0b0b; }
       .slot {
-        scroll-snap-align: start;
-        height: 100dvh;
-        position: relative;
+        position: absolute;
+        inset: 0;
         overflow: hidden;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 160ms ease-out;
+      }
+      .slot.is-active { opacity: 1; visibility: visible; }
+
+      /* Controls. Quiet until you reach for them — a deck is not a dashboard. */
+      .controls {
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+        display: flex; align-items: center; gap: 10px; z-index: 10;
+        font-family: var(--mono); opacity: 0.28; transition: opacity 160ms ease;
+      }
+      .controls:hover, .controls:focus-within { opacity: 1; }
+      .controls button {
+        font: inherit; font-size: 15px; color: #f5f5f5; background: #202020;
+        border: 1px solid #3a3a3a; border-radius: 7px; padding: 9px 16px; cursor: pointer;
+      }
+      .controls button:hover:not(:disabled) { background: #2d2d2d; border-color: #555; }
+      .controls button:disabled { opacity: 0.35; cursor: default; }
+      .controls .count { font-size: 14px; color: #8a8a8a; min-width: 76px; text-align: center; }
+      .progress {
+        position: fixed; top: 0; left: 0; height: 2px; background: #ff6b35;
+        z-index: 11; transition: width 160ms ease-out;
       }
       /*
        * The stage is a fixed 1920x1080 box centred in the slot and scaled down to fit.
@@ -156,8 +183,13 @@ const md = (text: string) =>
       .toc li .b { color: var(--muted); font-size: 18px; margin-top: 6px; display: block; font-weight: 400; }
 
       @media print {
-        .deck { height: auto; overflow: visible; }
-        .slot { height: auto; page-break-after: always; }
+        .deck { position: static; overflow: visible; }
+        .slot {
+          position: relative; inset: auto;
+          height: 100vh; opacity: 1; visibility: visible;
+          page-break-after: always;
+        }
+        .controls, .progress { display: none; }
       }
     </style>
   </head>
@@ -279,6 +311,13 @@ const md = (text: string) =>
       ))}
     </main>
 
+    <div class="progress" id="progress"></div>
+    <nav class="controls" aria-label="Slides">
+      <button type="button" id="prev" aria-label="Previous slide">&larr; Prev</button>
+      <span class="count" id="count">1 / 1</span>
+      <button type="button" id="next" aria-label="Next slide">Next &rarr;</button>
+    </nav>
+
     <script is:inline>
       // The stage is a fixed 1920x1080 so nothing reflows on an unfamiliar projector;
       // only the scale changes. Recomputed on resize, and once on load for the first paint.
@@ -287,20 +326,62 @@ const md = (text: string) =>
         document.documentElement.style.setProperty("--scale", String(scale));
       }
       fit();
-      window.addEventListener("resize", fit);
+      addEventListener("resize", fit);
 
-      const slots = [...document.querySelectorAll(".slot")];
-      function go(step) {
-        const here = slots.findIndex((s) => s.getBoundingClientRect().top >= -2);
-        const next = slots[Math.min(Math.max(here + step, 0), slots.length - 1)];
-        next?.scrollIntoView({ behavior: "smooth" });
+      const slots = Array.from(document.querySelectorAll(".slot"));
+      const prev = document.getElementById("prev");
+      const next = document.getElementById("next");
+      const count = document.getElementById("count");
+      const progress = document.getElementById("progress");
+      let at = 0;
+
+      function show(index, pushHash) {
+        at = Math.min(Math.max(index, 0), slots.length - 1);
+        slots.forEach((slot, i) => slot.classList.toggle("is-active", i === at));
+        // Match the number printed on the slide itself. Slot 0 is the contents page and
+        // is not slide one — two different numbers for the same position is a distraction
+        // nobody needs while presenting.
+        count.textContent = at === 0 ? "Contents" : at + " / " + (slots.length - 1);
+        prev.disabled = at === 0;
+        next.disabled = at === slots.length - 1;
+        progress.style.width = ((at + 1) / slots.length) * 100 + "%";
+        // The id in the address bar, so a slide can be linked to and reloaded onto.
+        if (pushHash !== false) {
+          history.replaceState(null, "", "#" + slots[at].id);
+        }
       }
+
+      prev.addEventListener("click", () => show(at - 1));
+      next.addEventListener("click", () => show(at + 1));
+
       addEventListener("keydown", (event) => {
-        if (["ArrowRight", "ArrowDown", "PageDown", " "].includes(event.key)) { event.preventDefault(); go(1); }
-        if (["ArrowLeft", "ArrowUp", "PageUp"].includes(event.key)) { event.preventDefault(); go(-1); }
-        if (event.key === "Home") slots[0]?.scrollIntoView();
-        if (event.key === "End") slots.at(-1)?.scrollIntoView();
+        if (["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(event.key)) {
+          event.preventDefault();
+          show(at + 1);
+        } else if (["ArrowLeft", "ArrowUp", "PageUp", "Backspace"].includes(event.key)) {
+          event.preventDefault();
+          show(at - 1);
+        } else if (event.key === "Home") {
+          show(0);
+        } else if (event.key === "End") {
+          show(slots.length - 1);
+        }
       });
+
+      // A click anywhere on the slide advances, which is what a presenter remote sends.
+      // Not on a link, so the contents page still works.
+      document.querySelector(".deck").addEventListener("click", (event) => {
+        if (!event.target.closest("a")) show(at + 1);
+      });
+
+      // Deep links: /talk#build-cond opens on that slide, and the contents links work.
+      function fromHash() {
+        const id = location.hash.slice(1);
+        const found = slots.findIndex((slot) => slot.id === id);
+        show(found >= 0 ? found : 0, false);
+      }
+      addEventListener("hashchange", fromHash);
+      fromHash();
     </script>
   </body>
 </html>
