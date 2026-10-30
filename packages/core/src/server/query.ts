@@ -46,7 +46,7 @@ export interface QueryIssue {
   message: string;
 }
 
-const TIMESTAMP_FIELDS = ["createdAt", "updatedAt"];
+const SYSTEM_SORT_FIELDS = ["id", "createdAt", "updatedAt"];
 const MAX_PER_PAGE = 100;
 const MAX_SEARCH_LENGTH = 200;
 
@@ -119,7 +119,7 @@ export function parseListQuery(
     const direction = rawSort.startsWith("-") ? "desc" : "asc";
     const field = rawSort.replace(/^-/, "");
     const def = fields.get(field);
-    if (TIMESTAMP_FIELDS.includes(field) || (def && isSortable(def))) sort = { field, direction };
+    if (SYSTEM_SORT_FIELDS.includes(field) || (def && isSortable(def))) sort = { field, direction };
     else issues.push({ param: "sort", message: `can't sort by "${field}"` });
   }
 

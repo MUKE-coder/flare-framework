@@ -82,6 +82,15 @@ describe("defineResource", () => {
     expect(item).toMatchObject({ table: "order_items", slug: "order-items", pluralLabel: "Order items", titleField: "quantity" });
   });
 
+  it("allows defaultSort by id", () => {
+    const item = defineResource({
+      name: "Item",
+      fields: { title: field.string() },
+      defaultSort: { field: "id", direction: "asc" },
+    });
+    expect(item.defaultSort).toEqual({ field: "id", direction: "asc" });
+  });
+
   it("stays serializable (plain data only)", () => {
     expect(JSON.parse(JSON.stringify(contact))).toEqual(contact);
   });
