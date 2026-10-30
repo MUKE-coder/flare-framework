@@ -203,7 +203,7 @@ import { ${table} } from "@/db/schema";
 /** How many to create. insertMany batches them, so hundreds of thousands are fine. */
 const COUNT = 50;
 
-export default defineSeed(async ({ db, insertMany, seedUser, fake, log }) => {
+export default defineSeed(async ({ insertMany, seedUser, fake, log }) => {
   const rows = await insertMany(${table}, COUNT, () => ({
 ${[...lines, ...todos].join("\n")}
   }));
