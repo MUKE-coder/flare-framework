@@ -21,6 +21,85 @@ npx flare --version                 # what this app is on
 pnpm add -D @flaredev/cli@latest    # upgrade it
 ```
 
+<Release version="0.11.0" date="30 October 2026">
+
+**If you are on 0.10.0, upgrade: `npm install` is broken there.**
+
+Not by anything Flare did. `@better-auth/passkey@1.7.7` pins its peer
+`@better-auth/utils` to exactly `0.4.2`; when `@better-auth/core@1.7.14`
+shipped it began pulling `0.5.x` through `better-call`, and npm refuses to
+resolve the result. Every new app failed its first install. The whole
+`@better-auth/*` family moves to `1.7.14`, where the peer range is widened to
+`^0.4.2 || ^0.5.0`. Existing apps: change the `@better-auth/*` and
+`better-auth` versions in your own `package.json` together — they peer-depend
+on each other by exact version, so a mixed set resolves no better than the
+broken one.
+
+**Next.js is the default stack.**
+
+`pnpm create flare-framework myapp` now gives you Next.js 16, Postgres and
+Prisma on Vercel. `--stack cloudflare` gives you the other one, unchanged.
+Nothing about an existing app changes — the stack is recorded in its
+`package.json` and read from there.
+
+**A new resource is closed until you open it.**
+
+`flare gen resource` now writes an admin-only policy beside the descriptor,
+and the first account to sign up becomes the admin. Before this, a resource
+with no policy was readable and writable by anyone who signed up, and sign-up
+was open — so the quickstart, followed exactly and deployed, produced an admin
+panel open to the internet.
+
+The two halves go together: admin-only resources with nobody holding the role
+is an app that cannot be opened at all, and the usual fix for that is to open
+everything. Widen a policy with
+`flare gen policy Invoice --roles admin,staff`, and grant roles with
+`flare user:role you@example.com admin`.
+
+**The Next.js stack comes with its services.**
+
+A new Next.js app has a `docker-compose.yml` holding Postgres, MinIO and Redis,
+and a `.env` already pointing at them:
+
+```bash
+docker compose up -d
+npx flare migrate
+npx flare dev
+```
+
+MinIO speaks S3 like R2 does and the Redis proxy speaks Upstash's REST
+protocol, so `lib/storage.ts` and `lib/redis.ts` are the same code whether you
+are on your laptop or on the hosted versions. Without Docker, point the same
+variables at Neon, R2 and Upstash —
+[the quickstart](/start/quickstart/) has both paths. The Cloudflare stack still
+needs neither: Wrangler simulates D1, R2 and KV locally.
+
+**Fields that only apply sometimes.**
+
+A billing cycle is required on a recurring project and meaningless on a one-off
+one. Say so where the field is declared:
+
+```bash
+npx flare gen resource Project --fields   'kind:enum(oneOff,recurring), billingCycle:enum(monthly,annually) if kind == recurring'
+```
+
+The form shows the input only while the condition holds, the validator requires
+it only while the condition holds, and the store nulls it when the condition
+stops holding — that last one is why this cannot live in the admin form. Hiding
+an input stops the form sending a value; it does not remove the value already
+in the row. `!=` and `in (a, b)` work too, and the column is always nullable
+because the field is genuinely absent the rest of the time. See
+[the field grammar](/concepts/field-grammar/).
+
+**Smaller things.** Next.js apps no longer ship `@better-auth/drizzle-adapter`,
+a Drizzle adapter they never imported and the proximate cause of the install
+failure above. The template lockfiles are per stack — one file built from a
+Cloudflare app was being copied into Next.js apps as well, where it pinned
+packages the app did not have and missed every package it did. Descriptor
+options render as TypeScript rather than JSON.
+
+</Release>
+
 <Release version="0.10.0" date="5 October 2026">
 
 **Money is stored in whole minor units. This one needs you to do something.**
