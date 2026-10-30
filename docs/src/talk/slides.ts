@@ -18,15 +18,14 @@ export const slides: Slide[] = [
     id: "title",
     kind: "cover",
     event: "JS Meetup · 2026",
-    title: "Ship the Whole Thing",
-    tagline:
-      "A real client system — database, API, admin screens, auth, uploads and a deploy — built live in Next.js, without the fortnight of setup nobody puts in the quote.",
+    title: "Flare Framework",
+    tagline: "The fastest way to ship a full-stack app on Next.js or Cloudflare.",
     speaker: "Muke JohnBaptist · Desishub",
   },
   {
     id: "not-a-framework",
     kind: "statement",
-    eyebrow: "What this is",
+    eyebrow: "Except",
     title: 'Flare, the <span style="text-decoration:line-through;text-decoration-thickness:6px;opacity:0.45">framework</span>',
     body: "Next.js and Cloudflare, with the boilerplate already written — into **your** repository, under your name. There is nothing of Flare left in the route handler. You could delete the CLI tomorrow and the app would still build.",
   },
