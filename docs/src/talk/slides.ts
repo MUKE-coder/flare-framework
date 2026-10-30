@@ -4,9 +4,9 @@ import type { Slide } from "./types";
  * The talk, told as a story.
  *
  * It starts where the room is: everyone builds with Next.js, and everyone loves it for
- * the same reasons. Then day one of a real project — the blank canvas — and the two
- * to-do lists that come with it: six developer problems (the CRUD hell among them) and
- * four client expectations. The turn: what if there were a different way to start?
+ * the same reasons. Then day one of a real project — the blank canvas — and the to-do
+ * list that comes with it: six developer problems, the CRUD hell among them, every one
+ * of them work you have done before. The turn: what if there were a different way?
  * Flare arrives, the framework word gets struck out, the code-generator family gets its
  * credit, and the proof is a Patient Management System built table by table — each
  * table, its command, and what every flag means — then run, seeded, migrated and
@@ -20,15 +20,8 @@ const DEVS = [
   { code: "02", label: "Auth, again" },
   { code: "03", label: "Types written four times" },
   { code: "04", label: "The admin built last" },
-  { code: "05", label: "Uploads, never simple" },
-  { code: "06", label: "The fix that cannot travel" },
-];
-
-const CLIENTS = [
-  { code: "01", label: "“Can different people see different things?”" },
-  { code: "02", label: "“What will the hosting cost us?”" },
-  { code: "03", label: "“Can we see it before it's finished?”" },
-  { code: "04", label: "“What happens if we get hacked?”" },
+  { code: "05", label: "File storage, never simple" },
+  { code: "06", label: "Copy and paste" },
 ];
 
 const STEPS = [
@@ -57,17 +50,18 @@ export const slides: Slide[] = [
     id: "me",
     kind: "portrait",
     eyebrow: "Who is telling it",
-    name: "Muke JohnBaptist",
+    name: "Muke JohnBaptist (JB)",
     image: "/talk/jb-portrait.webp",
     role: "Fullstack engineer · Founder, Desishub Technologies · Kampala",
     facts: [
-      "150+ client projects shipped across four countries",
-      "`DGateway` — MTN, Airtel and Stripe payments, ~4k transactions a day",
-      "`Grit`, the Go framework this talk's sibling was about",
-      "JB WEB DEVELOPER on YouTube — Next.js, Go, Docker, DevOps",
+      "30+ client projects shipped across four countries",
+      "`DGateway` — MTN, Airtel and Stripe payments, over **100M** in transactions",
+      "`Flare` — the framework this talk is about",
+      "`Grit` — its Go sibling",
+      "JB WEB DEVELOPER on YouTube — **15.9k** subscribers",
     ],
     links: "github.com/MUKE-coder · @JBWEBDEVELOPER · jb.desishub.com",
-    notes: "Thirty seconds. The one fact to lean on is 150+ client projects — it is the licence for everything that follows.",
+    notes: "Thirty seconds, no more. The fact to lean on is the 100M through DGateway — it is the licence for everything that follows. Do not read the list; let them read it.",
   },
 
   // ─── The room ───────────────────────────────────────────────────────────────
@@ -123,13 +117,13 @@ export const slides: Slide[] = [
     id: "two-lists",
     kind: "statement",
     eyebrow: "Because a real project",
-    title: "comes with two to-do lists.",
-    body: "Yours — the developer problems. And the client's — their expectations. Neither one is on the quote.",
-    notes: "This sentence is the map of the next ten minutes: your six, then their four.",
+    title: "comes with a to-do list<br>nobody put on the quote.",
+    body: "Six of them. Every one is work you have done before, and not one of them is the thing the client is paying for.",
+    notes: "This is the map of the next five minutes: six problems, one at a time.",
   },
 
   // ─── Developer problems · top six ───────────────────────────────────────────
-  { id: "sec-dev", kind: "section", part: "List one", title: "Your six", note: "The developer problems. You have met every one of them.", notes: "Say 'yours first' and advance. Show the list, read none of it." },
+  { id: "sec-dev", kind: "section", part: "The list", title: "Your six", note: "The developer problems. You have met every one of them.", notes: "Say 'yours first' and advance. Show the list, read none of it." },
   {
     id: "d-all",
     kind: "list",
@@ -183,7 +177,7 @@ export const slides: Slide[] = [
     eyebrow: "Your six · 05",
     items: DEVS,
     active: "05",
-    title: "Uploads are never<br>just uploads.",
+    title: "File storage is never<br>just file storage.",
     body: "A bucket. A signed URL. A size cap. And a check on what is actually **in** the file — because an `.exe` renamed to `.jpg` has exactly the extension you asked for.",
     notes: "Read the renamed-executable line slowly. It pays off later in the field grammar.",
   },
@@ -193,64 +187,16 @@ export const slides: Slide[] = [
     eyebrow: "Your six · 06",
     items: DEVS,
     active: "06",
-    title: "The fix that<br>cannot travel.",
+    title: "Copy and paste,<br>and the fix that cannot travel.",
     body: "You cope by copying the last project, or buying a template. Then you fix a session bug in March — in **one** repository. The other four are in production, and there is no mechanism that carries the fix to them.",
     notes: "Hold the phrase 'no mechanism' — it returns word for word when flare update appears. This slide is why copy-paste and templates are not the answer, which the whole talk turns on.",
   },
 
-  // ─── Client expectations · top four ─────────────────────────────────────────
-  { id: "sec-client", kind: "section", part: "List two", title: "Their four", note: "The client's expectations — every one a quote, asked before the feature is mentioned.", notes: "Switch voice: these are the client's words. Read them as quotes." },
-  {
-    id: "c-all",
-    kind: "list",
-    eyebrow: "Client expectations · in their words",
-    items: CLIENTS,
-    notes: "Read two of the four in the client's voice. Then the line that sets up the section: the honest answer to each is 'yes, in about three weeks' — and the client hears that as a no.",
-  },
-  {
-    id: "c1",
-    kind: "focus",
-    eyebrow: "Their four · 01",
-    items: CLIENTS,
-    active: "01",
-    title: "“Can different people<br>see different things?”",
-    body: "Roles, then permissions, then per-record ownership — the receptionist books, the doctor reads, only the owner sees money. Always one layer deeper than the first conversation suggests.",
-    notes: "Roles is easy, permissions is fine; per-record — a doctor sees their own patients — is where it becomes a week. And it must hold in the export too, not just on the screen.",
-  },
-  {
-    id: "c2",
-    kind: "focus",
-    eyebrow: "Their four · 02",
-    items: CLIENTS,
-    active: "02",
-    title: "“What will the hosting<br>cost us?”",
-    body: "A clinic in Kampala is not budgeting for a surprise invoice in dollars. “It depends on usage” is not an answer they can take to the owner.",
-    notes: "Callback to the love list: 'cheap to run' was answer 02 on the Next.js slide. The client is asking the same question you were. Flare's deploy act answers it with a number.",
-  },
-  {
-    id: "c3",
-    kind: "focus",
-    eyebrow: "Their four · 03",
-    items: CLIENTS,
-    active: "03",
-    title: "“Can we see it<br>before it's finished?”",
-    body: "A reasonable ask that costs a deploy, a staging environment, and a database that doesn't look embarrassing on a projector.",
-    notes: "Everyone has demoed an app with a patient called 'test test'. Let them remember that.",
-  },
-  {
-    id: "c4",
-    kind: "focus",
-    eyebrow: "Their four · 04",
-    items: CLIENTS,
-    active: "04",
-    title: "“What happens<br>if we get hacked?”",
-    body: "They mean: is there a lock on the door? You hear: rate limits, bans, two-factor, an audit trail — none of which is in the estimate, all of which is promised for phase two.",
-    notes: "The last clause sets up the next slide: phase two is where client expectations go to die.",
-  },
+  // ─── The turn ───────────────────────────────────────────────────────────────
   {
     id: "three-weeks",
     kind: "statement",
-    eyebrow: "The honest answer to all ten",
+    eyebrow: "The honest answer to all six",
     title: "“Yes — in about three weeks.”",
     body: "Which the client hears as a no. So the security, the audit and the polish are promised for phase two — and phase two never arrives.",
     notes: "The emotional low point, on purpose. Sit in it for one breath. Then the turn.",
@@ -275,17 +221,33 @@ export const slides: Slide[] = [
   },
   {
     id: "framework-hate",
-    kind: "split",
+    kind: "bullets",
     eyebrow: "Wait — a framework?",
-    left: {
-      heading: "Why developers flinch at that word",
-      items: ["breaking changes every major version", "abstractions you end up fighting", "magic you cannot debug", "lock-in you cannot leave", "and the rewrite when it dies"],
-    },
-    right: {
-      heading: "Flare's answer",
-      items: ["nothing of Flare runs in production", "plain Next.js code, in **your** repo", "the engine: ~800 readable lines, copied in", "delete the CLI — the app still builds"],
-    },
-    notes: "Give the left column its due — every item is a scar someone in the room has. Then the right column, slowly. The last line is the one to land.",
+    title: "Why that word makes you flinch",
+    items: [
+      "Breaking changes every major version",
+      "Abstractions you end up fighting",
+      "Magic you cannot debug",
+      "Lock-in you cannot leave",
+      "And the rewrite when it dies",
+    ],
+    caption: "Every one of these is a scar, not a hypothetical.",
+    notes: "Read them slowly and let the room nod. Do not defend anything yet — this slide is for agreeing with them. Ask by a show of hands who has lived the last one.",
+  },
+  {
+    id: "framework-answer",
+    kind: "bullets",
+    eyebrow: "So here is the deal",
+    title: "Flare's answer to all five",
+    items: [
+      "Nothing of Flare runs in production",
+      "Plain Next.js code, in **your** repo",
+      "The engine: ~800 readable lines, copied into the app",
+      "Upgrades are a diff you read, not a version you pray over",
+      "Delete the CLI — the app still builds",
+    ],
+    caption: "No runtime to be trapped by, because there is no runtime.",
+    notes: "One per fear, in the same order. The last line is the one to land — pause after it.",
   },
   {
     id: "not-a-framework",
@@ -305,17 +267,31 @@ export const slides: Slide[] = [
   },
   {
     id: "generator-further",
-    kind: "split",
-    eyebrow: "The difference: Flare takes it further",
-    left: {
-      heading: "Where the family stopped",
-      items: ["scaffold a model, a controller — one layer", "the admin lives in the framework", "regenerate = overwrite your edits", "one language, one runtime, their server"],
-    },
-    right: {
-      heading: "Where Flare keeps going",
-      items: ["one command: the **whole vertical slice**", "the admin is generated into your repo", "your edits are detected as drift, never lost", "same description → Next.js **or** Cloudflare"],
-    },
-    notes: "Four differences, left-right pairs — read them as pairs. 'Vertical slice' means: schema, migration, validators, API, typed client, and four admin pages from one command. Drift: flare diff shows your changes; flare update brings upstream fixes without trampling them.",
+    kind: "bullets",
+    eyebrow: "The difference",
+    title: "Where the family stopped",
+    items: [
+      "`scaffold` gives you a model and a controller — **one layer**",
+      "The admin lives inside the framework, not in your code",
+      "Regenerate, and your edits are overwritten",
+      "One language, one runtime, their server",
+    ],
+    caption: "Flare keeps going on all four. The first one is the big one.",
+    notes: "Respect, then the gap. Say plainly: Rails gave you one layer of the stack and you wrote the rest. Flare's bet is that the rest is derivable too.",
+  },
+  {
+    id: "generator-mvc",
+    kind: "bullets",
+    eyebrow: "Where Flare keeps going",
+    title: "One command writes the whole vertical slice",
+    items: [
+      "The **model** — schema, migration, validators, types",
+      "The **controller** — a REST API, with auth and roles already on it",
+      "The **view** — list, create, edit and detail pages, and the forms",
+      "Plus the parts MVC never named: a typed client, hooks, seeds, a policy file",
+    ],
+    caption: "Full MVC and then some, in **your** repository — and your edits are detected as drift, never lost. The same description deploys to Next.js **or** Cloudflare.",
+    notes: "This is the slide that explains what 'a resource' means, so do not rush it. Nineteen files per table. Then drift: flare diff shows your changes, flare update brings upstream fixes without trampling them. Last line closes the two-stacks loop.",
   },
 
   // ─── The build: a Patient Management System ─────────────────────────────────
@@ -357,14 +333,43 @@ export const slides: Slide[] = [
     kind: "code",
     eyebrow: "Step zero · install",
     lang: "bash",
-    code: `# one-off, global CLI (optional)
-npm install -g @flaredev/cli
+    code: `npm install -g @flaredev/cli
 
-# create the app — this is the real start
+flare --version`,
+    caption: "Node 22+, and that is the whole install. Or skip it: every command below runs through `npx flare` with nothing installed.",
+    notes: "Ten seconds. The point is that there is nothing to install — the global CLI is a convenience, not a dependency.",
+  },
+  {
+    id: "create-stacks",
+    kind: "code",
+    eyebrow: "Step one · create the app, on either stack",
+    lang: "bash",
+    code: `# Next.js on Vercel — the default
 pnpm create flare-framework clinic
+cd clinic
+
+# Cloudflare Workers — one flag
+pnpm create flare-framework clinic --stack cloudflare
 cd clinic`,
-    caption: "Node 22+. `create` scaffolds a working app: sign-in, a database, an admin shell and the bindings — before any resource exists.",
-    notes: "One beat: before a single table, the app already runs with auth. The blank canvas is already gone.",
+    caption: "One flag is the entire difference at the command line. `create` scaffolds a working app either way: sign-in, a database, an admin shell and the bindings — before any resource exists.",
+    notes: "Say the flag out loud, then the beat that matters: before a single table, the app already runs with auth. The blank canvas is already gone. Then: so what does the flag actually change?",
+  },
+  {
+    id: "stack-diff",
+    kind: "table",
+    eyebrow: "What that one flag changes · two stacks, one description",
+    head: ["", "Next.js · the default", "Cloudflare"],
+    rows: [
+      ["Runs on", "Vercel, real Node", "Workers, every location"],
+      ["Database", "Neon — serverless Postgres", "D1 — SQLite"],
+      ["ORM", "Prisma 7", "Drizzle"],
+      ["Cache", "Upstash Redis", "Workers KV"],
+      ["Files", "R2 or UploadThing", "R2"],
+      ["Bill, app this size", "Vercel + Neon + Upstash", "**~$0–5/month**"],
+      ["Pick it when", "you need Postgres or an npm package that assumes Node", "cost and reach matter most"],
+    ],
+    caption: "Everything else — auth, the dashboard, your descriptors, hooks, components — is identical.",
+    notes: "Do not read the whole table — point at three rows: the database, the bill, and the last one. Then the caption, which is the real claim: you are choosing a database, not a framework.",
   },
   {
     id: "cmd-anatomy",
@@ -381,19 +386,177 @@ cd clinic`,
   {
     id: "field-grammar",
     kind: "table",
-    eyebrow: "The field grammar · what each piece means",
-    title: "One sentence per table",
-    head: ["Piece", "Means"],
+    eyebrow: "The field grammar · one sentence per table",
+    head: ["Written", "Gives you"],
     rows: [
-      ["name:string", "a required text column"],
-      ["!", "unique — a constraint and the 409 that explains itself"],
-      ["?", "optional — nullable column, optional in the form"],
-      ["enum(a,b,c)", "a closed list: CHECK constraint + dropdown"],
-      ["belongsTo(Model)", "foreign key, index, and a relation picker"],
-      ["file:[image]:5mb", "upload: bucket, signed URL, size cap, byte check"],
-      ["… if status == cancelled", "a field that only sometimes applies"],
+      ["`string` · `text` · `markdown`", "a line, a paragraph, or a Markdown editor"],
+      ["`email` `url` `tel` `slug` `color` `country` …", "text with the right keyboard, validator and widget"],
+      ["`int` · `float` · `money` · `percent` · `rating`", "numbers — and money as integer minor units"],
+      ["`boolean` · `date` · `datetime`", "a switch, and date pickers with or without a time"],
+      ["`enum(a,b)` · `radio(a,b)` · `multiselect(a,b)`", "a closed list: dropdown, radios, or many-of"],
     ],
-    notes: "This slide is the reference card — people photograph it. Each row returns in a real command within the next ten minutes, so do not over-explain here.",
+    caption: "Half the language. One more slide, then we take them one at a time.",
+    notes: "The reference card, part one — people photograph these two slides, so leave each up a breath longer than feels natural. Do not explain the rows; the field slides do that.",
+  },
+  {
+    id: "field-grammar-2",
+    kind: "table",
+    eyebrow: "The field grammar · and the rest of it",
+    head: ["Written", "Gives you"],
+    rows: [
+      ["`tags` · `json`", "free-form labels, and an arbitrary object"],
+      ["`file:[image,pdf]:5mb`", "upload: bucket, signed URL, type and size checks"],
+      ["`belongsTo(Model)` · `hasMany(Model)`", "a foreign key and a picker, or a child list"],
+      ["`!` · `?`", "unique, and optional"],
+      ["`… if status == cancelled`", "a field that only sometimes applies"],
+    ],
+    caption: "Ten rows across two slides, and that is the whole language. Everything else in Flare is derived from it.",
+    notes: "Part two. The last row is the one nobody expects a generator to have — flag it, because it gets its own slide later.",
+  },
+  {
+    id: "f-text",
+    kind: "table",
+    eyebrow: "Field 01 · text",
+    title: "string, text, markdown",
+    head: ["Written", "The column", "In the form"],
+    rows: [
+      ["`name:string`", "`varchar` — one line, required", "a single-line input"],
+      ["`bio:text?`", "`text` — any length, nullable", "a textarea that grows"],
+      ["`body:markdown`", "`text`, with the format recorded", "a Markdown editor, and rendered output on the detail page"],
+    ],
+    caption: "`string` when it fits on a line, `text` when it does not, `markdown` when someone will want a heading and a link.",
+    notes: "The only real decision here is string versus text, and it is about the input, not the storage. Markdown is the one people are surprised exists.",
+  },
+  {
+    id: "f-formats",
+    kind: "table",
+    eyebrow: "Field 02 · the formats",
+    title: "Text that knows what it is",
+    head: ["Written", "What you get for free"],
+    rows: [
+      ["`email:email!`", "format validation, an email keyboard, unique constraint"],
+      ["`phone:tel?`", "a tel input — `phone` also works, they are the same field"],
+      ["`site:url?`", "URL validation, and a clickable link in the table"],
+      ["`brand:color?`", "a colour swatch picker, stored as hex"],
+      ["`country:country`", "a searchable country dropdown, ISO codes"],
+    ],
+    caption: "Every one is a text column — the format picks the validator, the keyboard and the widget. Also `slug` `domain` `username` `ip` `uuid` `timezone` `locale` `postcode`.",
+    notes: "This is the slide that gets a laugh of recognition — everybody has hand-written an email regex this year. Point at the timezone and currency rows; nobody expects those.",
+  },
+  {
+    id: "f-numbers",
+    kind: "table",
+    eyebrow: "Field 03 · numbers",
+    title: "int, float — and the three shorthands",
+    head: ["Written", "The column", "In the form"],
+    rows: [
+      ["`age:int?`", "`integer`", "a number input, steppers, integers only"],
+      ["`weight:float?`", "`real`", "a number input that accepts decimals"],
+      ["`fee:money`", "**integer minor units** — cents, not dollars", "a currency input with grouped digits"],
+      ["`rate:percent?`", "a number, stored as the number", "a per-cent suffix on the input"],
+      ["`score:rating?`", "`integer`, 1–5", "stars you click"],
+    ],
+    caption: "`money` is the one that matters: never a float. 19.99 cannot be represented exactly in binary, and a clinic's invoices are not the place to discover that.",
+    notes: "Linger on money. The float-rounding slide is coming up with the invoice table, so plant it here and pay it off there.",
+  },
+  {
+    id: "f-boolean",
+    kind: "table",
+    eyebrow: "Field 04 · boolean",
+    title: "A yes or a no",
+    head: ["Written", "The column", "In the form"],
+    rows: [
+      ["`active:boolean`", "`boolean`, defaults to false", "a switch — on or off, never empty"],
+      ["`active:boolean?`", "`boolean`, nullable", "a switch that can also be unset"],
+    ],
+    caption: "The table column renders it as a badge rather than the word “true”, and the filter bar gets a yes/no toggle for it without being asked.",
+    notes: "Quick slide, ten seconds. The one useful note is the difference between required and optional here: unset is a third state, and sometimes you want it.",
+  },
+  {
+    id: "f-dates",
+    kind: "table",
+    eyebrow: "Field 05 · dates",
+    title: "date, datetime",
+    head: ["Written", "The column", "In the form"],
+    rows: [
+      ["`birthday:date?`", "a calendar date — no time, no zone", "a date picker"],
+      ["`scheduledAt:datetime`", "an instant, stored UTC", "a date **and** time picker"],
+    ],
+    caption: "`date` for a birthday, `datetime` for an appointment. A birthday with a timezone is how someone ends up a day older in Kampala than in London.",
+    notes: "That last sentence is a real bug people have shipped. Say it as a warning, not a joke, and the room will remember which to pick.",
+  },
+  {
+    id: "f-choices",
+    kind: "table",
+    eyebrow: "Field 06 · closed lists",
+    title: "enum, radio, multiselect",
+    head: ["Written", "The column", "In the form"],
+    rows: [
+      ["`status:enum(booked,seen,cancelled)`", "text, plus a `CHECK` constraint", "a dropdown with exactly those three"],
+      ["`gender:radio(male,female,other)`", "the same column, a different widget", "radio buttons, every option visible"],
+      ["`symptoms:multiselect(fever,cough,pain)`", "a JSON array", "checkboxes — any number of them"],
+      ["`select(a,b)`", "an alias for `enum`", "the same dropdown"],
+    ],
+    caption: "The database refuses a fourth value — so next year's typo fails loudly instead of quietly adding a status nothing handles.",
+    notes: "The CHECK constraint is the point — the list is enforced at the bottom, not just in the form. Use radio when there are three or fewer and you want them all on screen.",
+  },
+  {
+    id: "f-tags-json",
+    kind: "table",
+    eyebrow: "Field 07 · the open-ended two",
+    title: "tags, json",
+    head: ["Written", "The column", "In the form"],
+    rows: [
+      ["`labels:tags?`", "a JSON array of strings", "a tag input — type, press enter, chips appear"],
+      ["`meta:json?`", "a JSON object, unvalidated", "a code editor with JSON checking"],
+    ],
+    caption: "`tags` when the list is open but the values are words. `json` when you genuinely do not know the shape yet — and knowing you will regret it later is part of choosing it.",
+    notes: "Be honest about json: it is the escape hatch, and an escape hatch reached for on day one usually means the table design is not finished.",
+  },
+  {
+    id: "f-file",
+    kind: "table",
+    eyebrow: "Field 08 · uploads — the one with the most hidden work",
+    head: ["Written", "What it generates"],
+    rows: [
+      ["`photo:file:[image]`", "bucket wiring, a signed upload URL, MIME check — **10MB default cap**"],
+      ["`scan:file:[image,pdf]:20mb`", "two accepted kinds, and a cap of your own"],
+      ["`doc:file:[document,spreadsheet]?`", "the size is optional — only the list of kinds is required"],
+      ["the kinds", "`image` `pdf` `video` `audio` `csv` `document` `spreadsheet` `archive` `any`"],
+      ["in the form", "a drag-and-drop zone, a progress bar, a preview, and a remove button"],
+      ["several files?", "one field holds one file — model many as a child table with `belongsTo`"],
+    ],
+    caption: "The cap is checked twice — in the browser, and on the server against the real bytes. The browser is not a security boundary.",
+    notes: "Two honest notes. The size is optional and defaults to 10MB. And multiple files in one field is not a thing yet: you make an Attachment resource that belongsTo the parent, which is what you want anyway once a file needs its own caption and uploader.",
+  },
+  {
+    id: "f-relations",
+    kind: "table",
+    eyebrow: "Field 09 · relations",
+    title: "belongsTo, hasMany",
+    head: ["Written", "The column", "In the form"],
+    rows: [
+      ["`patient:belongsTo(Patient)`", "`patientId`, a foreign key **and an index**", "a searchable picker, not a raw id box"],
+      ["`doctor:belongsTo(Doctor)?`", "the same, nullable", "a picker you can clear"],
+      ["`visits:hasMany(Visit)`", "**no column** — it is the other side", "a list of children on the detail page"],
+    ],
+    caption: "You write `patient`, Flare writes `patientId`. The index comes with it, which is the line between a list page that stays fast and one that quietly does not.",
+    notes: "Two things people get wrong: hasMany adds no column, and the index is not optional. Mention that nobody adds the foreign-key index by hand until the page is already slow.",
+  },
+  {
+    id: "f-modifiers",
+    kind: "table",
+    eyebrow: "Field 10 · the two marks, and the clause",
+    title: "! ? and if",
+    head: ["Written", "Means"],
+    rows: [
+      ["`email:string!`", "unique — a database constraint, and a 409 that names the field"],
+      ["`bio:text?`", "optional — nullable column, optional in the form"],
+      ["`sku:string!?`", "both, in that order: unique when present"],
+      ["`reason:text if status == cancelled`", "the field only exists when the condition holds"],
+    ],
+    caption: "Two characters each. Between them they cover most of what you would otherwise write a validator for — and because unique is a database constraint, a race between two requests still cannot create a duplicate.",
+    notes: "The race-condition point is worth saying: an application-level uniqueness check loses that race, a UNIQUE index does not. The if clause gets its own slide next; this is just the grammar.",
   },
 
   // ─── Table by table ─────────────────────────────────────────────────────────
@@ -657,7 +820,7 @@ cd clinic`,
     eyebrow: "Step 06 · the first sign-up",
     title: "The first account becomes the admin.",
     body: "Every resource arrives admin-only, enforced by the API **and** the admin UI from the same policy file. A patient record open to anyone who registers is not a bug you want to find in a clinic.",
-    notes: "This is client expectation 01 and 04 in one slide: who sees what, and the lock on the door — defaults, not phase two.",
+    notes: "Who sees what, and the lock on the door — defaults, not phase two. The line that lands with anyone who has shipped for a client: nobody asked for this, and everybody assumed it.",
   },
   {
     id: "step-tunnel",
@@ -665,12 +828,12 @@ cd clinic`,
     eyebrow: "Step 07 · flare dev --tunnel",
     title: "Show it before you ship it.",
     body: "Your local app on a public HTTPS link — no account, no DNS, no open ports. The client sees Friday's demo on Wednesday, from their own phone.",
-    notes: "Client expectation 03, answered by name. The phrase that lands: 'from their own phone'.",
+    notes: "Every client asks to see it before it is finished, and this is the answer. The phrase that lands: 'from their own phone'.",
   },
   {
     id: "step-deploy",
     kind: "code",
-    eyebrow: "Step 08 · the last command",
+    eyebrow: "Step 08 · the last command — on Cloudflare",
     lang: "text",
     code: `$ npx flare deploy
 
@@ -681,17 +844,33 @@ flare  Deploying
 flare  Generating BETTER_AUTH_SECRET for production
 
 Deployed to https://clinic.you.workers.dev`,
-    caption: "Migrations first, then the deploy, then any secret you forgot — generated, not googled. Nothing to click on a dashboard.",
-    notes: "Point at the secret line: the deploy refuses to ship a half-configured app, and fixes it instead of erroring.",
+    caption: "Migrations, the deploy, then any secret you forgot — generated, not googled. Nothing to click on a dashboard.",
+    notes: "Point at the secret line: it generates the one secret the app cannot run without, rather than erroring at you. Then say honestly that the Next.js deploy is a shorter story, and show why.",
+  },
+  {
+    id: "deploy-how",
+    kind: "table",
+    eyebrow: "The same command, two honestly different jobs",
+    head: ["", "Next.js", "Cloudflare"],
+    rows: [
+      ["`flare deploy` is", "`vercel deploy --prod`", "migrate, upload, then secrets"],
+      ["Migrations", "`flare migrate` — you run it, deliberately", "run for you, D1 remote, in order"],
+      ["Secrets", "set once in the Vercel project", "pushed from `.dev.vars`; the auth secret generated if missing"],
+      ["Database", "Neon — you paste the URL once", "D1 — created and bound by `create`"],
+      ["Storage · cache", "R2 or UploadThing · Upstash", "R2 · KV, both bound already"],
+      ["You end up with", "`clinic.vercel.app`", "`clinic.you.workers.dev`"],
+    ],
+    caption: "Vercel already owns the build, the env and the project — so Flare does not pretend to.",
+    notes: "Be straight here. On Vercel, flare deploy is a thin pass-through and migrations are a separate, deliberate step against the production DATABASE_URL — that is a design choice, not a gap: you do not want a push to run migrations by surprise. On Cloudflare nothing owns the wiring, so Flare does it. Deploy is where framework demos quietly stop, so do not skip this slide.",
   },
   {
     id: "deploy-two",
     kind: "split",
     eyebrow: "And remember “cheap to run”?",
-    left: { heading: "Cloudflare", items: ["Workers, D1, R2", "no cold starts", "a clinic this size: **~$0–5/month**"], note: "`flare deploy`" },
+    left: { heading: "Cloudflare", items: ["Workers, D1, R2", "no cold starts, every location", "a clinic this size: **~$0–5/month**"], note: "`flare deploy`" },
     right: { heading: "Next.js on Vercel", items: ["Neon Postgres, Prisma", "real Node, every npm package", "the default stack"], note: "`flare deploy`, the same command" },
     caption: "The same seven commands, the same descriptors, either home. Pick for the database — everything else travels.",
-    notes: "Close two loops at once: the room's own 'cheap to run' from the love list, and the client's hosting question — now with a number a clinic owner can hear.",
+    notes: "Close two loops at once: the room's own 'cheap to run' from the love list, and the hosting question a client always asks — now with a number a clinic owner can hear.",
   },
   {
     id: "how-long-now",
@@ -700,6 +879,84 @@ Deployed to https://clinic.you.workers.dev`,
     title: "The tables took longer than the app.",
     body: "And the tables were the real work all along. Seven commands, a migrate, a seed, a deploy: the rest of your estimate is now **features**.",
     notes: "Call back the number they said at 'how long would this take you'. Don't gloat — one sentence, then move to the honest slide.",
+  },
+
+  // ─── Flare and your agent ───────────────────────────────────────────────────
+  { id: "sec-ai", kind: "section", part: "One more thing", title: "And if you build<br>with an agent", note: "Which, let us be honest, is most of us now.", notes: "Light tone. Read the room — a show of hands on who codes with an agent daily usually surprises people." },
+  {
+    id: "ai-why",
+    kind: "statement",
+    eyebrow: "Why Flare and agents get along",
+    title: "Less code to write, more structure to follow.",
+    body: "An agent's two failure modes are inventing structure and writing too much of it. Flare removes both: the structure is fixed, and two-thirds of the code is generated before the agent starts.",
+    notes: "This is the thesis of the act. The honest version: agents are bad at the parts Flare already did, and that is exactly why it works.",
+  },
+  {
+    id: "ai-problem",
+    kind: "bullets",
+    eyebrow: "But an agent that has never seen Flare",
+    title: "…will fight it",
+    items: [
+      "Hand-edits the generated blocks, and loses the work on the next `flare gen`",
+      "Checks roles in the component instead of the policy file",
+      "Reaches for `wrangler` in a Next.js app, or Prisma in a Cloudflare one",
+      "Writes the CRUD you already had, by hand, confidently",
+    ],
+    caption: "None of that is the agent being bad. It is the agent guessing, because nobody told it.",
+    notes: "Everyone in the room who has used an agent on an unfamiliar codebase has seen all four. Name them fast; the fix is the next slide.",
+  },
+  {
+    id: "ai-skill",
+    kind: "code",
+    eyebrow: "So we wrote it down — as a skill",
+    lang: "bash",
+    code: `npx skills add MUKE-coder/flare-framework@flare`,
+    caption: "One command. It installs a skill your agent loads the moment it notices it is in a Flare app — and it works in Claude Code, Codex, Copilot, Cursor and OpenCode, because the installer puts it where each one looks.",
+    notes: "Say the command once, slowly, and leave it on screen. This is the second command of the talk people will actually type tonight.",
+  },
+  {
+    id: "ai-skill-what",
+    kind: "bullets",
+    eyebrow: "What is in it",
+    title: "Everything you have just watched me explain",
+    items: [
+      "The full CLI reference, per stack",
+      "The field grammar — every type on those ten slides",
+      "The seven rules, each with the reasoning, so it knows when they bend",
+      "Recipes: relations, uploads, search, auth, billing, policies",
+      "And the overwrite contract, so it never hand-edits a generated block",
+    ],
+    caption: "The agent does not get smarter. It stops guessing about the things with one right answer.",
+    notes: "Point at the last item — the overwrite contract is the one that saves real work, because that mistake is invisible until the next generate.",
+  },
+  {
+    id: "ai-three",
+    kind: "bullets",
+    eyebrow: "Three ways in, pick any",
+    title: "If you do not want a skill installed",
+    items: [
+      "`llms.txt` — every docs page as one list, in the llmstxt.org format. Point an agent at it",
+      "The **Build with AI** button at the foot of every docs page — copies a full brief to paste into a fresh chat",
+      "Or the skill, which is the same knowledge, loaded automatically",
+    ],
+    caption: "All three carry the same content, generated from the same docs — so a page that exists is a page your agent can find.",
+    notes: "Thirty seconds. The button is the zero-commitment option: no install, no config, just paste.",
+  },
+  {
+    id: "ai-division",
+    kind: "split",
+    eyebrow: "The honest division of labour",
+    left: {
+      heading: "An agent is genuinely good at",
+      items: ["descriptors and fields", "relations and seeds", "the shape of a dashboard page", "the mechanical two-thirds"],
+    },
+    right: {
+      heading: "And will confidently get wrong",
+      items: ["pricing rules", "what a status transition means", "which of two designs is right", "**anything in `hooks` or `policies`**"],
+      note: "review those two folders by hand",
+    },
+    caption: "A mistake in a generated file is a compile error. A mistake in a policy file is a security bug — so that is the third you read line by line.",
+    notes: "Do not skip this. It is the slide that makes the rest of the act trustworthy, and the hooks/policies warning is the one piece of advice here with teeth.",
   },
 
   // ─── Close ──────────────────────────────────────────────────────────────────

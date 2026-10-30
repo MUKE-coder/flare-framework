@@ -8,13 +8,13 @@ into a database table, a REST API, validators and a dashboard. Where that runs
 is a separate question, and there are two answers.
 
 ```bash
-npx flare create myapp                    # Cloudflare Workers (default)
-npx flare create myapp --stack next       # Next.js on Vercel
+npx flare create myapp                         # Next.js on Vercel (default)
+npx flare create myapp --stack cloudflare      # Cloudflare Workers
 ```
 
 ## What each one is
 
-| | **Cloudflare** (default) | **Next.js** |
+| | **Cloudflare** | **Next.js** (default) |
 | --- | --- | --- |
 | Framework | vinext (Next-compatible RSC) | Next.js 16, App Router |
 | Runs on | Cloudflare Workers | Vercel |
@@ -45,7 +45,7 @@ worked in exactly this stack before. It costs more — Vercel, Neon and Upstash
 each have their own bill — and you give up R2's free egress unless you keep
 files there.
 
-If you are unsure, start on Cloudflare. [Costs](/guides/costs/) has the real
+If you are unsure, start on Next.js — it is the default for that reason. [Costs](/guides/costs/) has the real
 numbers, and your descriptors, hooks, policies and components move between
 the two.
 

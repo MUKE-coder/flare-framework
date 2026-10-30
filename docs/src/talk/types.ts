@@ -14,6 +14,11 @@ type SlideKind =
   /** One problem, with the others greyed beside it. */
   | { id: string; kind: "problem"; code: string; title: string; body: string; answer?: string; section?: string }
   | { id: string; kind: "code"; eyebrow: string; title?: string; lang?: string; code: string; caption?: string; section?: string }
+  /**
+   * A heading and a short list, one column. For a slide that is genuinely a list of
+   * points rather than a sequence — so the markers are bullets, not numbers.
+   */
+  | { id: string; kind: "bullets"; eyebrow: string; title?: string; items: string[]; caption?: string; section?: string }
   /** Two columns that mean something against each other: ours/yours, before/after. */
   | {
       id: string;

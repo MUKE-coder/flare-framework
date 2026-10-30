@@ -164,6 +164,16 @@ const md = (text: string) =>
       .s-lede strong, .caption strong, .col li strong, .facts li strong { color: var(--s-ink); font-weight: 600; }
       .caption { font-size: 27px; color: var(--s-muted); margin: 0; max-width: 1480px; line-height: 1.5; }
 
+      /* One column of points. Bullets, not numbers — these are a set, not an order. */
+      .bullets { list-style: none; margin: 0 0 34px; padding: 0; display: flex; flex-direction: column; gap: 23px; max-width: 1540px; }
+      .bullets li { position: relative; padding-left: 50px; font-size: 44px; line-height: 1.26; letter-spacing: -0.02em; color: var(--s-ink); }
+      .bullets li::before {
+        content: ""; position: absolute; left: 6px; top: 0.52em;
+        width: 15px; height: 15px; border-radius: 50%; background: var(--s-ember);
+      }
+      .bullets strong { font-weight: 600; }
+      .bullets:last-child { margin-bottom: 0; }
+
       .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; }
       .col h3 { font-family: var(--mono); font-size: 25px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--s-ember); margin: 0 0 26px; font-weight: 500; }
       .col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
@@ -293,6 +303,17 @@ const md = (text: string) =>
                     <p class="s-eyebrow">{slide.eyebrow}</p>
                     {slide.title && <h2 class="s-head" style="font-size:52px">{slide.title}</h2>}
                     <pre class="code">{slide.code}</pre>
+                    {slide.caption && <p class="caption" set:html={md(slide.caption)} />}
+                  </>
+                )}
+
+                {slide.kind === "bullets" && (
+                  <>
+                    <p class="s-eyebrow">{slide.eyebrow}</p>
+                    {slide.title && <h2 class="s-head" style="font-size:72px;margin-bottom:46px">{slide.title}</h2>}
+                    <ul class="bullets">
+                      {slide.items.map((i) => <li set:html={md(i)} />)}
+                    </ul>
                     {slide.caption && <p class="caption" set:html={md(slide.caption)} />}
                   </>
                 )}
