@@ -3,14 +3,36 @@ import type { Slide } from "./types";
 /**
  * The talk.
  *
- * It opens on a job, not on a framework: a clinic has asked for a system, here is what it
- * needs, and here are two developers building it. The comparison is per table rather than
- * one grand before-and-after, because the gap is not impressive once — it is impressive
- * seven times.
+ * Eighty-some slides, one idea each. The first third builds the problem — the fortnight
+ * of setup, and the three habits we cope with it — before Flare is argued for at all.
+ * Then a real job: a clinic, its seven tables, and two developers building the same
+ * thing. The comparison runs per table rather than one grand before-and-after, because
+ * the gap is not impressive once — it is impressive seven times. The position lands in
+ * part six: not a dependency, not a template, not a low-code tool.
  *
  * Every command here was run. The line counts are `wc -l` of what came out. If a number
  * changes, change it here rather than saying something different on stage.
+ *
+ * Note on formatting: eyebrows render as plain text (no backticks); statement and focus
+ * titles render as raw HTML; everything else goes through the tiny md() in talk.astro.
  */
+
+const FORTNIGHT = [
+  { code: "01", label: "Auth: sign-up, reset, sessions, 2FA" },
+  { code: "02", label: "A database, and its migrations" },
+  { code: "03", label: "File uploads, done safely" },
+  { code: "04", label: "An admin panel" },
+  { code: "05", label: "A table: sort, filter, page" },
+  { code: "06", label: "CSV out — and in" },
+  { code: "07", label: "Roles and permissions" },
+  { code: "08", label: "The deploy" },
+];
+
+const HABITS = [
+  { code: "01", label: "Open the last project" },
+  { code: "02", label: "Buy a template" },
+  { code: "03", label: "Leave the admin for last" },
+];
 
 export const slides: Slide[] = [
   // ─── Opening ────────────────────────────────────────────────────────────────
@@ -27,7 +49,7 @@ export const slides: Slide[] = [
     kind: "statement",
     eyebrow: "Except",
     title: 'Flare, the <span style="text-decoration:line-through;text-decoration-thickness:6px;opacity:0.45">framework</span>',
-    body: "Next.js and Cloudflare, with the boilerplate already written — into **your** repository, under your name. There is nothing of Flare left in the route handler. You could delete the CLI tomorrow and the app would still build.",
+    body: "Next.js and Cloudflare, with the boilerplate already written — into **your** repository, under your name. You could delete the CLI tomorrow and the app would still build.",
   },
   {
     id: "me",
@@ -44,8 +66,23 @@ export const slides: Slide[] = [
     ],
     links: "github.com/MUKE-coder · @JBWEBDEVELOPER · jb.desishub.com",
   },
+  {
+    id: "map",
+    kind: "list",
+    eyebrow: "Where this goes",
+    items: [
+      { code: "01", label: "The problem, honestly" },
+      { code: "02", label: "A real job: a clinic" },
+      { code: "03", label: "The tables" },
+      { code: "04", label: "Two developers, same table" },
+      { code: "05", label: "What the generator wrote" },
+      { code: "06", label: "What you own" },
+      { code: "07", label: "Running it" },
+      { code: "08", label: "The accounting" },
+    ],
+  },
 
-  // ─── Why another one ────────────────────────────────────────────────────────
+  // ─── Act one · the problem ──────────────────────────────────────────────────
   { id: "sec-why", kind: "section", part: "First", title: "Why build<br>another one?", note: "Two questions for the room before I answer that." },
   {
     id: "q-next",
@@ -59,7 +96,14 @@ export const slides: Slide[] = [
     kind: "statement",
     eyebrow: "Second question",
     title: "And who is quietly nervous about the Vercel bill?",
-    body: "That gap, between the first show of hands and the second, is most of why this talk exists.",
+    body: "Keep those up too.",
+  },
+  {
+    id: "the-gap",
+    kind: "statement",
+    eyebrow: "Look around",
+    title: "That gap is this talk.",
+    body: "Almost every hand that went up the first time stayed up the second. We love the framework. We are nervous about where it has to run.",
   },
   {
     id: "love-next",
@@ -73,28 +117,141 @@ export const slides: Slide[] = [
       heading: "And the worry is not the code",
       items: ["pricing that scales with success", "a bill that surprises on a good month", "egress you did not think about", "one vendor holding the deploy", "“what if we need to leave?”"],
     },
-    caption: "Nobody is nervous about the framework. They are nervous about where it has to run.",
   },
   {
     id: "vinext",
     kind: "statement",
     eyebrow: "And now",
     title: "Next.js is arriving on Cloudflare.",
-    body: "`vinext` runs a Next-compatible app on Workers — D1, R2, KV, no cold starts, and a bill that does not move much. It is beta, and it is the first real answer to the second show of hands.",
+    body: "`vinext` runs a Next-compatible app on Workers — D1, R2, KV, no cold starts, and a bill that does not move much. It is beta, and it is real.",
   },
   {
-    id: "setup-tax",
+    id: "half-answer",
     kind: "statement",
-    eyebrow: "But",
-    title: "Both are excellent, and both leave you the same fortnight of work.",
-    body: "Auth. A database. Uploads. An admin panel. A table that sorts, filters and pages. CSV. Roles. A deploy. None of it is the thing the client is paying for, and all of it is billed to you.",
+    eyebrow: "Progress",
+    title: "So the hosting worry has an answer.",
+    body: "One of the two problems, down. The second one is older, and no platform fixes it.",
+  },
+  {
+    id: "same-fortnight",
+    kind: "statement",
+    eyebrow: "Because",
+    title: "Pick either platform. You still start the same fortnight.",
+    body: "Neither Next.js nor Cloudflare writes the part every client project begins with.",
+  },
+  {
+    id: "fortnight",
+    kind: "list",
+    eyebrow: "The fortnight, itemised",
+    items: FORTNIGHT,
+  },
+  {
+    id: "fort-auth",
+    kind: "focus",
+    eyebrow: "Take them one at a time",
+    items: FORTNIGHT,
+    active: "01",
+    title: "Auth is a week<br>you have written five times.",
+    body: "Sign-up, reset emails, sessions, two-factor. Identical on every project — and dangerous on every project, because auth is the one place a shortcut becomes a headline.",
+  },
+  {
+    id: "fort-uploads",
+    kind: "focus",
+    eyebrow: "Take them one at a time",
+    items: FORTNIGHT,
+    active: "03",
+    title: "Uploads are never<br>just uploads.",
+    body: "A bucket. A signed URL. A size cap. And a check on what is actually in the file — because an `.exe` renamed to `.jpg` has exactly the extension you asked for.",
+  },
+  {
+    id: "fort-admin",
+    kind: "focus",
+    eyebrow: "Take them one at a time",
+    items: FORTNIGHT,
+    active: "04",
+    title: "The admin panel<br>is the app.",
+    body: "It is the screen your client spends their working day in. And it is the one thing on this list that no estimate ever includes.",
+  },
+  {
+    id: "fort-table",
+    kind: "focus",
+    eyebrow: "Take them one at a time",
+    items: FORTNIGHT,
+    active: "05",
+    title: "And the table<br>is the same table.",
+    body: "Sort, filter, paging, an empty state, a loading state. You have built it for products, for students, for tenants. It is always the same table.",
   },
   {
     id: "the-tax",
     kind: "statement",
     eyebrow: "Call it what it is",
     title: "The setup tax.",
-    body: "You pay it on every project, you pay it in full every time, and no estimate you have ever written included it honestly.",
+    body: "Paid on every project. Paid in full, every time.",
+  },
+  {
+    id: "tax-honest",
+    kind: "statement",
+    eyebrow: "And be honest",
+    title: "No estimate you ever wrote included it.",
+    body: "The quote says “clinic management system”. The first two weeks of the invoice are auth, a table, and an upload form — again.",
+  },
+
+  // ─── Act one, part two · how we cope ────────────────────────────────────────
+  { id: "sec-cope", kind: "section", part: "Second", title: "How we cope", note: "Three habits. Each one rational. Each one a trap." },
+  {
+    id: "cope-copy",
+    kind: "focus",
+    eyebrow: "Habit one",
+    items: HABITS,
+    active: "01",
+    title: "You open the last project<br>and start pasting.",
+    body: "Auth, uploads, email. You wrote them already — and writing a session refresh from scratch a sixth time is worse than copying it.",
+  },
+  {
+    id: "copy-drift",
+    kind: "statement",
+    eyebrow: "The catch",
+    title: "Now the bug lives in four projects.",
+    body: "You fixed the session refresh in March. In one of them. The other three are in production, and nothing on earth connects them.",
+  },
+  {
+    id: "cope-template",
+    kind: "focus",
+    eyebrow: "Habit two",
+    items: HABITS,
+    active: "02",
+    title: "Or you buy a template,<br>and inherit a fork.",
+    body: "It has auth. It has a dashboard. It is correct on the day you clone it.",
+  },
+  {
+    id: "template-fork",
+    kind: "statement",
+    eyebrow: "The catch",
+    title: "A template is a fork with no upstream.",
+    body: "Six months later the author fixes a session bug — and there is no mechanism, none, that brings that fix to you. You stripped half of it anyway.",
+  },
+  {
+    id: "cope-admin",
+    kind: "focus",
+    eyebrow: "Habit three",
+    items: HABITS,
+    active: "03",
+    title: "And the admin panel<br>goes in last.",
+    body: "Built by whoever is free, on the last Friday, out of whatever components are lying around.",
+  },
+  {
+    id: "admin-last",
+    kind: "statement",
+    eyebrow: "The catch",
+    title: "The least-designed screen gets the most use.",
+    body: "The client does not live on your landing page. They live in the admin — the part that got one Friday.",
+  },
+  {
+    id: "cope-cost",
+    kind: "statement",
+    eyebrow: "Add it up",
+    title: "None of it is the thing the client is paying for.",
+    body: "They are paying for a clinic that runs. The fortnight is overhead — and it is billed to you.",
   },
 
   // ─── A real job ─────────────────────────────────────────────────────────────
@@ -119,59 +276,18 @@ export const slides: Slide[] = [
     body: "Everyone in this room has sat in a waiting room, so nobody needs telling what a patient or an appointment is. We can spend the hour on the building instead.",
   },
   {
-    id: "hustle-1",
-    kind: "focus",
-    eyebrow: "What most of us do",
-    active: "01",
-    items: [
-      { code: "01", label: "Open the last project" },
-      { code: "02", label: "Hunt for a template" },
-      { code: "03", label: "Wire the auth, again" },
-      { code: "04", label: "Rebuild the same table" },
-      { code: "05", label: "Leave the admin for last" },
-      { code: "06", label: "Quote two weeks you cannot bill" },
-    ],
-    title: "You open the last project<br>and start pasting.",
-    body: "Auth. Uploads. Email. You wrote them already — and writing a session refresh from scratch a sixth time is worse than copying it. Right up until the copy and the original disagree.",
-  },
-  {
-    id: "hustle-2",
-    kind: "focus",
-    eyebrow: "What most of us do",
-    active: "02",
-    items: [
-      { code: "01", label: "Open the last project" },
-      { code: "02", label: "Hunt for a template" },
-      { code: "03", label: "Wire the auth, again" },
-      { code: "04", label: "Rebuild the same table" },
-      { code: "05", label: "Leave the admin for last" },
-      { code: "06", label: "Quote two weeks you cannot bill" },
-    ],
-    title: "Or you buy a template,<br>and inherit a fork.",
-    body: "It is right once, on the day you clone it. Six months later upstream fixes a session bug and there is no mechanism that brings it to you.",
-  },
-  {
-    id: "hustle-3",
-    kind: "focus",
-    eyebrow: "What most of us do",
-    active: "05",
-    items: [
-      { code: "01", label: "Open the last project" },
-      { code: "02", label: "Hunt for a template" },
-      { code: "03", label: "Wire the auth, again" },
-      { code: "04", label: "Rebuild the same table" },
-      { code: "05", label: "Leave the admin for last" },
-      { code: "06", label: "Quote two weeks you cannot bill" },
-    ],
-    title: "And the admin panel<br>goes in last.",
-    body: "No estimate includes it, so it is built by whoever is free, on the last Friday — and it is the screen the client actually spends their day in.",
-  },
-  {
-    id: "lets-see",
+    id: "the-brief",
     kind: "statement",
-    eyebrow: "So",
-    title: "Let's build it instead.",
-    body: "Same brief, same room. One of us does the fortnight. The other describes seven tables.",
+    eyebrow: "The brief",
+    title: "Patients. Bookings. Visits. Prescriptions. Invoices.",
+    body: "Four weeks. And a clinic manager who will phone, in week two, about the thing the brief forgot.",
+  },
+  {
+    id: "two-devs",
+    kind: "statement",
+    eyebrow: "The experiment",
+    title: "Let's build it twice.",
+    body: "Same brief, same room. One of us does the fortnight by hand. The other describes tables.",
   },
 
   // ─── The tables ─────────────────────────────────────────────────────────────
@@ -190,7 +306,13 @@ export const slides: Slide[] = [
       { num: "06", name: "invoices", note: "What it costs", hangs: "patient · visit" },
       { num: "07", name: "payments", note: "What was paid, and how", hangs: "invoice" },
     ],
-    caption: "A chain. A patient is booked, the booking becomes a visit, the visit produces a prescription and an invoice, the invoice is paid.",
+  },
+  {
+    id: "the-chain",
+    kind: "statement",
+    eyebrow: "Read it as a story",
+    title: "Booked. Seen. Prescribed. Invoiced. Paid.",
+    body: "A patient is booked; the booking becomes a visit; the visit produces a prescription and an invoice; the invoice is paid. Seven tables, one chain.",
   },
   {
     id: "table-patient",
@@ -224,7 +346,7 @@ export const slides: Slide[] = [
   {
     id: "table-appointment",
     kind: "table",
-    eyebrow: "03 · appointments · the interesting one",
+    eyebrow: "03 · appointments",
     title: "The booking",
     head: ["Field", "Type", "Why"],
     rows: [
@@ -234,7 +356,13 @@ export const slides: Slide[] = [
       ["status", "booked | arrived | seen | cancelled | noShow", "the front desk runs on this"],
       ["cancelledBecause", "text — **only when cancelled**", "an empty reason is a complaint waiting to happen"],
     ],
-    caption: "The last row is the one the brief did not mention and the clinic manager asks for in week two.",
+  },
+  {
+    id: "appt-cancel",
+    kind: "statement",
+    eyebrow: "That last row",
+    title: "The field the brief forgot.",
+    body: "Nobody asks for `cancelledBecause` in week zero. The clinic manager asks for it in week two, after the first argument at the front desk. Design it now and it is one line.",
   },
   {
     id: "table-visit",
@@ -251,18 +379,51 @@ export const slides: Slide[] = [
     ],
   },
   {
-    id: "table-money",
+    id: "table-prescription",
     kind: "table",
-    eyebrow: "06 · 07 · invoices and payments",
-    title: "The money",
+    eyebrow: "05 · prescriptions",
+    title: "What was given",
     head: ["Field", "Type", "Why"],
     rows: [
-      ["amount", "money", "not a float — three 7p items come to 0.21000000000000002"],
+      ["visitId", "→ visits", "a prescription belongs to a visit"],
+      ["drug", "text, required", "—"],
+      ["dosage", "text", "in units the pharmacist reads"],
+      ["frequency", "text", "“1 × 3, after meals”"],
+      ["days", "number", "how long the course runs"],
+    ],
+  },
+  {
+    id: "table-invoice",
+    kind: "table",
+    eyebrow: "06 · invoices",
+    title: "What it costs",
+    head: ["Field", "Type", "Why"],
+    rows: [
+      ["patientId", "→ patients", "—"],
+      ["visitId", "→ visits", "an invoice bills a visit"],
+      ["amount", "money", "**not a float** — more on this shortly"],
       ["status", "draft | sent | paid | overdue", "—"],
+    ],
+  },
+  {
+    id: "table-payment",
+    kind: "table",
+    eyebrow: "07 · payments",
+    title: "What was paid, and how",
+    head: ["Field", "Type", "Why"],
+    rows: [
+      ["invoiceId", "→ invoices", "—"],
+      ["amount", "money", "partial payments are normal"],
       ["method", "cash | mobileMoney | card | insurance", "a Ugandan clinic takes all four"],
       ["claimNumber", "text — **only when insurance**", "useless on cash, required on a claim"],
     ],
-    caption: "Two fields that only sometimes apply, and one that must not be a float. None of it exotic; all of it where projects go wrong.",
+  },
+  {
+    id: "three-traps",
+    kind: "statement",
+    eyebrow: "Hiding in those seven tables",
+    title: "Three traps. All of them ordinary.",
+    body: "Money that must not be a float. Files that must really be images. Fields that only sometimes apply. Hold those three — they come back.",
   },
 
   // ─── Two developers ─────────────────────────────────────────────────────────
@@ -282,12 +443,10 @@ export const slides: Slide[] = [
         "a table with sort, filter, paging",
         "a form, and a second for editing",
         "upload: a bucket, a signed URL, a size check",
-        "and a check on what is in the file",
       ],
       note: "11 files · 268 lines",
     },
     right: { heading: "Flare", items: ["one command"], note: "1 line" },
-    caption: "Both numbers are real: 268 is `wc -l` of what Flare wrote for patients, which is what the other developer types.",
   },
   {
     id: "vs-patient-cmd",
@@ -298,7 +457,13 @@ export const slides: Slide[] = [
   --fields 'name:string!, phone:tel!, dateOfBirth:date,
             sex:enum(female,male), nationalId:string?,
             photo:file:[image]:5mb?, allergies:text?, address:string?'`,
-    caption: "`file:[image]:5mb` is the bucket, the signed URL, the size cap and the leading-bytes check — a renamed executable has the extension you asked for.",
+  },
+  {
+    id: "patient-bought",
+    kind: "statement",
+    eyebrow: "What that one line is",
+    title: "The schema. The migration. The validators. The API. The client. Four admin pages.",
+    body: "268 lines, written into your repository. Both numbers are `wc -l`, not a brochure.",
   },
   {
     id: "vs-appointment",
@@ -318,10 +483,9 @@ export const slides: Slide[] = [
     },
     right: {
       heading: "Flare",
-      items: ["`cancelledBecause:string if status == cancelled`", "the form hides it", "the validator requires it", "the store clears it"],
+      items: ["`cancelledBecause:string if status == cancelled`"],
       note: "the rule lives in one",
     },
-    caption: "Hiding an input stops the form sending a value. It does not remove the value already in the row — which is why this cannot live in the form.",
   },
   {
     id: "vs-appointment-cmd",
@@ -336,13 +500,27 @@ export const slides: Slide[] = [
     caption: "The condition is checked when you generate, not when you deploy: `cancelled` has to be one of the statuses, or it refuses to write the file.",
   },
   {
+    id: "rule-one",
+    kind: "statement",
+    eyebrow: "The difference that matters",
+    title: "One declaration. Three behaviours. Zero disagreements.",
+    body: "The form hides the field. The validator requires it. The store clears it when the status moves on. They cannot drift apart, because they are the same line.",
+  },
+  {
+    id: "float-fail",
+    kind: "statement",
+    eyebrow: "invoices · by hand",
+    title: "0.07 + 0.07 + 0.07 = 0.21000000000000002",
+    body: "`amount Float` — it is a number, after all. Found months later, by whoever reconciles the bank statement. Fixed with a migration and a data repair, in production.",
+  },
+  {
     id: "vs-money",
     kind: "split",
     eyebrow: "invoices · the one that costs money",
     left: {
       heading: "Next.js, by hand",
-      items: ["`amount Float` — it is a number, after all", "the total comes out a penny short", "found when somebody reconciles a bank statement", "a migration, and a data fix, in production"],
-      note: "0.07 + 0.07 + 0.07 = 0.21000000000000002",
+      items: ["`amount Float`", "the total comes out a penny short", "found at bank reconciliation", "a migration and a data fix, live"],
+      note: "the bug ships silently",
     },
     right: {
       heading: "Flare",
@@ -354,9 +532,23 @@ export const slides: Slide[] = [
     id: "vs-total",
     kind: "split",
     eyebrow: "Seven tables later",
-    left: { heading: "Next.js, by hand", items: ["144 files", "13,534 lines", "written, reviewed, and now maintained", "before a single clinic-specific feature"], note: "and the admin panel is still last on the list" },
-    right: { heading: "Flare", items: ["7 commands", "the same 144 files", "in your repository, under your name", "and an afternoon left over"], note: "`wc -l` on both sides" },
-    caption: "The point is not that typing is slow. It is that those 13,534 lines are the same on every project, and none of them is the thing the clinic is paying for.",
+    left: {
+      heading: "Next.js, by hand",
+      items: ["144 files", "13,534 lines", "written, reviewed, and now maintained", "before a single clinic-specific feature"],
+      note: "and the admin panel is still last on the list",
+    },
+    right: {
+      heading: "Flare",
+      items: ["7 commands", "the same 144 files", "in your repository, under your name", "and an afternoon left over"],
+      note: "`wc -l` on both sides",
+    },
+  },
+  {
+    id: "not-typing",
+    kind: "statement",
+    eyebrow: "To be clear",
+    title: "The point is not that typing is slow.",
+    body: "It is that those 13,534 lines are the same on every project — and none of them is the thing the clinic is paying for.",
   },
 
   // ─── The commands ───────────────────────────────────────────────────────────
@@ -378,7 +570,13 @@ flare gen resource Invoice      --fields '…, amount:money, …'
 flare gen resource Payment      --fields '…, claimNumber:string if method == insurance'
 
 flare migrate && flare seed demo`,
-    caption: "Seven lines, one per table, each a direct reading of the table we designed. Nothing here was invented at the keyboard.",
+  },
+  {
+    id: "nothing-invented",
+    kind: "statement",
+    eyebrow: "Look at it again",
+    title: "It is the table design, read back as lines.",
+    body: "Nothing on that slide was invented at the keyboard. The design work was the work. It always was.",
   },
 
   // ─── What came out ──────────────────────────────────────────────────────────
@@ -398,7 +596,7 @@ flare migrate && flare seed demo`,
     CHECK("appointments"."status" in
       ('booked','arrived','seen','cancelled','noShow'))
 );`,
-    caption: "`status` is NOT NULL and `cancelled_because` is not — the field is genuinely absent most of the time. The enum became a CHECK constraint, because that is where it belongs.",
+    caption: "The enum became a CHECK constraint, because that is where it belongs. And you cannot delete a patient who has a booking.",
   },
   {
     id: "out-route",
@@ -417,7 +615,13 @@ flare migrate && flare seed demo`,
   const result = await store.create(read.body);
   return result.ok ? created(result.data) : invalid(result);
 }`,
-    caption: "No framework in it. Each guard is a named function, in order, and a new developer can follow the request without being told how it works.",
+  },
+  {
+    id: "route-readable",
+    kind: "statement",
+    eyebrow: "Worth noticing",
+    title: "There is no framework in that route.",
+    body: "Each guard is a named function, in order. Ctrl-click `createResourceStore` and you land in your own repository — not in `node_modules`.",
   },
   {
     id: "out-policy",
@@ -432,29 +636,95 @@ flare migrate && flare seed demo`,
   update: ["admin"],
   delete: ["admin"],
 });`,
-    caption: "Admin-only on arrival, and the first account to sign up is the admin. A patient record open to anyone who registers is not a bug you want to find in a clinic.",
+  },
+  {
+    id: "policy-default",
+    kind: "statement",
+    eyebrow: "Secure on arrival",
+    title: "Admin-only, before you thought about it.",
+    body: "The first account to sign up becomes the admin. A patient record open to anyone who registers is not a bug you want to find in a clinic.",
+  },
+  {
+    id: "out-admin",
+    kind: "statement",
+    eyebrow: "And the panel",
+    title: "The admin came first this time.",
+    body: "A sortable table, a multi-step form, a record page and loading skeletons — per table, generated with the API. Not left for the last Friday.",
   },
 
   // ─── Three fields ───────────────────────────────────────────────────────────
-  { id: "sec-fields", kind: "section", part: "Part five", title: "Three fields<br>worth a minute", note: "money · file · a field that only sometimes applies" },
+  { id: "sec-fields", kind: "section", part: "Part five", title: "Three fields<br>worth a minute", note: "The three traps from part one, answered in the grammar." },
+  {
+    id: "field-money",
+    kind: "statement",
+    eyebrow: "Trap one · amount:money",
+    title: "The column only ever sees whole minor units.",
+    body: "You send 1200.50 and read 1200.50; the database stores 120050. Converted at one seam, decided once, in the field type.",
+  },
+  {
+    id: "field-file",
+    kind: "statement",
+    eyebrow: "Trap two · photo:file:[image]:5mb",
+    title: "Five characters of grammar. An afternoon of work.",
+    body: "The bucket, the signed URL, the size cap — and a check on the file's **leading bytes**, so a renamed executable is refused. SVG is excluded, because SVG can carry script.",
+  },
   {
     id: "field-cond",
     kind: "split",
-    eyebrow: "`if method == insurance`",
-    left: { heading: "What it does", items: ["the form shows it only when it applies", "the validator requires it only when it applies", "the store nulls it when it stops applying", "the column is nullable, always"] },
-    right: { heading: "Why the third one", items: ["a payment is edited from insurance to cash", "the form hides the claim number", "so the PATCH never mentions it", "and the claim number stays in the row", "attached to a cash payment, forever"] },
-    caption: "Conditions are one level deep on purpose. A field depending on a field that is itself hidden makes the form guess, and there is no good guess.",
+    eyebrow: "Trap three · if method == insurance",
+    left: {
+      heading: "What it does",
+      items: ["the form shows it only when it applies", "the validator requires it only when it applies", "the store nulls it when it stops applying", "the column is nullable, always"],
+    },
+    right: {
+      heading: "Why the third one",
+      items: ["a payment is edited from insurance to cash", "the form hides the claim number", "so the PATCH never mentions it", "and the claim number stays in the row", "attached to a cash payment, forever"],
+    },
+  },
+  {
+    id: "cond-depth",
+    kind: "statement",
+    eyebrow: "A deliberate limit",
+    title: "Conditions are one level deep. On purpose.",
+    body: "A field depending on a field that is itself hidden makes the form guess — and there is no good guess.",
   },
 
-  // ─── What you own ───────────────────────────────────────────────────────────
+  // ─── What you own · the position ────────────────────────────────────────────
   { id: "sec-own", kind: "section", part: "Part six", title: "It is all<br>in your repo", note: "Which raises the obvious question about upgrades." },
+  {
+    id: "shadcn",
+    kind: "statement",
+    eyebrow: "You have seen this idea before",
+    title: "What shadcn/ui did for components — done to the backend.",
+    body: "The engine is **copied into the app**, about 800 readable lines, not imported from a package. Your name on every file.",
+  },
   {
     id: "own-split",
     kind: "split",
     eyebrow: "The line is a list, not a feeling",
     left: { heading: "Flare owns", items: ["the resource store", "the query parser", "the row adapters", "password hashing", "the upload guard"], note: "rewritten by `flare update`" },
     right: { heading: "You own", items: ["your descriptors", "your policies", "your routes", "your pages", "your migrations"], note: "never touched" },
-    caption: "Edit one of ours and a hash in the generated block notices. It is reported as drift and skipped — not overwritten, and not silent. A starter template cannot do this, because a fork has no way to bring you a fix.",
+  },
+  {
+    id: "drift",
+    kind: "statement",
+    eyebrow: "Upgrades, answered",
+    title: "Edit ours, and it is drift — not damage.",
+    body: "`flare diff` shows how your copy differs from upstream. `flare update --yes` takes the new version, and refuses to run without being asked.",
+  },
+  {
+    id: "not-these",
+    kind: "statement",
+    eyebrow: "So, the position",
+    title: "Not a dependency. Not a template. Not a low-code tool.",
+    body: "Nothing of Flare runs in production. Unlike a template, there is an upstream that can still reach you. And the output is ordinary code — because you are going to live in it.",
+  },
+  {
+    id: "position",
+    kind: "statement",
+    eyebrow: "In one sentence",
+    title: "A starting point that stays current, in code you own.",
+    body: "That is the whole pitch. Everything else tonight was evidence.",
   },
 
   // ─── Running it ─────────────────────────────────────────────────────────────
@@ -465,14 +735,21 @@ flare migrate && flare seed demo`,
     eyebrow: "One description, two homes",
     left: { heading: "Cloudflare", items: ["Workers, D1, R2", "nothing to install locally", "`flare deploy`"], note: "a small clinic: £0/month" },
     right: { heading: "Next.js", items: ["Vercel, Postgres, Prisma", "`docker compose up -d`", "`flare deploy`"], note: "the default" },
-    caption: "The descriptors, policies, seeds and every dashboard component are the same file on both. Only the row adapter differs — which is the part you were never going to write by hand anyway.",
+  },
+  {
+    id: "pick-db",
+    kind: "statement",
+    eyebrow: "If you only remember one rule",
+    title: "Pick for the database.",
+    body: "A schema holding real data is the one thing you cannot move in an afternoon. The descriptors, policies, seeds and every dashboard component are the same file on both.",
   },
 
   // ─── The accounting ─────────────────────────────────────────────────────────
+  { id: "sec-score", kind: "section", part: "Part eight", title: "The accounting", note: "What the clinic got that nobody wrote — and what is not finished." },
   {
     id: "scorecard",
     kind: "scorecard",
-    eyebrow: "Part eight · the accounting",
+    eyebrow: "The accounting",
     title: "What the clinic got, that nobody wrote",
     rows: [
       { code: "01", label: "Sign-in, 2FA, passkeys", answer: "Better Auth, wired, with the screens" },
@@ -499,6 +776,13 @@ flare migrate && flare seed demo`,
     eyebrow: "The claim",
     title: "Design the tables. Read them back as commands. Own every file that comes out.",
     body: "The tables were the work. They always were — the other 13,534 lines were just the cost of having them.",
+  },
+  {
+    id: "try",
+    kind: "statement",
+    eyebrow: "Tonight",
+    title: '<code class="inline">pnpm create flare-framework clinic</code>',
+    body: "Node 22 and pnpm. By the time the kettle boils, you are signing in to your own admin. And bring your questions to the GitHub issues — the limits slide was not decoration.",
   },
   {
     id: "close",
