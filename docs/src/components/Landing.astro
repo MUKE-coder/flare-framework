@@ -1,5 +1,7 @@
 ---
 import { Code } from "@astrojs/starlight/components";
+import StackMarquee from "./StackMarquee.astro";
+import BuildWithAI from "./BuildWithAI.astro";
 import { FLARE_VERSION, RELEASE_HEADLINE, RELEASE_URL } from "../version";
 import prompt from "../prompts/build-with-ai.md?raw";
 /**
@@ -234,6 +236,118 @@ const faq = [
   <!-- Hero -->
   <section class="fl-hero" aria-labelledby="fl-hero-title">
     <div class="fl-hero-grid" aria-hidden="true"></div>
+    <!--
+      Atmosphere. Three soft washes, two drifting orbs and four cubes carrying the
+      logos of what the app is actually built on. All decorative, all aria-hidden,
+      and all behind the type — the hero has to read first.
+    -->
+    <div class="fl-aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+    <span class="fl-orb fl-orb-a" aria-hidden="true"></span>
+    <span class="fl-orb fl-orb-b" aria-hidden="true"></span>
+      <div class="fl-cube-wrap fl-cube-left" aria-hidden="true">
+      <div class="fl-cube">
+      <span class="fl-face fl-face-front">
+      <svg class="fl-logo fl-logo-brand" viewBox="0 0 24 24" width="44%" height="44%" style="--brand:#F38020" aria-hidden="true">
+      <path d="M16.5088 16.8447c.1475-.5068.0908-.9707-.1553-1.3154-.2246-.3164-.6045-.499-1.0615-.5205l-8.6592-.1123a.1559.1559 0 0 1-.1333-.0713c-.0283-.042-.0351-.0986-.021-.1553.0278-.084.1123-.1484.2036-.1562l8.7359-.1123c1.0351-.0489 2.1601-.8868 2.5537-1.9136l.499-1.3013c.0215-.0561.0293-.1128.0147-.168-.5625-2.5463-2.835-4.4453-5.5499-4.4453-2.5039 0-4.6284 1.6177-5.3876 3.8614-.4927-.3658-1.1187-.5625-1.794-.499-1.2026.119-2.1665 1.083-2.2861 2.2856-.0283.31-.0069.6128.0635.894C1.5683 13.171 0 14.7754 0 16.752c0 .1748.0142.3515.0352.5273.0141.083.0844.1475.1689.1475h15.9814c.0909 0 .1758-.0645.2032-.1553l.12-.4268zm2.7568-5.5634c-.0771 0-.1611 0-.2383.0112-.0566 0-.1054.0415-.127.0976l-.3378 1.1744c-.1475.5068-.0918.9707.1543 1.3164.2256.3164.6055.498 1.0625.5195l1.8437.1133c.0557 0 .1055.0263.1329.0703.0283.043.0351.1074.0214.1562-.0283.084-.1132.1485-.204.1553l-1.921.1123c-1.041.0488-2.1582.8867-2.5527 1.914l-.1406.3585c-.0283.0713.0215.1416.0986.1416h6.5977c.0771 0 .1474-.0489.169-.126.1122-.4082.1757-.837.1757-1.2803 0-2.6025-2.125-4.727-4.7344-4.727">
+      </path>
+      </svg>
+      </span>
+      <span class="fl-face fl-face-back">
+      </span>
+      <span class="fl-face fl-face-right">
+      </span>
+      <span class="fl-face fl-face-left">
+      </span>
+      <span class="fl-face fl-face-top">
+      <svg class="fl-logo fl-logo-mono" viewBox="0 0 24 24" width="34%" height="34%" style="--brand:#F38020" aria-hidden="true">
+      <path d="M16.5088 16.8447c.1475-.5068.0908-.9707-.1553-1.3154-.2246-.3164-.6045-.499-1.0615-.5205l-8.6592-.1123a.1559.1559 0 0 1-.1333-.0713c-.0283-.042-.0351-.0986-.021-.1553.0278-.084.1123-.1484.2036-.1562l8.7359-.1123c1.0351-.0489 2.1601-.8868 2.5537-1.9136l.499-1.3013c.0215-.0561.0293-.1128.0147-.168-.5625-2.5463-2.835-4.4453-5.5499-4.4453-2.5039 0-4.6284 1.6177-5.3876 3.8614-.4927-.3658-1.1187-.5625-1.794-.499-1.2026.119-2.1665 1.083-2.2861 2.2856-.0283.31-.0069.6128.0635.894C1.5683 13.171 0 14.7754 0 16.752c0 .1748.0142.3515.0352.5273.0141.083.0844.1475.1689.1475h15.9814c.0909 0 .1758-.0645.2032-.1553l.12-.4268zm2.7568-5.5634c-.0771 0-.1611 0-.2383.0112-.0566 0-.1054.0415-.127.0976l-.3378 1.1744c-.1475.5068-.0918.9707.1543 1.3164.2256.3164.6055.498 1.0625.5195l1.8437.1133c.0557 0 .1055.0263.1329.0703.0283.043.0351.1074.0214.1562-.0283.084-.1132.1485-.204.1553l-1.921.1123c-1.041.0488-2.1582.8867-2.5527 1.914l-.1406.3585c-.0283.0713.0215.1416.0986.1416h6.5977c.0771 0 .1474-.0489.169-.126.1122-.4082.1757-.837.1757-1.2803 0-2.6025-2.125-4.727-4.7344-4.727">
+      </path>
+      </svg>
+      </span>
+      <span class="fl-face fl-face-bottom">
+      </span>
+      </div>
+      <span class="fl-cube-shadow">
+      </span>
+      </div>
+      <div class="fl-cube-wrap fl-cube-right" aria-hidden="true">
+      <div class="fl-cube">
+      <span class="fl-face fl-face-front">
+      <svg class="fl-logo fl-logo-brand" viewBox="0 0 24 24" width="44%" height="44%" style="--brand:currentColor" aria-hidden="true">
+      <path d="M18.665 21.978C16.758 23.255 14.465 24 12 24 5.377 24 0 18.623 0 12S5.377 0 12 0s12 5.377 12 12c0 3.583-1.574 6.801-4.067 9.001L9.219 7.2H7.2v9.596h1.615V9.251l9.85 12.727Zm-3.332-8.533 1.6 2.061V7.2h-1.6v6.245Z">
+      </path>
+      </svg>
+      </span>
+      <span class="fl-face fl-face-back">
+      </span>
+      <span class="fl-face fl-face-right">
+      </span>
+      <span class="fl-face fl-face-left">
+      </span>
+      <span class="fl-face fl-face-top">
+      <svg class="fl-logo fl-logo-mono" viewBox="0 0 24 24" width="34%" height="34%" style="--brand:currentColor" aria-hidden="true">
+      <path d="M18.665 21.978C16.758 23.255 14.465 24 12 24 5.377 24 0 18.623 0 12S5.377 0 12 0s12 5.377 12 12c0 3.583-1.574 6.801-4.067 9.001L9.219 7.2H7.2v9.596h1.615V9.251l9.85 12.727Zm-3.332-8.533 1.6 2.061V7.2h-1.6v6.245Z">
+      </path>
+      </svg>
+      </span>
+      <span class="fl-face fl-face-bottom">
+      </span>
+      </div>
+      <span class="fl-cube-shadow">
+      </span>
+      </div>
+      <div class="fl-cube-wrap fl-cube-left fl-cube-sm" aria-hidden="true">
+      <div class="fl-cube">
+      <span class="fl-face fl-face-front">
+      <svg class="fl-logo fl-logo-brand" viewBox="0 0 24 24" width="44%" height="44%" style="--brand:#C5F74F" aria-hidden="true">
+      <path d="M5.353 11.823a1.036 1.036 0 0 0-.395-1.422 1.063 1.063 0 0 0-1.437.399L.138 16.702a1.035 1.035 0 0 0 .395 1.422 1.063 1.063 0 0 0 1.437-.398l3.383-5.903Zm11.216 0a1.036 1.036 0 0 0-.394-1.422 1.064 1.064 0 0 0-1.438.399l-3.382 5.902a1.036 1.036 0 0 0 .394 1.422c.506.283 1.15.104 1.438-.398l3.382-5.903Zm7.293-4.525a1.036 1.036 0 0 0-.395-1.422 1.062 1.062 0 0 0-1.437.399l-3.383 5.902a1.036 1.036 0 0 0 .395 1.422 1.063 1.063 0 0 0 1.437-.399l3.383-5.902Zm-11.219 0a1.035 1.035 0 0 0-.394-1.422 1.064 1.064 0 0 0-1.438.398l-3.382 5.903a1.036 1.036 0 0 0 .394 1.422c.506.282 1.15.104 1.438-.399l3.382-5.902Z">
+      </path>
+      </svg>
+      </span>
+      <span class="fl-face fl-face-back">
+      </span>
+      <span class="fl-face fl-face-right">
+      </span>
+      <span class="fl-face fl-face-left">
+      </span>
+      <span class="fl-face fl-face-top">
+      <svg class="fl-logo fl-logo-mono" viewBox="0 0 24 24" width="34%" height="34%" style="--brand:#C5F74F" aria-hidden="true">
+      <path d="M5.353 11.823a1.036 1.036 0 0 0-.395-1.422 1.063 1.063 0 0 0-1.437.399L.138 16.702a1.035 1.035 0 0 0 .395 1.422 1.063 1.063 0 0 0 1.437-.398l3.383-5.903Zm11.216 0a1.036 1.036 0 0 0-.394-1.422 1.064 1.064 0 0 0-1.438.399l-3.382 5.902a1.036 1.036 0 0 0 .394 1.422c.506.283 1.15.104 1.438-.398l3.382-5.903Zm7.293-4.525a1.036 1.036 0 0 0-.395-1.422 1.062 1.062 0 0 0-1.437.399l-3.383 5.902a1.036 1.036 0 0 0 .395 1.422 1.063 1.063 0 0 0 1.437-.399l3.383-5.902Zm-11.219 0a1.035 1.035 0 0 0-.394-1.422 1.064 1.064 0 0 0-1.438.398l-3.382 5.903a1.036 1.036 0 0 0 .394 1.422c.506.282 1.15.104 1.438-.399l3.382-5.902Z">
+      </path>
+      </svg>
+      </span>
+      <span class="fl-face fl-face-bottom">
+      </span>
+      </div>
+      <span class="fl-cube-shadow">
+      </span>
+      </div>
+      <div class="fl-cube-wrap fl-cube-right fl-cube-sm" aria-hidden="true">
+      <div class="fl-cube">
+      <span class="fl-face fl-face-front">
+      <svg class="fl-logo fl-logo-brand" viewBox="0 0 24 24" width="44%" height="44%" style="--brand:#635BFF" aria-hidden="true">
+      <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.594-7.305h.003z">
+      </path>
+      </svg>
+      </span>
+      <span class="fl-face fl-face-back">
+      </span>
+      <span class="fl-face fl-face-right">
+      </span>
+      <span class="fl-face fl-face-left">
+      </span>
+      <span class="fl-face fl-face-top">
+      <svg class="fl-logo fl-logo-mono" viewBox="0 0 24 24" width="34%" height="34%" style="--brand:#635BFF" aria-hidden="true">
+      <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.594-7.305h.003z">
+      </path>
+      </svg>
+      </span>
+      <span class="fl-face fl-face-bottom">
+      </span>
+      </div>
+      <span class="fl-cube-shadow">
+      </span>
+      </div>
     <a class="fl-pill" href={RELEASE_URL}>
       <span class="fl-pill-tag">v{FLARE_VERSION}</span>
       <span class="fl-pill-text">{RELEASE_HEADLINE}</span>
@@ -275,33 +389,36 @@ const faq = [
       ))}
     </div>
 
-    <div class="fl-showcase" data-showcase>
-      <div class="fl-showcase-term" aria-label="What npm create asks">
-        <div class="fl-term-bar"><span></span><span></span><span></span></div>
-        <ol class="fl-term">
-          <li style="--i:0"><span class="fl-prompt">$</span> npm create flare-framework@latest my-app</li>
-          <li style="--i:1" class="fl-dim">┌  Let's set up your Flare app</li>
-          <li style="--i:2"><span class="fl-ok-mark">◇</span>  Pick a look <span class="fl-dim">›</span> <span class="fl-term-choice" data-showcase-theme>default</span></li>
-          <li style="--i:3"><span class="fl-ok-mark">◇</span>  How can people sign in? <span class="fl-dim">›</span> magic links, email codes, passkeys, 2FA</li>
-          <li style="--i:4"><span class="fl-ok-mark">◇</span>  Social sign-in? <span class="fl-dim">›</span> Google, GitHub</li>
-          <li style="--i:5" class="fl-dim">└  Creating your app</li>
-          <li style="--i:6"><span class="fl-ok-mark">✔</span> Installed dependencies <span class="fl-dim">(1m 38s)</span></li>
-          <li style="--i:7"><span class="fl-ok-mark">✔</span> Created my-app</li>
-        </ol>
-      </div>
-      <div class="fl-showcase-app">
-        <div class="fl-browser-bar">
-          <span></span><span></span><span></span>
-          <code>localhost:3000</code>
+    <div class="fl-stage" data-stage>
+      <div class="fl-stage-glow" aria-hidden="true"></div>
+      <div class="fl-showcase" data-showcase>
+        <div class="fl-showcase-term" aria-label="What npm create asks">
+          <div class="fl-term-bar"><span></span><span></span><span></span></div>
+          <ol class="fl-term">
+            <li style="--i:0"><span class="fl-prompt">$</span> npm create flare-framework@latest my-app</li>
+            <li style="--i:1" class="fl-dim">┌  Let's set up your Flare app</li>
+            <li style="--i:2"><span class="fl-ok-mark">◇</span>  Pick a look <span class="fl-dim">›</span> <span class="fl-term-choice" data-showcase-theme>default</span></li>
+            <li style="--i:3"><span class="fl-ok-mark">◇</span>  How can people sign in? <span class="fl-dim">›</span> magic links, email codes, passkeys, 2FA</li>
+            <li style="--i:4"><span class="fl-ok-mark">◇</span>  Social sign-in? <span class="fl-dim">›</span> Google, GitHub</li>
+            <li style="--i:5" class="fl-dim">└  Creating your app</li>
+            <li style="--i:6"><span class="fl-ok-mark">✔</span> Installed dependencies <span class="fl-dim">(1m 38s)</span></li>
+            <li style="--i:7"><span class="fl-ok-mark">✔</span> Created my-app</li>
+          </ol>
         </div>
-        <img src="/screens/home-default.webp" alt="The home page of a new Flare app in the default theme" width="1280" height="860" data-showcase-image />
-        <div class="fl-theme-chips" role="group" aria-label="Preview a theme">
-          {themes.map((theme, index) => (
-            <button type="button" aria-pressed={index === 0 ? "true" : "false"} data-theme-chip={theme.id} data-label={theme.label}>
-              <span class={`fl-swatch fl-swatch-${theme.id}`} aria-hidden="true"></span>
-              {theme.label}
-            </button>
-          ))}
+        <div class="fl-showcase-app">
+          <div class="fl-browser-bar">
+            <span></span><span></span><span></span>
+            <code>localhost:3000</code>
+          </div>
+          <img src="/screens/home-default.webp" alt="The home page of a new Flare app in the default theme" width="1280" height="860" data-showcase-image />
+          <div class="fl-theme-chips" role="group" aria-label="Preview a theme">
+            {themes.map((theme, index) => (
+              <button type="button" aria-pressed={index === 0 ? "true" : "false"} data-theme-chip={theme.id} data-label={theme.label}>
+                <span class={`fl-swatch fl-swatch-${theme.id}`} aria-hidden="true"></span>
+                {theme.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -352,9 +469,7 @@ const faq = [
 
     <section class="fl-stack fl-rail" aria-label="Built on">
       <span class="fl-stack-label">Built on</span>
-      <ul>
-        {stack.map((name) => <li>{name}</li>)}
-      </ul>
+      <StackMarquee />
     </section>
 
     <!-- Two stacks -->
@@ -662,6 +777,14 @@ const faq = [
     </section>
 
     <!-- Close -->
+    <!--
+      The brief for a coding agent. It sits inside the landing rather than floating under
+      it, so it gets the frame's rails and the section rhythm like everything else.
+    -->
+    <section class="fl-ai-section fl-rail" aria-label="Build with AI">
+      <BuildWithAI variant="hero" />
+    </section>
+
     <section class="fl-close fl-rail" aria-labelledby="fl-close">
       <h2 id="fl-close">Build your first app<br /><span class="fl-ember-text">in the next five minutes</span></h2>
       <div class="fl-actions">
@@ -744,42 +867,49 @@ const faq = [
 </script>
 
 <style>
-  /* The landing breaks out of Starlight's content column to the full width. */
+/* The landing breaks out of Starlight's content column to the full width. */
   :global(:root:has(.fl-landing)) {
     --fl-page: #fafafa;
   }
-  :global(:root[data-theme="dark"]:has(.fl-landing)),
+
+:global(:root[data-theme="dark"]:has(.fl-landing)),
   :global(:root:not([data-theme]):has(.fl-landing)) {
     --fl-page: #121212;
   }
-  :global(body:has(.fl-landing)) {
+
+:global(body:has(.fl-landing)) {
     background: var(--fl-page);
     overflow-x: clip;
   }
-  :global(body:has(.fl-landing) .header) {
+
+:global(body:has(.fl-landing) .header) {
     background: color-mix(in srgb, var(--fl-page) 88%, transparent);
   }
-  :global(.main-frame:has(.fl-landing) .content-panel) {
+
+:global(.main-frame:has(.fl-landing) .content-panel) {
     padding: 0;
     border: 0;
   }
-  :global(.main-frame:has(.fl-landing) .sl-container) {
+
+:global(.main-frame:has(.fl-landing) .sl-container) {
     max-width: none;
     margin: 0;
   }
-  :global(.main-frame:has(.fl-landing) .sl-markdown-content) {
+
+:global(.main-frame:has(.fl-landing) .sl-markdown-content) {
     margin: 0;
   }
-  :global(.main-frame:has(.fl-landing) h1#_top) {
+
+:global(.main-frame:has(.fl-landing) h1#_top) {
     display: none;
   }
 
-  /* Layout rules below set display; the hidden attribute (inactive tab panels) must still win. */
+/* Layout rules below set display; the hidden attribute (inactive tab panels) must still win. */
   .fl-landing [hidden] {
     display: none !important;
   }
 
-  .fl-landing {
+.fl-landing {
     /* The rail crosshairs hang past the frame edge; never let them widen the page. */
     overflow-x: clip;
     --frame: 75rem;
@@ -789,16 +919,16 @@ const faq = [
     line-height: 1.6;
   }
 
-  .fl-landing code {
+.fl-landing code {
     font-family: var(--sl-font-mono);
     font-size: 0.9em;
   }
 
-  .fl-ember-text {
+.fl-ember-text {
     color: var(--fl-ember);
   }
 
-  /* ---- Hero ---- */
+/* ---- Hero ---- */
   .fl-hero {
     position: relative;
     text-align: center;
@@ -806,7 +936,7 @@ const faq = [
     isolation: isolate;
   }
 
-  .fl-hero-grid {
+.fl-hero-grid {
     position: absolute;
     inset: 0;
     z-index: -1;
@@ -819,7 +949,7 @@ const faq = [
     opacity: 0.55;
   }
 
-  .fl-pill {
+.fl-pill {
     display: inline-flex;
     align-items: center;
     gap: 0.625rem;
@@ -833,24 +963,24 @@ const faq = [
     transition: border-color 0.15s ease;
   }
 
-  .fl-pill {
+.fl-pill {
     max-width: 100%;
     text-align: left;
   }
 
-  .fl-pill-text {
+.fl-pill-text {
     min-width: 0;
   }
 
-  .fl-pill-text code {
+.fl-pill-text code {
     white-space: nowrap;
   }
 
-  .fl-pill:hover {
+.fl-pill:hover {
     border-color: var(--fl-ember);
   }
 
-  .fl-pill-tag {
+.fl-pill-tag {
     padding: 0.125rem 0.5rem;
     border-radius: 999px;
     background: var(--fl-ember-soft);
@@ -859,7 +989,7 @@ const faq = [
     font-size: 0.75rem;
   }
 
-  .fl-hero-title {
+.fl-hero-title {
     margin: 1.75rem auto 0;
     max-width: 16ch;
     font-size: clamp(2.375rem, 1.2rem + 5vw, 4.75rem);
@@ -870,12 +1000,12 @@ const faq = [
     text-wrap: balance;
   }
 
-  .fl-line {
+.fl-line {
     display: block;
     text-wrap: balance;
   }
 
-  .fl-hero-lead {
+.fl-hero-lead {
     margin: 1.5rem auto 0;
     max-width: 38rem;
     font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.1875rem);
@@ -884,7 +1014,7 @@ const faq = [
     text-wrap: pretty;
   }
 
-  .fl-actions {
+.fl-actions {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -892,7 +1022,7 @@ const faq = [
     margin-top: 2rem;
   }
 
-  .fl-btn {
+.fl-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -905,31 +1035,31 @@ const faq = [
     transition: background-color 0.15s ease, border-color 0.15s ease;
   }
 
-  .fl-btn svg {
+.fl-btn svg {
     width: 1rem;
     height: 1rem;
   }
 
-  .fl-btn-primary {
+.fl-btn-primary {
     background: var(--fl-ember-strong);
     color: var(--fl-on-ember);
   }
 
-  .fl-btn-primary:hover {
+.fl-btn-primary:hover {
     background: color-mix(in srgb, var(--fl-ember-strong) 88%, #000);
   }
 
-  .fl-btn-quiet {
+.fl-btn-quiet {
     border: 1px solid var(--fl-rule-strong);
     background: var(--fl-paper);
     color: var(--fl-ink);
   }
 
-  .fl-btn-quiet:hover {
+.fl-btn-quiet:hover {
     border-color: var(--fl-muted);
   }
 
-  /* Install command */
+/* Install command */
   .fl-stacks {
     display: grid;
     gap: 1.25rem;
@@ -937,7 +1067,7 @@ const faq = [
     margin-top: 2rem;
   }
 
-  .fl-stack-card {
+.fl-stack-card {
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
@@ -947,19 +1077,19 @@ const faq = [
     background: var(--fl-surface, transparent);
   }
 
-  .fl-stack-card header {
+.fl-stack-card header {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 0.75rem;
   }
 
-  .fl-stack-card h3 {
+.fl-stack-card h3 {
     margin: 0;
     font-size: 1.15rem;
   }
 
-  .fl-stack-tag {
+.fl-stack-tag {
     font-family: var(--sl-font-mono, ui-monospace, monospace);
     font-size: 0.7rem;
     padding: 0.15rem 0.5rem;
@@ -969,12 +1099,12 @@ const faq = [
     white-space: nowrap;
   }
 
-  .fl-stack-line {
+.fl-stack-line {
     margin: 0;
     font-weight: 600;
   }
 
-  .fl-stack-card dl {
+.fl-stack-card dl {
     display: grid;
     grid-template-columns: auto 1fr;
     gap: 0.3rem 1rem;
@@ -982,41 +1112,41 @@ const faq = [
     font-size: 0.875rem;
   }
 
-  .fl-stack-card dl > div {
+.fl-stack-card dl > div {
     display: contents;
   }
 
-  .fl-stack-card dt {
+.fl-stack-card dt {
     color: var(--sl-color-gray-3);
   }
 
-  .fl-stack-card dd {
+.fl-stack-card dd {
     margin: 0;
   }
 
-  .fl-stack-body {
+.fl-stack-body {
     margin: 0;
     font-size: 0.9rem;
     line-height: 1.55;
     color: var(--sl-color-gray-2);
   }
 
-  .fl-stack-card .fl-install-line {
+.fl-stack-card .fl-install-line {
     margin-top: auto;
   }
 
-  .fl-stacks-more {
+.fl-stacks-more {
     margin-top: 1.5rem;
     font-size: 0.9rem;
     color: var(--sl-color-gray-2);
   }
 
-  .fl-install-note {
+.fl-install-note {
     font-family: inherit;
     color: var(--sl-color-gray-2);
   }
 
-  .fl-install {
+.fl-install {
     margin: 2.75rem auto 0;
     max-width: 40rem;
     border: 1px solid var(--fl-rule);
@@ -1026,7 +1156,7 @@ const faq = [
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 12px 32px -12px rgba(0, 0, 0, 0.08);
   }
 
-  .fl-install-tabs,
+.fl-install-tabs,
   .fl-gens-tabs {
     display: flex;
     gap: 0.25rem;
@@ -1036,7 +1166,7 @@ const faq = [
     scrollbar-width: none;
   }
 
-  .fl-install-tabs button,
+.fl-install-tabs button,
   .fl-gens-tabs button {
     flex: none;
     border: 0;
@@ -1050,25 +1180,25 @@ const faq = [
     cursor: pointer;
   }
 
-  .fl-install-tabs button:hover,
+.fl-install-tabs button:hover,
   .fl-gens-tabs button:hover {
     color: var(--fl-ink);
   }
 
-  .fl-install-tabs button[aria-selected="true"],
+.fl-install-tabs button[aria-selected="true"],
   .fl-gens-tabs button[aria-selected="true"] {
     background: var(--fl-raised);
     color: var(--fl-ink);
   }
 
-  .fl-install-line {
+.fl-install-line {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     padding: 0.875rem 0.625rem 0.875rem 1.125rem;
   }
 
-  .fl-install-line code {
+.fl-install-line code {
     flex: 1;
     min-width: 0;
     overflow-x: auto;
@@ -1078,13 +1208,13 @@ const faq = [
     font-size: 0.875rem;
   }
 
-  .fl-prompt {
+.fl-prompt {
     font-family: var(--sl-font-mono);
     color: var(--fl-ember);
     user-select: none;
   }
 
-  .fl-copy {
+.fl-copy {
     flex: none;
     display: inline-flex;
     align-items: center;
@@ -1099,12 +1229,12 @@ const faq = [
     cursor: pointer;
   }
 
-  .fl-copy:hover {
+.fl-copy:hover {
     color: var(--fl-ink);
     border-color: var(--fl-rule-strong);
   }
 
-  .fl-copy svg {
+.fl-copy svg {
     width: 0.875rem;
     height: 0.875rem;
     fill: none;
@@ -1112,19 +1242,19 @@ const faq = [
     stroke-width: 2;
   }
 
-  /* ---- Frame: side rails with ember crosshairs where sections meet them ---- */
+/* ---- Frame: side rails with ember crosshairs where sections meet them ---- */
   .fl-frame {
     max-width: var(--frame);
     margin: 0 auto;
     border-inline: 1px solid var(--fl-rule);
   }
 
-  .fl-rail {
+.fl-rail {
     position: relative;
     border-top: 1px solid var(--fl-rule);
   }
 
-  .fl-rail::before,
+.fl-rail::before,
   .fl-rail::after {
     content: "+";
     position: absolute;
@@ -1136,15 +1266,15 @@ const faq = [
     pointer-events: none;
   }
 
-  .fl-rail::before {
+.fl-rail::before {
     left: -0.4rem;
   }
 
-  .fl-rail::after {
+.fl-rail::after {
     right: -0.4rem;
   }
 
-  /* ---- Demo panel ---- */
+/* ---- Demo panel ---- */
   .fl-demo {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.15fr);
@@ -1153,12 +1283,12 @@ const faq = [
     background: var(--fl-paper);
   }
 
-  .fl-demo-pane {
+.fl-demo-pane {
     min-width: 0;
     padding: 1.5rem clamp(1rem, 2.5vw, 2rem) 1.75rem;
   }
 
-  .fl-pane-head {
+.fl-pane-head {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -1170,25 +1300,25 @@ const faq = [
     border-bottom: 1px dashed var(--fl-rule-strong);
   }
 
-  .fl-pane-note {
+.fl-pane-note {
     margin-left: auto;
     font-family: var(--sl-font);
     color: var(--fl-muted);
     font-size: 0.75rem;
   }
 
-  .fl-dot {
+.fl-dot {
     width: 0.5rem;
     height: 0.5rem;
     border-radius: 999px;
     background: var(--fl-rule-strong);
   }
 
-  .fl-dot-ember {
+.fl-dot-ember {
     background: var(--fl-ember);
   }
 
-  .fl-code {
+.fl-code {
     margin: 0;
     padding: 0;
     background: none;
@@ -1200,27 +1330,32 @@ const faq = [
     overflow-x: auto;
   }
 
-  .fl-code .k {
+.fl-code .k {
     color: #8250df;
   }
-  .fl-code .s {
+
+.fl-code .s {
     color: var(--fl-ember-strong);
   }
-  .fl-code .f {
+
+.fl-code .f {
     color: #0550ae;
   }
-  .fl-code .n {
+
+.fl-code .n {
     color: #0550ae;
   }
-  :global(:root:not([data-theme="light"])) .fl-code .k {
+
+:global(:root:not([data-theme="light"])) .fl-code .k {
     color: #d2a8ff;
   }
-  :global(:root:not([data-theme="light"])) .fl-code .f,
+
+:global(:root:not([data-theme="light"])) .fl-code .f,
   :global(:root:not([data-theme="light"])) .fl-code .n {
     color: #79c0ff;
   }
 
-  .fl-demo-arrow {
+.fl-demo-arrow {
     display: grid;
     place-items: center;
     width: 3rem;
@@ -1228,7 +1363,7 @@ const faq = [
     background: var(--fl-surface);
   }
 
-  .fl-demo-arrow svg {
+.fl-demo-arrow svg {
     width: 1.25rem;
     height: 1.25rem;
     fill: none;
@@ -1238,7 +1373,7 @@ const faq = [
     stroke-linejoin: round;
   }
 
-  .fl-gen {
+.fl-gen {
     list-style: none;
     margin: 0;
     padding: 0;
@@ -1246,7 +1381,7 @@ const faq = [
     font-size: 0.8125rem;
   }
 
-  .fl-gen li {
+.fl-gen li {
     display: grid;
     grid-template-columns: 1rem minmax(0, 1fr) auto;
     gap: 0.5rem;
@@ -1257,32 +1392,32 @@ const faq = [
     animation-delay: calc(var(--i) * 90ms + 250ms);
   }
 
-  .fl-plus {
+.fl-plus {
     color: var(--fl-ember);
     font-weight: 600;
   }
 
-  .fl-path {
+.fl-path {
     color: var(--fl-ink);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .fl-what {
+.fl-what {
     font-family: var(--sl-font);
     font-size: 0.75rem;
     color: var(--fl-muted);
   }
 
-  .fl-demo-foot {
+.fl-demo-foot {
     margin: 1rem 0 0;
     font-size: 0.8125rem;
     color: var(--fl-muted);
     max-width: 44ch;
   }
 
-  @keyframes fl-write {
+@keyframes fl-write {
     from {
       opacity: 0;
       transform: translateX(-6px);
@@ -1293,13 +1428,13 @@ const faq = [
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) {
     .fl-gen li {
       animation: none;
     }
   }
 
-  /* ---- Stack strip ---- */
+/* ---- Stack strip ---- */
   .fl-stack {
     display: flex;
     align-items: center;
@@ -1308,13 +1443,13 @@ const faq = [
     background: var(--fl-page);
   }
 
-  .fl-stack-label {
+.fl-stack-label {
     flex: none;
     font-size: 0.8125rem;
     color: var(--fl-muted);
   }
 
-  .fl-stack ul {
+.fl-stack ul {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem 0;
@@ -1323,7 +1458,7 @@ const faq = [
     list-style: none;
   }
 
-  .fl-stack li {
+.fl-stack li {
     font-size: 0.9375rem;
     font-weight: 560;
     letter-spacing: -0.015em;
@@ -1332,12 +1467,12 @@ const faq = [
     border-inline-start: 1px solid var(--fl-rule);
   }
 
-  /* ---- Sections ---- */
+/* ---- Sections ---- */
   .fl-section {
     padding: clamp(3.5rem, 7vw, 5.5rem) clamp(1rem, 4vw, 3rem);
   }
 
-  .fl-step {
+.fl-step {
     margin: 0 0 1.75rem;
     font-family: var(--sl-font-mono);
     font-size: 0.75rem;
@@ -1346,12 +1481,12 @@ const faq = [
     color: var(--fl-muted);
   }
 
-  .fl-step span {
+.fl-step span {
     color: var(--fl-ember);
     margin-right: 0.5rem;
   }
 
-  .fl-section-head {
+.fl-section-head {
     display: grid;
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
     gap: 1.5rem 3rem;
@@ -1359,7 +1494,7 @@ const faq = [
     margin-bottom: 2.75rem;
   }
 
-  .fl-section-head h2,
+.fl-section-head h2,
   .fl-close h2 {
     margin: 0;
     font-size: clamp(1.875rem, 1.2rem + 2.6vw, 3rem);
@@ -1370,19 +1505,19 @@ const faq = [
     text-wrap: balance;
   }
 
-  .fl-section-head p {
+.fl-section-head p {
     margin: 0;
     max-width: 34rem;
     color: var(--fl-muted);
     font-size: 1.0625rem;
   }
 
-  .fl-section-head code,
+.fl-section-head code,
   .fl-stat-label code {
     color: var(--fl-ink);
   }
 
-  /* Batteries: one ruled grid, not floating cards */
+/* Batteries: one ruled grid, not floating cards */
   .fl-batteries {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1393,12 +1528,12 @@ const faq = [
     border-left: 1px solid var(--fl-rule);
   }
 
-  .fl-batteries li {
+.fl-batteries li {
     border-right: 1px solid var(--fl-rule);
     border-bottom: 1px solid var(--fl-rule);
   }
 
-  .fl-batteries a {
+.fl-batteries a {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -1409,15 +1544,15 @@ const faq = [
     transition: background-color 0.15s ease;
   }
 
-  .fl-batteries a:hover {
+.fl-batteries a:hover {
     background: var(--fl-surface);
   }
 
-  .fl-batteries a:hover .fl-battery-name {
+.fl-batteries a:hover .fl-battery-name {
     color: var(--fl-ember-strong);
   }
 
-  .fl-icon svg {
+.fl-icon svg {
     width: 1.375rem;
     height: 1.375rem;
     fill: none;
@@ -1428,20 +1563,20 @@ const faq = [
     margin-bottom: 0.625rem;
   }
 
-  .fl-battery-name {
+.fl-battery-name {
     font-weight: 600;
     letter-spacing: -0.015em;
     color: var(--fl-ink);
     transition: color 0.15s ease;
   }
 
-  .fl-battery-body {
+.fl-battery-body {
     font-size: 0.875rem;
     line-height: 1.55;
     color: var(--fl-muted);
   }
 
-  /* Generators */
+/* Generators */
   .fl-gens {
     border: 1px solid var(--fl-rule);
     border-radius: 0.875rem;
@@ -1449,12 +1584,12 @@ const faq = [
     overflow: hidden;
   }
 
-  .fl-gens-panel {
+.fl-gens-panel {
     display: grid;
     grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr);
   }
 
-  .fl-gens-copy {
+.fl-gens-copy {
     padding: 1.75rem;
     display: flex;
     flex-direction: column;
@@ -1462,7 +1597,7 @@ const faq = [
     gap: 1.25rem;
   }
 
-  .fl-gens-copy p {
+.fl-gens-copy p {
     margin: 0;
     font-size: 1.0625rem;
     line-height: 1.55;
@@ -1470,19 +1605,19 @@ const faq = [
     max-width: 30ch;
   }
 
-  .fl-link {
+.fl-link {
     font-size: 0.875rem;
     font-weight: 560;
     color: var(--fl-ember-strong);
     text-decoration: none;
   }
 
-  .fl-link:hover {
+.fl-link:hover {
     text-decoration: underline;
     text-underline-offset: 0.2em;
   }
 
-  .fl-terminal {
+.fl-terminal {
     min-width: 0;
     background: var(--fl-surface);
     border-left: 1px solid var(--fl-rule);
@@ -1490,20 +1625,20 @@ const faq = [
     font-size: 0.8125rem;
   }
 
-  .fl-terminal-cmd {
+.fl-terminal-cmd {
     display: flex;
     gap: 0.625rem;
     padding: 1.125rem 1.375rem;
     border-bottom: 1px dashed var(--fl-rule-strong);
   }
 
-  .fl-terminal-cmd code {
+.fl-terminal-cmd code {
     color: var(--fl-ink);
     white-space: pre-wrap;
     word-break: break-word;
   }
 
-  .fl-terminal-out {
+.fl-terminal-out {
     margin: 0;
     padding: 1rem 1.375rem 1.25rem;
     list-style: none;
@@ -1511,56 +1646,56 @@ const faq = [
     color: var(--fl-body);
   }
 
-  .fl-created {
+.fl-created {
     color: var(--fl-ember);
     display: inline-block;
     width: 4.5rem;
   }
 
-  .fl-step-mark {
+.fl-step-mark {
     color: var(--fl-ember);
     font-weight: 600;
     margin-right: 0.5rem;
   }
 
-  .fl-dim {
+.fl-dim {
     color: var(--fl-muted);
   }
 
-  .fl-ok {
+.fl-ok {
     color: #1a7f37;
   }
 
-  :global(:root:not([data-theme="light"])) .fl-ok {
+:global(:root:not([data-theme="light"])) .fl-ok {
     color: #3fb950;
   }
 
-  /* Ship */
+/* Ship */
   .fl-ship {
     display: grid;
     grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
     gap: 1.5rem;
   }
 
-  .fl-terminal-tall {
+.fl-terminal-tall {
     border: 1px solid var(--fl-rule);
     border-radius: 0.875rem;
   }
 
-  .fl-ship-side {
+.fl-ship-side {
     display: grid;
     gap: 1.5rem;
     align-content: start;
   }
 
-  .fl-stat {
+.fl-stat {
     display: grid;
     gap: 0.5rem;
     padding-bottom: 1.5rem;
     border-bottom: 1px solid var(--fl-rule);
   }
 
-  .fl-stat-number {
+.fl-stat-number {
     font-size: clamp(3.5rem, 2.5rem + 3vw, 5rem);
     font-weight: 650;
     letter-spacing: -0.05em;
@@ -1568,38 +1703,38 @@ const faq = [
     color: var(--fl-ink);
   }
 
-  .fl-stat-number span {
+.fl-stat-number span {
     color: var(--fl-ember);
     font-size: 0.5em;
     letter-spacing: -0.02em;
     margin-left: 0.1em;
   }
 
-  .fl-stat-label {
+.fl-stat-label {
     font-size: 0.9375rem;
     color: var(--fl-muted);
     max-width: 34ch;
   }
 
-  .fl-share {
+.fl-share {
     display: grid;
     gap: 0.5rem;
     justify-items: start;
   }
 
-  .fl-share p {
+.fl-share p {
     margin: 0;
     color: var(--fl-muted);
     font-size: 0.9375rem;
   }
 
-  .fl-share .fl-share-title {
+.fl-share .fl-share-title {
     color: var(--fl-ink);
     font-weight: 600;
     letter-spacing: -0.015em;
   }
 
-  .fl-share-cmd {
+.fl-share-cmd {
     margin: 0.25rem 0;
     padding: 0.5rem 0.75rem;
     border: 1px solid var(--fl-rule);
@@ -1608,19 +1743,19 @@ const faq = [
     color: var(--fl-ink);
   }
 
-  /* Close + footer */
+/* Close + footer */
   .fl-close {
     text-align: center;
     padding: clamp(4rem, 8vw, 6rem) var(--gutter);
     background: var(--fl-paper);
   }
 
-  .fl-close h2 {
+.fl-close h2 {
     margin-inline: auto;
     max-width: 18ch;
   }
 
-  .fl-footer {
+.fl-footer {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -1630,7 +1765,7 @@ const faq = [
     color: var(--fl-muted);
   }
 
-  .fl-footer-brand {
+.fl-footer-brand {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -1638,23 +1773,22 @@ const faq = [
     color: var(--fl-ink);
   }
 
-  .fl-footer nav {
+.fl-footer nav {
     display: flex;
     gap: 1.25rem;
     margin-left: auto;
   }
 
-  .fl-footer a {
+.fl-footer a {
     color: var(--fl-muted);
     text-decoration: none;
   }
 
-  .fl-footer a:hover {
+.fl-footer a:hover {
     color: var(--fl-ink);
   }
 
-
-  /* ---- Hero showcase: npm create, and the app it makes ---- */
+/* ---- Hero showcase: npm create, and the app it makes ---- */
   .fl-showcase {
     display: grid;
     grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.45fr);
@@ -1665,7 +1799,7 @@ const faq = [
     align-items: start;
   }
 
-  .fl-showcase-term {
+.fl-showcase-term {
     border-radius: 0.875rem;
     background: #141414;
     color: #e5e5e5;
@@ -1674,7 +1808,7 @@ const faq = [
     overflow: hidden;
   }
 
-  .fl-term-bar,
+.fl-term-bar,
   .fl-browser-bar {
     display: flex;
     align-items: center;
@@ -1682,11 +1816,11 @@ const faq = [
     padding: 0.625rem 0.875rem;
   }
 
-  .fl-term-bar {
+.fl-term-bar {
     border-bottom: 1px solid #262626;
   }
 
-  .fl-term-bar span,
+.fl-term-bar span,
   .fl-browser-bar span {
     width: 0.625rem;
     height: 0.625rem;
@@ -1694,11 +1828,11 @@ const faq = [
     background: #3a3a3a;
   }
 
-  .fl-browser-bar span {
+.fl-browser-bar span {
     background: var(--fl-rule-strong);
   }
 
-  .fl-browser-bar code {
+.fl-browser-bar code {
     margin-left: 0.75rem;
     flex: 1;
     padding: 0.25rem 0.625rem;
@@ -1708,7 +1842,7 @@ const faq = [
     font-size: 0.75rem;
   }
 
-  .fl-term {
+.fl-term {
     list-style: none;
     margin: 0;
     padding: 1rem 1.125rem 1.25rem;
@@ -1717,7 +1851,7 @@ const faq = [
     line-height: 1.95;
   }
 
-  .fl-term li {
+.fl-term li {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1725,27 +1859,27 @@ const faq = [
     animation-delay: calc(var(--i) * 180ms + 200ms);
   }
 
-  .fl-term .fl-dim {
+.fl-term .fl-dim {
     color: #8a8a8a;
   }
 
-  .fl-term .fl-prompt,
+.fl-term .fl-prompt,
   .fl-ok-mark {
     color: #ff6b35;
   }
 
-  .fl-term-choice {
+.fl-term-choice {
     color: #fafafa;
     font-weight: 600;
   }
 
-  @media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) {
     .fl-term li {
       animation: none;
     }
   }
 
-  .fl-showcase-app {
+.fl-showcase-app {
     border: 1px solid var(--fl-rule);
     border-radius: 0.875rem;
     background: var(--fl-paper);
@@ -1753,18 +1887,18 @@ const faq = [
     box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.18);
   }
 
-  .fl-browser-bar {
+.fl-browser-bar {
     border-bottom: 1px solid var(--fl-rule);
   }
 
-  .fl-showcase-app img {
+.fl-showcase-app img {
     display: block;
     width: 100%;
     height: auto;
     aspect-ratio: 1280 / 860;
   }
 
-  .fl-theme-chips {
+.fl-theme-chips {
     display: flex;
     flex-wrap: wrap;
     gap: 0.375rem;
@@ -1772,7 +1906,7 @@ const faq = [
     border-top: 1px solid var(--fl-rule);
   }
 
-  .fl-theme-chips button {
+.fl-theme-chips button {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -1786,32 +1920,37 @@ const faq = [
     cursor: pointer;
   }
 
-  .fl-theme-chips button[aria-pressed="true"] {
+.fl-theme-chips button[aria-pressed="true"] {
     border-color: var(--fl-ink);
     color: var(--fl-ink);
   }
 
-  .fl-swatch {
+.fl-swatch {
     width: 0.75rem;
     height: 0.75rem;
     border-radius: 999px;
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
   }
 
-  .fl-swatch-default { background: #5b5bd6; }
-  .fl-swatch-coral { background: linear-gradient(135deg, #e61e4d, #d70466); }
-  .fl-swatch-amber { background: #ffd814; }
-  .fl-swatch-sky { background: #0051c3; }
-  .fl-swatch-mono { background: #0a0a0a; }
-  .fl-swatch-emerald { background: #3ecf8e; }
+.fl-swatch-default { background: #5b5bd6; }
 
-  .fl-gens-tabs button {
+.fl-swatch-coral { background: linear-gradient(135deg, #e61e4d, #d70466); }
+
+.fl-swatch-amber { background: #ffd814; }
+
+.fl-swatch-sky { background: #0051c3; }
+
+.fl-swatch-mono { background: #0a0a0a; }
+
+.fl-swatch-emerald { background: #3ecf8e; }
+
+.fl-gens-tabs button {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
   }
 
-  /* ---- Look: every theme's sign-in and home page ---- */
+/* ---- Look: every theme's sign-in and home page ---- */
   .fl-looks {
     border: 1px solid var(--fl-rule);
     border-radius: 0.875rem;
@@ -1819,19 +1958,19 @@ const faq = [
     overflow: hidden;
   }
 
-  .fl-look-panel {
+.fl-look-panel {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.25rem;
     padding: 1.25rem;
   }
 
-  .fl-look-panel figure,
+.fl-look-panel figure,
   .fl-shot {
     margin: 0;
   }
 
-  .fl-look-panel img,
+.fl-look-panel img,
   .fl-shot img {
     display: block;
     width: 100%;
@@ -1840,25 +1979,25 @@ const faq = [
     border-radius: 0.625rem;
   }
 
-  .fl-look-panel figcaption {
+.fl-look-panel figcaption {
     margin-top: 0.5rem;
     font-size: 0.8125rem;
     color: var(--fl-muted);
   }
 
-  .fl-look-note {
+.fl-look-note {
     grid-column: 1 / -1;
     margin: 0;
     font-size: 0.875rem;
     color: var(--fl-muted);
   }
 
-  .fl-look-note code,
+.fl-look-note code,
   .fl-section-head code {
     color: var(--fl-ink);
   }
 
-  /* ---- Secure ---- */
+/* ---- Secure ---- */
   .fl-secure {
     display: grid;
     grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
@@ -1866,78 +2005,78 @@ const faq = [
     align-items: start;
   }
 
-  .fl-methods {
+.fl-methods {
     list-style: none;
     margin: 0;
     padding: 0;
     border-top: 1px solid var(--fl-rule);
   }
 
-  .fl-methods li {
+.fl-methods li {
     display: grid;
     gap: 0.2rem;
     padding: 1rem 0;
     border-bottom: 1px solid var(--fl-rule);
   }
 
-  .fl-method-name {
+.fl-method-name {
     font-weight: 600;
     color: var(--fl-ink);
     letter-spacing: -0.01em;
   }
 
-  .fl-method-body {
+.fl-method-body {
     font-size: 0.9rem;
     color: var(--fl-muted);
   }
 
-  .fl-method-more {
+.fl-method-more {
     border-bottom: 0 !important;
   }
 
-  .fl-shot {
+.fl-shot {
     max-height: 34rem;
     overflow: hidden;
     border-radius: 0.625rem;
     mask-image: linear-gradient(to bottom, black 80%, transparent);
   }
 
-  /* ---- Code examples ---- */
+/* ---- Code examples ---- */
   .fl-examples {
     margin-top: 2.5rem;
   }
 
-  .fl-examples-title {
+.fl-examples-title {
     margin: 0 0 1rem;
     font-weight: 600;
     color: var(--fl-ink);
     letter-spacing: -0.015em;
   }
 
-  .fl-examples .fl-gens-tabs {
+.fl-examples .fl-gens-tabs {
     border: 1px solid var(--fl-rule);
     border-bottom: 0;
     border-radius: 0.875rem 0.875rem 0 0;
     background: var(--fl-paper);
   }
 
-  .fl-examples :global(.expressive-code .frame) {
+.fl-examples :global(.expressive-code .frame) {
     border-top-left-radius: 0;
     border-top-right-radius: 0;
   }
 
-  .fl-examples :global(.expressive-code) {
+.fl-examples :global(.expressive-code) {
     margin: 0;
   }
 
-  /* ---- FAQ ---- */
+/* ---- FAQ ---- */
   .fl-faq-grid {
     display: grid;
     grid-template-columns: minmax(0, 0.6fr) minmax(0, 1.4fr);
     gap: 2rem;
   }
 
-  .fl-faq-title {
+.fl-faq-title {
     margin: 0;
     font-size: clamp(1.875rem, 1.2rem + 2.6vw, 3rem);
     font-weight: 650;
@@ -1945,15 +2084,15 @@ const faq = [
     color: var(--fl-ink);
   }
 
-  .fl-faq details {
+.fl-faq details {
     border-bottom: 1px solid var(--fl-rule);
   }
 
-  .fl-faq details:first-child {
+.fl-faq details:first-child {
     border-top: 1px solid var(--fl-rule);
   }
 
-  .fl-faq summary {
+.fl-faq summary {
     cursor: pointer;
     list-style: none;
     padding: 1.125rem 2rem 1.125rem 0;
@@ -1962,11 +2101,11 @@ const faq = [
     position: relative;
   }
 
-  .fl-faq summary::-webkit-details-marker {
+.fl-faq summary::-webkit-details-marker {
     display: none;
   }
 
-  .fl-faq summary::after {
+.fl-faq summary::after {
     content: "+";
     position: absolute;
     right: 0.25rem;
@@ -1975,24 +2114,24 @@ const faq = [
     transition: transform 0.15s ease;
   }
 
-  .fl-faq details[open] summary::after {
+.fl-faq details[open] summary::after {
     transform: rotate(45deg);
   }
 
-  .fl-faq details p {
+.fl-faq details p {
     margin: 0 0 1.25rem;
     max-width: 60ch;
     color: var(--fl-muted);
   }
 
-  /* ---- Narrow screens ---- */
+/* ---- Narrow screens ---- */
   @media (max-width: 64rem) {
     .fl-batteries {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
-  @media (max-width: 50rem) {
+@media (max-width: 50rem) {
     .fl-showcase,
     .fl-look-panel,
     .fl-secure,
@@ -2037,7 +2176,7 @@ const faq = [
     }
   }
 
-  @media (max-width: 34rem) {
+@media (max-width: 34rem) {
     .fl-batteries {
       grid-template-columns: minmax(0, 1fr);
     }
@@ -2045,7 +2184,8 @@ const faq = [
       display: none;
     }
   }
-  /* ---- Layers: the descriptor, seen as a stack -------------------------
+
+/* ---- Layers: the descriptor, seen as a stack -------------------------
      From the Flare design system (project/components/IsoStack). The plates are one
      3D scene; --z spaces them and the stage's hover widens --gap, so the spread is a
      single transition rather than five.
@@ -2086,8 +2226,6 @@ const faq = [
 
 .fl-plate-file-name{font-family:var(--sl-font-mono);align-items:center;gap:.4rem;font-size:.72rem;font-weight:600;display:inline-flex}
 
-.fl-plate-file-name .fl-logo{fill:#fff}
-
 .fl-plate-file-code{font-family:var(--sl-font-mono);opacity:.9;font-size:.8rem}
 
 .fl-iso[data-active=db] .fl-plate-db,.fl-iso[data-active=valid] .fl-plate-valid,.fl-iso[data-active=api] .fl-plate-api,.fl-iso[data-active=admin] .fl-plate-admin{border-color:var(--fl-ember);box-shadow:0 0 0 4px var(--fl-ember-soft), -14px 14px 34px -6px var(--fl-glow);transform:translateZ(calc(var(--z) * var(--gap) + .75rem))}
@@ -2108,21 +2246,96 @@ const faq = [
 
 .fl-mini-bars i{height:var(--h);background:linear-gradient(180deg, var(--fl-ember), color-mix(in srgb, var(--fl-ember) 35%, transparent));border-radius:.25rem .25rem .125rem .125rem;flex:1}
 
-:root:not([data-theme=light]) .fl-face,:root:not([data-theme=light]) .fl-plate,:root:not([data-theme=light]) .fl-icon,:root:not([data-theme=light]) .fl-logo-tile{background-image:radial-gradient(120% 90% at 20% 10%, #ffffff12, transparent 55%), linear-gradient(150deg, color-mix(in srgb, var(--fl-ember) 9%, #1d1d1d), #141414)}
-
 :root:not([data-theme=light]) .fl-plate-file{background:linear-gradient(135deg,#ffffff40,#0000 45%),linear-gradient(160deg,#ff7a49,#d9430f)}
 
 :root:not([data-theme=light]) .fl-plate{box-shadow:0 1px #333,-14px 14px 34px -6px #0009}
 
-  /* Brand marks, tinted by a --brand custom property set on the element. */
-.fl-marquee li:hover .fl-logo{fill:var(--brand)}
+/* ---- Hero atmosphere -------------------------------------------------
+     Aurora washes, two drifting orbs, and four cubes built from six faces each —
+     the logos of what the app actually runs on, extruded. Decorative throughout:
+     every one of these is aria-hidden and sits behind the type.
+  ---------------------------------------------------------------------- */
+.fl-aurora{z-index:-2;pointer-events:none;filter:blur(70px);height:62rem;position:absolute;inset:-20% -10% auto}
 
-.fl-plate-file-name .fl-logo{fill:#fff}
+.fl-aurora span{opacity:.55;border-radius:999px;animation:18s ease-in-out infinite alternate fl-drift;position:absolute}
 
-.fl-logo-tile{border:1px solid var(--fl-rule);background:linear-gradient(160deg, var(--fl-paper), var(--fl-surface));width:2.5rem;height:2.5rem;color:var(--fl-ink);border-radius:.75rem;place-items:center;display:grid;box-shadow:inset 0 1px #fff9,0 6px 14px -8px #00000040}
+.fl-aurora span:first-child{background:radial-gradient(closest-side, var(--fl-glow), transparent);width:46rem;height:22rem;top:4rem;left:50%;translate:-50%}
 
-:root:not([data-theme=light]) .fl-face,:root:not([data-theme=light]) .fl-plate,:root:not([data-theme=light]) .fl-icon,:root:not([data-theme=light]) .fl-logo-tile{background-image:radial-gradient(120% 90% at 20% 10%, #ffffff12, transparent 55%), linear-gradient(150deg, color-mix(in srgb, var(--fl-ember) 9%, #1d1d1d), #141414)}
+.fl-aurora span:nth-child(2){background:radial-gradient(closest-side,#ffb18f4d,#0000);width:30rem;height:26rem;animation-duration:24s;top:14rem;left:6%}
 
-:root:not([data-theme=light]) .fl-pill,:root:not([data-theme=light]) .fl-btn-quiet,:root:not([data-theme=light]) .fl-logo-tile{box-shadow:inset 0 1px #ffffff0f}
+.fl-aurora span:nth-child(3){background:radial-gradient(closest-side, color-mix(in srgb, var(--fl-ember-strong) 20%, transparent), transparent);width:34rem;height:24rem;animation-duration:21s;animation-direction:alternate-reverse;top:20rem;right:4%}
 
+.fl-cube-wrap{--s:5.5rem;width:var(--s);height:var(--s);perspective:900px;z-index:-1;animation:7s ease-in-out infinite fl-float;position:absolute;top:9rem}
+
+.fl-cube-left{left:max(2rem,50% - 38rem)}
+
+.fl-cube-right{animation-delay:-3s;top:13rem;right:max(2rem,50% - 38rem)}
+
+.fl-cube-sm{--s:3.25rem}
+
+.fl-cube-left.fl-cube-sm{animation-delay:-1.5s;top:23rem;left:max(6rem,50% - 33rem)}
+
+.fl-cube-right.fl-cube-sm{animation-delay:-5s;top:4.5rem;right:max(7rem,50% - 31rem)}
+
+.fl-cube{width:100%;height:100%;transform-style:preserve-3d;animation:22s linear infinite fl-spin;position:relative}
+
+.fl-cube-right .fl-cube{animation-duration:26s;animation-direction:reverse}
+
+.fl-face{border:1px solid var(--fl-edge);background:radial-gradient(120% 90% at 20% 10%, #ffffff8c, transparent 55%), linear-gradient(145deg, color-mix(in srgb, var(--fl-ember) 10%, var(--fl-paper)), var(--fl-surface));box-shadow:inset 0 0 22px color-mix(in srgb, var(--fl-ember) 12%, transparent);backface-visibility:hidden;color:var(--fl-ink);border-radius:.875rem;place-items:center;display:grid;position:absolute;inset:0}
+
+.fl-face-front{transform:translateZ(calc(var(--s) / 2))}
+
+.fl-face-back{transform:rotateY(180deg) translateZ(calc(var(--s) / 2))}
+
+.fl-face-right{transform:rotateY(90deg) translateZ(calc(var(--s) / 2))}
+
+.fl-face-left{transform:rotateY(-90deg) translateZ(calc(var(--s) / 2))}
+
+.fl-face-top{transform:rotateX(90deg) translateZ(calc(var(--s) / 2))}
+
+.fl-face-bottom{transform:rotateX(-90deg) translateZ(calc(var(--s) / 2))}
+
+.fl-cube-shadow{background:radial-gradient(closest-side, color-mix(in srgb, var(--fl-ink) 18%, transparent), transparent);filter:blur(3px);height:.75rem;animation:7s ease-in-out infinite fl-shadow;animation-delay:inherit;border-radius:50%;position:absolute;bottom:-2.25rem;left:10%;right:10%}
+
+.fl-orb{z-index:-1;background:radial-gradient(circle at 32% 28%, #fff 0%, #ffd2bd 12%, var(--fl-ember) 45%, var(--fl-ember-strong) 72%, #7a2406 100%);box-shadow:0 18px 30px -12px var(--fl-ember), inset -6px -8px 16px #0000002e;border-radius:50%;animation:9s ease-in-out infinite fl-float;position:absolute}
+
+.fl-orb-a{width:1.75rem;height:1.75rem;animation-delay:-2s;top:19rem;right:max(4rem,50% - 30rem)}
+
+.fl-orb-b{width:1rem;height:1rem;animation-delay:-6s;top:7rem;left:max(9rem,50% - 27rem)}
+
+.fl-stage{--settle:1;perspective:1800px;margin-top:3.5rem;position:relative}
+
+.fl-stage-glow{z-index:-1;background:radial-gradient(closest-side, var(--fl-glow), transparent);filter:blur(40px);border-radius:50%;position:absolute;inset:18% 10% -8%}
+
+.fl-stage .fl-showcase{transform-origin:50% 0;transform:rotateX(calc((1 - var(--settle)) * 20deg)) scale(calc(.93 + var(--settle) * .07)) translateY(calc((1 - var(--settle)) * 1.5rem));will-change:transform;margin-top:0}
+
+.fl-floor{z-index:-1;background-image:linear-gradient(var(--fl-rule-strong) 1px, transparent 1px), linear-gradient(90deg, var(--fl-rule-strong) 1px, transparent 1px);transform-origin:50% 100%;background-size:48px 48px;height:70%;position:absolute;bottom:-12%;left:-50%;right:-50%;transform:perspective(520px)rotateX(64deg);mask-image:linear-gradient(#0000 15%,#000 100%)}
+
+.fl-mark3d{perspective:600px;width:6rem;height:6rem;margin:0 auto 2.25rem;position:relative}
+
+.fl-mark3d img{z-index:1;width:100%;height:100%;filter:drop-shadow(0 1px 0 #cc3d0b) drop-shadow(0 2px 0 #b3360a) drop-shadow(0 3px 0 #992e08) drop-shadow(0 18px 24px color-mix(in srgb, var(--fl-ember) 60%, transparent));animation:6s ease-in-out infinite fl-float;position:relative}
+
+.fl-ring{border:1px solid color-mix(in srgb, var(--fl-ember) 60%, transparent);width:9rem;height:9rem;box-shadow:0 0 24px var(--fl-glow), inset 0 0 24px var(--fl-glow);border-radius:50%;margin-left:-4.5rem;position:absolute;bottom:-.75rem;left:50%;transform:rotateX(76deg)translateZ(-3.5rem)}
+
+.fl-ring-2{border-color:color-mix(in srgb, var(--fl-ember) 25%, transparent);width:13rem;height:13rem;margin-left:-6.5rem;animation:4s ease-in-out infinite fl-pulse;bottom:-2.75rem}
+
+.fl-stack-logos{gap:.5rem;margin-bottom:.25rem;display:flex}
+
+/* The strip scrolls; hovering it stops, so a logo can be read. */
+
+
+  /* Every animation the landing uses, in one place. */
+@keyframes fl-write{0%{opacity:0;transform:translate(-6px)}to{opacity:1;transform:none}}
+
+@keyframes fl-drift{to{transform:translate(3rem,2rem)scale(1.08)}}
+
+@keyframes fl-spin{0%{transform:rotateX(-24deg)rotateY(0)}to{transform:rotateX(-24deg)rotateY(360deg)}}
+
+@keyframes fl-float{0%,to{translate:0}50%{translate:0 -14px}}
+
+@keyframes fl-shadow{0%,to{opacity:1;transform:scaleX(1)}50%{opacity:.55;transform:scaleX(.8)}}
+
+@keyframes fl-pulse{50%{opacity:.4}}
+  /* The agent brief, given the same section rhythm as everything else. */
+.fl-ai-section{padding:clamp(2rem,5vw,3.5rem) clamp(1rem,4vw,3rem)}
 </style>
