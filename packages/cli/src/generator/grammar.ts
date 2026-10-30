@@ -1,4 +1,4 @@
-import { camelCase, FILE_CATEGORIES, STRING_FORMATS, type FileCategory, type NumberFormat, type StringFormat, type TextFormat } from "@flaredev/core";
+import { camelCase, FILE_CATEGORIES, STRING_FORMATS, type FieldCondition, type FileCategory, type NumberFormat, type StringFormat, type TextFormat } from "@flaredev/core";
 
 /**
  * The `--fields` grammar of `flare gen resource`:
@@ -15,6 +15,14 @@ import { camelCase, FILE_CATEGORIES, STRING_FORMATS, type FileCategory, type Num
  *
  * Suffix `?` = optional (nullable), `!` = unique (combinable: `sku:string!?`).
  * Commas inside (...) and [...] don't split fields.
+ *
+ * A field can apply only sometimes, with a trailing `if`:
+ *
+ *   kind:enum(oneOff,recurring), billingCycle:enum(monthly,annually) if kind == recurring
+ *
+ * Conditions are `==`, `!=` and `in (a,b)`. The column is always nullable, because the
+ * field is genuinely absent the rest of the time; `?` additionally makes it optional even
+ * when it does apply.
  */
 
 export type ParsedKind =
@@ -52,6 +60,8 @@ export interface ParsedField {
   maxBytes?: number;
   /** relation target (PascalCase resource name) */
   target?: string;
+  /** Only applies when another field says so, from a trailing `if`. */
+  showWhen?: FieldCondition;
   format?: StringFormat;
 }
 
@@ -171,12 +181,47 @@ function list(raw: string, what: string, spec: string): string[] {
 
 const RESOURCE_NAME = /^[A-Z][A-Za-z0-9]*$/;
 
+/**
+ * The trailing `if` of a field spec: `billingCycle:enum(a,b) if kind == recurring`.
+ *
+ * Split off before the `?`/`!` suffixes are read, so `cycle:enum(a,b)? if kind == x`
+ * parses the same as the version without a condition.
+ */
+const CONDITION = /^(.*?)\s+if\s+(.+)$/s;
+const COMPARISON = /^([A-Za-z][A-Za-z0-9_]*)\s*(==|!=|\bin\b)\s*(.+)$/;
+
+function parseCondition(clause: string, spec: string): FieldCondition {
+  const match = COMPARISON.exec(clause.trim());
+  if (!match) {
+    throw new FieldGrammarError(`"${spec}": "${clause.trim()}" isn't a condition. Write it like "if kind == recurring".`);
+  }
+  const [, dependsOn, operator, rawValue] = match;
+  const op = operator === "==" ? "eq" : operator === "!=" ? "ne" : "in";
+  const text = rawValue!.trim();
+  if (op === "in") {
+    const inner = /^\((.*)\)$/.exec(text);
+    if (!inner) throw new FieldGrammarError(`"${spec}": "in" takes a list in brackets, e.g. "if kind in (recurring, retainer)".`);
+    return { field: dependsOn!, op, value: list(inner[1]!, "condition value", spec) };
+  }
+  if (!text || /\s/.test(text)) {
+    throw new FieldGrammarError(`"${spec}": "${text}" isn't a single value. Write it like "if kind == recurring".`);
+  }
+  return { field: dependsOn!, op, value: text };
+}
+
 export function parseField(spec: string): ParsedField {
   const colon = spec.indexOf(":");
   if (colon <= 0) throw new FieldGrammarError(`"${spec}": expected name:type, e.g. "title:string".`);
 
   const rawName = spec.slice(0, colon).trim();
   let type = spec.slice(colon + 1).trim();
+
+  let showWhen: FieldCondition | undefined;
+  const conditioned = CONDITION.exec(type);
+  if (conditioned) {
+    type = conditioned[1]!.trim();
+    showWhen = parseCondition(conditioned[2]!, spec);
+  }
 
   let required = true;
   let unique = false;
@@ -191,6 +236,7 @@ export function parseField(spec: string): ParsedField {
   }
   let key = camelCase(rawName);
   const field: ParsedField = { key, kind: "string", required, unique };
+  if (showWhen) field.showWhen = showWhen;
 
   let match: RegExpExecArray | null;
   if ((SIMPLE_KINDS as readonly string[]).includes(type)) {
@@ -272,6 +318,46 @@ export function parseFields(input: string): ParsedField[] {
   for (const field of fields) {
     if (seen.has(field.key)) throw new FieldGrammarError(`Field "${field.key}" is declared more than once.`);
     seen.add(field.key);
+  }
+
+  // A condition names another field, so it can only be checked once they are all parsed.
+  // Worth catching here: a typo in the controlling field, or a value its enum cannot
+  // produce, otherwise becomes a field that is silently never shown.
+  const byKey = new Map(fields.map((field) => [field.key, field]));
+  for (const field of fields) {
+    const condition = field.showWhen;
+    if (!condition) continue;
+    if (condition.field === field.key) {
+      throw new FieldGrammarError(`Field "${field.key}" cannot depend on itself.`);
+    }
+    const target = byKey.get(condition.field);
+    if (!target) {
+      const names = fields.map((other) => other.key).filter((name) => name !== field.key);
+      throw new FieldGrammarError(
+        `Field "${field.key}" depends on "${condition.field}", which isn't a field here.${suggest(condition.field, names)} Fields: ${names.join(", ")}.`,
+      );
+    }
+    if (target.showWhen) {
+      // One level only. Chained conditions need an order of evaluation, and the form would
+      // have to decide what a field means when the field it depends on is itself hidden.
+      throw new FieldGrammarError(`Field "${field.key}" depends on "${target.key}", which is itself conditional. Conditions only go one level deep.`);
+    }
+    const values = Array.isArray(condition.value) ? condition.value : [condition.value];
+    if (target.options) {
+      for (const value of values) {
+        if (!target.options.includes(value)) {
+          throw new FieldGrammarError(
+            `Field "${field.key}" is shown when ${condition.field} is "${value}", which isn't one of its options.${suggest(value, target.options)} Options: ${target.options.join(", ")}.`,
+          );
+        }
+      }
+    } else if (target.kind === "boolean") {
+      for (const value of values) {
+        if (value !== "true" && value !== "false") {
+          throw new FieldGrammarError(`Field "${field.key}" depends on the boolean "${condition.field}", so compare it with true or false, not "${value}".`);
+        }
+      }
+    }
   }
   return fields;
 }

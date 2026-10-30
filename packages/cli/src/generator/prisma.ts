@@ -149,7 +149,7 @@ export function renderPrismaModel(entry: LoadedResource, all: LoadedResource[]):
     if (def.kind === "belongsTo") {
       const target = byName.get(def.target);
       if (!target) throw new Error(`${resource.name}.${key} belongs to "${def.target}", but there is no ${def.target} resource. Generate it first.`);
-      const optional = def.required ? "" : "?";
+      const optional = def.required && !def.showWhen ? "" : "?";
       const relationField = key.replace(/Id$/, "");
       const named = backReferences(target, all).find((back) => back.from === resource.name && back.relationName?.endsWith(`_${key}`));
       const relationArgs = [
@@ -165,7 +165,8 @@ export function renderPrismaModel(entry: LoadedResource, all: LoadedResource[]):
     }
 
     // A Prisma list is never nullable: an empty list is the empty state.
-    const optional = def.required || def.kind === "multiselect" || def.kind === "tags" ? "" : "?";
+    // `showWhen` forces nullability: the field is absent whenever its condition is false.
+    const optional = (def.required && !def.showWhen) || def.kind === "multiselect" || def.kind === "tags" ? "" : "?";
     lines.push(`  ${key} ${prismaType(resource, key, def)}${optional} ${attributes(key, def).join(" ")}`.trimEnd());
   }
 

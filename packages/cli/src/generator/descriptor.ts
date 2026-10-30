@@ -24,6 +24,7 @@ function options(field: ParsedField): Record<string, unknown> {
   if (field.widget) opts.widget = field.widget;
   if (field.kind === "belongsTo" && !field.required) opts.onDelete = "set null";
   if (field.maxBytes !== undefined) opts.maxBytes = field.maxBytes;
+  if (field.showWhen) opts.showWhen = field.showWhen;
   return opts;
 }
 
@@ -50,7 +51,18 @@ export function toField(field: ParsedField): Field {
   }
 }
 
-const literal = (value: unknown) => JSON.stringify(value);
+/**
+ * An option value as somebody would have typed it. Objects get unquoted keys and spaces,
+ * because the descriptor is a file people read and edit, and `{"field":"kind"}` is not
+ * what they would have written.
+ */
+const literal = (value: unknown): string => {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const entries = Object.entries(value as Record<string, unknown>);
+    return `{ ${entries.map(([key, inner]) => `${/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key) ? key : JSON.stringify(key)}: ${literal(inner)}`).join(", ")} }`;
+  }
+  return JSON.stringify(value);
+};
 
 function renderOptions(opts: Record<string, unknown>): string {
   const entries = Object.entries(opts);

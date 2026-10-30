@@ -135,3 +135,75 @@ describe("formats and choices", () => {
     expect(() => parseFields("site:domian")).toThrow(/Did you mean "domain"/);
   });
 });
+
+/**
+ * Fields that only apply sometimes.
+ *
+ * `billingCycle:enum(monthly,annually) if kind == recurring` puts the rule in the
+ * declaration, where the validator, the store and the form all read the same object.
+ */
+describe("conditional fields", () => {
+  const parse = (spec: string) => parseFields(`kind:enum(oneOff,recurring), ${spec}`)[1]!;
+
+  it("reads a trailing if", () => {
+    expect(parse("billingCycle:enum(monthly,annually) if kind == recurring").showWhen).toEqual({
+      field: "kind",
+      op: "eq",
+      value: "recurring",
+    });
+  });
+
+  it("still reads the type and its suffixes", () => {
+    const field = parse("poNumber:string? if kind == oneOff");
+    expect(field.kind).toBe("string");
+    expect(field.required).toBe(false);
+    expect(field.showWhen).toEqual({ field: "kind", op: "eq", value: "oneOff" });
+  });
+
+  it("handles != and in", () => {
+    expect(parse("note:string if kind != recurring").showWhen).toEqual({ field: "kind", op: "ne", value: "recurring" });
+    expect(parse("cycle:string if kind in (oneOff, recurring)").showWhen).toEqual({
+      field: "kind",
+      op: "in",
+      value: ["oneOff", "recurring"],
+    });
+  });
+
+  it("does not let a comma in an `in` list split the field", () => {
+    const fields = parseFields("kind:enum(a,b), cycle:string if kind in (a, b), note:string");
+    expect(fields.map((field) => field.key)).toEqual(["kind", "cycle", "note"]);
+  });
+
+  it("refuses a condition on a field that isn't there", () => {
+    expect(() => parseFields("kind:enum(a,b), cycle:string if knid == a")).toThrow(/isn't a field here/);
+  });
+
+  it("suggests the field they meant", () => {
+    expect(() => parseFields("kind:enum(a,b), cycle:string if knid == a")).toThrow(/Did you mean "kind"/);
+  });
+
+  it("refuses a value the controlling enum can't produce", () => {
+    expect(() => parseFields("kind:enum(oneOff,recurring), cycle:string if kind == recuring")).toThrow(/isn't one of its options/);
+  });
+
+  it("refuses a field that depends on itself", () => {
+    expect(() => parseFields("kind:enum(a,b), cycle:string if cycle == a")).toThrow(/cannot depend on itself/);
+  });
+
+  it("refuses a chain, because the form would have to guess what a hidden parent means", () => {
+    expect(() => parseFields("kind:enum(a,b), cycle:string if kind == a, sub:string if cycle == x")).toThrow(/only go one level deep/);
+  });
+
+  it("wants true or false against a boolean", () => {
+    expect(() => parseFields("active:boolean, reason:string if active == yes")).toThrow(/true or false/);
+    expect(parseFields("active:boolean, reason:string if active == false")[1]!.showWhen).toEqual({
+      field: "active",
+      op: "eq",
+      value: "false",
+    });
+  });
+
+  it("explains a condition it cannot read", () => {
+    expect(() => parseFields("kind:enum(a,b), cycle:string if kind")).toThrow(/isn't a condition/);
+  });
+});

@@ -7,6 +7,8 @@
  * storage-level changes (kind, nullability, uniqueness, relations) need a migration.
  */
 
+import type { FieldCondition } from "./conditions.js";
+
 export type FieldKind =
   | "string"
   | "text"
@@ -22,6 +24,7 @@ export type FieldKind =
   | "file"
   | "belongsTo"
   | "hasMany";
+
 
 /** Options shared by every stored (non-hasMany) field. */
 export interface CommonOptions<T> {
@@ -39,6 +42,14 @@ export interface CommonOptions<T> {
   filterable?: boolean;
   /** Included in free-text search. Default true for string fields. */
   searchable?: boolean;
+  /**
+   * Only applies when another field says so, e.g. a billing cycle on a recurring project:
+   * `showWhen: { field: "kind", op: "eq", value: "recurring" }`.
+   *
+   * The column is always nullable, because the field is genuinely absent the rest of the
+   * time. `required` then means "required *when it applies*" rather than "never null".
+   */
+  showWhen?: FieldCondition;
 }
 
 /**

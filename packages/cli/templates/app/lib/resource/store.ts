@@ -8,7 +8,7 @@
 // `flare diff` shows how your copy differs from the version Flare ships, and
 // `flare update` applies the parts you choose. Neither runs unless you ask.
 
-import { columnName, fromMinorUnits, ownershipFilter, storedFields, toMinorUnits, type Policy, type Resource } from "@flaredev/core";
+import { columnName, conditionHolds, fromMinorUnits, ownershipFilter, storedFields, toMinorUnits, type Policy, type Resource } from "@flaredev/core";
 import { createValidators } from "@flaredev/core";
 import { encodeCursor, isSearchable, parseListQuery, type QueryIssue } from "./query";
 import type { ResourceRows, Row } from "./rows";
@@ -211,6 +211,34 @@ export function createResourceStore(options: ResourceStoreOptions) {
   const moneyFields = fields.flatMap(([key, def]) =>
     (def.kind === "int" || def.kind === "float") && def.format === "money" ? [{ key, currency: def.currency }] : [],
   );
+
+  /**
+   * Fields that only apply when another field says so, e.g. a billing cycle that exists
+   * on a recurring project and not on a one-off one.
+   *
+   * The validator decides whether one is *required*; this decides whether it is *kept*.
+   * Without it, changing a project from recurring to one-off leaves last month's billing
+   * cycle sitting in the row — the form stopped showing the input, so nothing ever sent a
+   * value to overwrite it, and the record quietly disagrees with itself.
+   */
+  const conditionalFields = fields.flatMap(([key, def]) => (def.showWhen ? [{ key, condition: def.showWhen }] : []));
+
+  /**
+   * Null the fields that no longer apply.
+   *
+   * `record` is what the condition is judged against: the whole record as it will be once
+   * this write lands, which on a PATCH means the stored row with the patch laid over it.
+   * Judging the patch alone would read a field it never mentioned as absent and clear a
+   * value that was meant to stay.
+   */
+  function clearInapplicable(values: Row, record: Row): Row {
+    if (conditionalFields.length === 0) return values;
+    const out = { ...values };
+    for (const { key, condition } of conditionalFields) {
+      if (!conditionHolds(condition, record)) out[key] = null;
+    }
+    return out;
+  }
 
   /** Amounts as the database stores them: 19.99 -> 1999. */
   function toStored(values: Row): Row {
@@ -436,7 +464,8 @@ export function createResourceStore(options: ResourceStoreOptions) {
         if (!result.success) return invalid(result.error.issues);
         const input = result.data as Record<string, unknown>;
         const now = new Date();
-        const record = await rows.insert(toStored({ ...input, id: crypto.randomUUID(), createdAt: now, updatedAt: now }));
+        const fresh = { ...input, id: crypto.randomUUID(), createdAt: now, updatedAt: now };
+        const record = await rows.insert(toStored(clearInapplicable(fresh, fresh)));
         const saved = withComputed(record);
         await hooks.afterCreate?.(saved, context);
         return { ok: true, data: saved };
@@ -452,7 +481,10 @@ export function createResourceStore(options: ResourceStoreOptions) {
 
         // A confined update has to read the row first: `rows.update(id, …)` takes an id
         // and nothing else, so this is where "is it yours" is answered.
-        const current = limit || hooks.beforeUpdate || hooks.afterUpdate ? await rows.byId(id) : null;
+        // Conditional fields join this list: deciding whether one still applies needs the
+        // whole record, and a PATCH on its own may not mention the field it depends on.
+        const needsCurrent = limit || hooks.beforeUpdate || hooks.afterUpdate || conditionalFields.length > 0;
+        const current = needsCurrent ? await rows.byId(id) : null;
         if (limit) {
           if (!current) return notFound();
           if (!owns(current, limit)) return notFound();
@@ -476,7 +508,8 @@ export function createResourceStore(options: ResourceStoreOptions) {
         const result = validators.update.safeParse(supplied);
         if (!result.success) return invalid(result.error.issues);
         const input = result.data as Record<string, unknown>;
-        const record = await rows.update(id, toStored({ ...input, updatedAt: new Date() }));
+        const merged = { ...((current ?? {}) as Row), ...input };
+        const record = await rows.update(id, toStored(clearInapplicable({ ...input, updatedAt: new Date() }, merged)));
         if (!record) return notFound();
         const saved = withComputed(record);
         await hooks.afterUpdate?.(saved, { ...context, previous: current });
@@ -505,7 +538,7 @@ export function createResourceStore(options: ResourceStoreOptions) {
         // one of them, and a replace would quietly orphan the row it just saved.
         if (limit) values[limit.field] = limit.value;
 
-        const record = await rows.update(id, toStored(values));
+        const record = await rows.update(id, toStored(clearInapplicable(values, values)));
         return record ? { ok: true, data: withComputed(record) } : notFound();
       });
     },

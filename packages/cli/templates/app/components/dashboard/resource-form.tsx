@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition, type FormEvent, type MouseEvent } from "react";
-import { createValidators, formValuesToInput, initialFormValues, issuesByField, storedFields, type ClientResource, type StoredField } from "@flaredev/core";
+import { conditionHolds, createValidators, formValuesToInput, initialFormValues, issuesByField, storedFields, type ClientResource, type StoredField } from "@flaredev/core";
 import { toast } from "sonner";
 import { createRecordAction, updateRecordAction } from "@/app/dashboard/actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -69,10 +69,21 @@ export function ResourceForm({ resource, mode, id, record, relations = {}, listH
   const router = useRouter();
   const validators = useMemo(() => createValidators(resource), [resource]);
   const hidden = useMemo(() => new Set(omit ?? []), [omit]);
-  const fields = useMemo(() => storedFields(resource).filter(([key]) => !hidden.has(key)), [resource, hidden]);
-  const steps = useMemo(() => toSteps(fields), [fields]);
   const [step, setStep] = useState(0);
   const [values, setValues] = useState(() => initialFormValues(resource, record));
+  /**
+   * The fields on show. A conditional field appears only while its condition holds, so
+   * this is recomputed as the form is filled in: choose "recurring" and the billing cycle
+   * appears, choose "one-off" and it goes away again.
+   *
+   * The same condition decides what the server requires, so a field that is not on show
+   * is never one the save is about to fail on.
+   */
+  const fields = useMemo(
+    () => storedFields(resource).filter(([key, def]) => !hidden.has(key) && conditionHolds(def.showWhen, values)),
+    [resource, hidden, values],
+  );
+  const steps = useMemo(() => toSteps(fields), [fields]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
 

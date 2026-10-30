@@ -152,3 +152,31 @@ describe("backReferences", () => {
     expect(backReferences(contact.resource, all)).toEqual([]);
   });
 });
+
+describe("conditional fields", () => {
+  const project = loaded(
+    defineResource({
+      name: "Project",
+      fields: {
+        name: field.string(),
+        kind: field.enum(["oneOff", "recurring"]),
+        billingCycle: field.enum(["monthly", "annually"], { showWhen: { field: "kind", op: "eq", value: "recurring" } }),
+      },
+    }),
+    "project",
+  );
+
+  it("makes a conditional column nullable even though it is required", () => {
+    // Required means "required when it applies". The field is genuinely absent the rest
+    // of the time, so a NOT NULL column would make a one-off project impossible to store.
+    const model = renderPrismaModel(project, [project]);
+    const line = model.split("\n").find((row) => row.trim().startsWith("billingCycle"));
+    expect(line, model).toMatch(/\?/);
+  });
+
+  it("leaves the field it depends on alone", () => {
+    const model = renderPrismaModel(project, [project]);
+    const line = model.split("\n").find((row) => row.trim().startsWith("kind"))!;
+    expect(line).not.toMatch(/\?/);
+  });
+});

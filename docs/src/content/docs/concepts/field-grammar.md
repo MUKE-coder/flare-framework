@@ -190,6 +190,69 @@ command and fails with `event not found` before Flare ever runs. In Windows
 
 `hasMany` fields can't take suffixes — they don't store a column.
 
+## Fields that only apply sometimes
+
+A billing cycle is required on a recurring project and meaningless on a one-off
+one. Say so where the field is declared, with a trailing `if`:
+
+```bash
+npx flare gen resource Project --fields   'name:string, kind:enum(oneOff,recurring), billingCycle:enum(monthly,annually) if kind == recurring'
+```
+
+```ts
+billingCycle: field.enum(["monthly", "annually"], {
+  showWhen: { field: "kind", op: "eq", value: "recurring" },
+}),
+```
+
+One declaration, and three things read it:
+
+- the **form** shows the input only while the condition holds — choose
+  "recurring" and the billing cycle appears, choose "one-off" and it goes away
+- the **validator** requires it only while the condition holds, with the
+  message *"Required when kind is recurring"*
+- the **store** nulls it when the condition stops holding, so a project that
+  stops being recurring doesn't keep last month's cycle
+
+That last one is the reason this is a field-level declaration and not a
+`useEffect` in the admin form. Hiding an input stops the form sending a value;
+it does not remove the value already in the row. If you find yourself writing
+an effect to hide a field, the condition belongs here instead.
+
+### What you can compare
+
+| Condition | Means |
+| --- | --- |
+| `if kind == recurring` | equal |
+| `if kind != recurring` | not equal |
+| `if kind in (recurring, retainer)` | one of |
+
+Values are compared as text, because a form submits everything as a string —
+`if active == true` matches a boolean `true` and the string `"true"` alike.
+
+### What it does to the column
+
+**The column is always nullable**, whatever `required` says, because the field
+is genuinely absent the rest of the time. `required` on a conditional field
+means *required when it applies*. Add `?` as well to make it optional even
+then:
+
+```
+poNumber:string? if kind == oneOff      # may be blank on a one-off, absent otherwise
+```
+
+### Rules
+
+The condition is checked when you generate, not when you deploy:
+
+- the field it names has to exist on the same resource
+- a value compared against an `enum` has to be one of its options, and against
+  a `boolean`, `true` or `false`
+- a field can't depend on itself
+- conditions go **one level deep**: a field can't depend on a field that is
+  itself conditional, because then the form would have to decide what a hidden
+  field means for the one below it
+
 ## Naming
 
 Field names are camelCased: `first_name` becomes `firstName`.

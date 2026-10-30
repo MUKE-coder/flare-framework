@@ -55,7 +55,9 @@ function columnExpression(key: string, def: StoredField, resources: Map<string, 
     default:
       expr = `text(${col})`;
   }
-  if (def.required) expr += ".notNull()";
+  // A conditional field is absent whenever its condition does not hold, so the column has
+  // to accept null even though `required` is true: required means "when it applies".
+  if (def.required && !def.showWhen) expr += ".notNull()";
   if ("unique" in def && def.unique) expr += ".unique()";
   if ("default" in def && def.default !== undefined) expr += `.default(${q(def.default)})`;
   return expr;

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { storedFields, type Resource } from "./define.js";
 import { hasTooManyPlaces, moneyExponent } from "./money.js";
+import { conditionHolds, describeCondition } from "./conditions.js";
 import type { CreateInput, Field, StoredField, UpdateInput } from "./fields.js";
 import {
   isColor,
@@ -188,15 +189,44 @@ export function createValidators<Fields extends Record<string, Field>>(resource:
         "This file wasn't uploaded for this field",
       );
     }
-    const value = def.required ? base : base.nullable();
+    // A conditional field is absent whenever its condition does not hold, so it cannot be
+    // required at the field level: whether it is needed depends on a sibling, which a
+    // per-field schema cannot see. It is relaxed here and enforced on the whole object
+    // below, so the "Required" message still lands on the right input.
+    const conditional = def.showWhen !== undefined;
+    const value = def.required && !conditional ? base : base.nullable();
     update[key] = value.optional();
     const hasDefault = "default" in def && def.default !== undefined;
-    create[key] = def.required && !hasDefault ? value : value.optional();
+    create[key] = def.required && !conditional && !hasDefault ? value : value.optional();
   }
+
+  /** The conditional fields, and what each one needs to be true. */
+  const conditional = [...storedFields(resource)].flatMap(([key, def]) =>
+    def.showWhen ? [{ key, condition: def.showWhen, required: def.required !== false }] : [],
+  );
+
+  /**
+   * Required-when-it-applies, checked against the whole record.
+   *
+   * On an update only the keys actually sent are judged: a PATCH that touches neither the
+   * controlling field nor the dependent one must not fail because a field it never
+   * mentioned is absent from the payload.
+   */
+  const checkConditions = (partial: boolean) => (values: Record<string, unknown>, ctx: z.RefinementCtx) => {
+    for (const { key, condition, required } of conditional) {
+      if (!required) continue;
+      if (partial && !(condition.field in values) && !(key in values)) continue;
+      if (!conditionHolds(condition, values)) continue;
+      const supplied = values[key];
+      if (supplied === undefined || supplied === null || supplied === "") {
+        ctx.addIssue({ code: "custom", path: [key], message: `Required when ${describeCondition(condition)}` });
+      }
+    }
+  };
 
   const unknownKeys = { error: (issue: { code?: string; keys?: string[] }) => (issue.code === "unrecognized_keys" ? `Unknown field(s): ${issue.keys?.join(", ")}` : undefined) };
   return {
-    create: z.strictObject(create, unknownKeys) as unknown as z.ZodType<CreateInput<Fields>>,
-    update: z.strictObject(update, unknownKeys) as unknown as z.ZodType<UpdateInput<Fields>>,
+    create: z.strictObject(create, unknownKeys).superRefine(checkConditions(false)) as unknown as z.ZodType<CreateInput<Fields>>,
+    update: z.strictObject(update, unknownKeys).superRefine(checkConditions(true)) as unknown as z.ZodType<UpdateInput<Fields>>,
   };
 }
