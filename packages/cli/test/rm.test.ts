@@ -22,6 +22,8 @@ async function app() {
 
 const TAG_FILES = [
   "resources/tag.resource.ts",
+  // Generated with the resource, so removed with it.
+  "policies/tag.policy.ts",
   "db/schema/tags.ts",
   "app/api/tags/route.ts",
   "app/api/tags/[id]/route.ts",

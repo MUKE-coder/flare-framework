@@ -29,14 +29,14 @@ describe("askCreateQuestions", () => {
   it("asks where the app will run, before anything else", async () => {
     const { answers, asked } = await promptsFor({});
     expect(asked[0]).toMatch(/where will it run/i);
-    expect(answers.stack).toBe("cloudflare");
+    expect(answers.stack).toBe("next");
   });
 
   it("offers both stacks", async () => {
     const prompts = await import("@clack/prompts");
     await promptsFor({});
     const [options] = vi.mocked(prompts.select).mock.calls[0]!;
-    expect((options.options as { value: string }[]).map((choice) => choice.value)).toEqual(["cloudflare", "next"]);
+    expect((options.options as { value: string }[]).map((choice) => choice.value)).toEqual(["next", "cloudflare"]);
   });
 
   it("doesn't ask what --stack already answered", async () => {

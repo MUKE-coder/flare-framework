@@ -17,11 +17,13 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
-function app(stack?: "next") {
+// Cloudflare unless a test says otherwise: most of these compare the copied engine
+// against a named stack's template, so the two have to be chosen together.
+function app(stack: "next" | "cloudflare" = "cloudflare") {
   const root = mkdtempSync(join(tmpdir(), "flare-eject-"));
   dirs.push(root);
   const dir = join(root, "shop");
-  createApp(dir, { install: false, pm: "pnpm", ...(stack ? { stack } : {}) });
+  createApp(dir, { install: false, pm: "pnpm", stack });
   return dir;
 }
 

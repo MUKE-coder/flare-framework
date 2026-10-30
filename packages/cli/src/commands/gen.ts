@@ -8,6 +8,7 @@ import { loadResources } from "../generator/load.js";
 import { DriftError, writeGenerated } from "../generator/markers.js";
 import { generateSchemaMigration } from "../generator/migrations.js";
 import { applyPlan, ensureSupportFiles, logResults, planFiles, type FileResult } from "../generator/plan.js";
+import { loadPolicies, policyPath, renderPolicy } from "../generator/policy.js";
 import { findAppRoot } from "./run.js";
 import { readStack } from "../stack.js";
 
@@ -98,13 +99,30 @@ export async function genResource(rawName: string, options: GenResourceOptions):
     }
   }
 
+  // A resource with no policy file is open to every signed-in user. That is a reasonable
+  // default for a framework that cannot know your roles, and the wrong one for a resource
+  // somebody just created: the gap between generating a table and remembering to restrict
+  // it is exactly where an open admin panel gets deployed.
+  //
+  // So a new resource arrives admin-only, and widening it is a visible edit to a file that
+  // is already there. `flare gen policy <Name> --roles ...` rewrites it.
+  const policyRelative = policyPath(name);
+  const policyAbsolute = join(appRoot, policyRelative);
+  const wrotePolicy = !exists && !existsSync(policyAbsolute);
+  if (wrotePolicy) {
+    mkdirSync(dirname(policyAbsolute), { recursive: true });
+    writeFileSync(policyAbsolute, renderPolicy(name, { read: ["admin"], create: ["admin"], update: ["admin"], delete: ["admin"] }));
+    log(`${pc.green("create".padEnd(9))} ${policyRelative}`);
+  }
+
   let written: FileResult[];
   let table: string;
   try {
     const all = await loadResources(appRoot);
     table = all.find(({ resource }) => resource.name === name)!.resource.table;
     ensureSupportFiles(appRoot, log);
-    written = applyPlan(appRoot, planFiles(all, undefined, readStack(appRoot)), { force: options.force });
+    const policies = wrotePolicy ? await loadPolicies(appRoot) : undefined;
+    written = applyPlan(appRoot, planFiles(all, policies, readStack(appRoot)), { force: options.force });
     logResults(written, log);
   } catch (error) {
     const hint = exists ? "" : `\n(${relativePath} was written; fix it and run \`flare sync-types\`.)`;
@@ -133,5 +151,8 @@ export async function genResource(rawName: string, options: GenResourceOptions):
   }
 
   const descriptor: FileResult = { path: relativePath, status: exists ? "outdated" : "missing", outcome: exists ? "update" : "create" };
-  return { name, mode: exists ? "update" : "create", written: [descriptor, ...written], migrations };
+  // The policy is written directly rather than through the plan, so it has to be added to
+  // the result by hand — a file the command created but did not report would be a lie.
+  const policy: FileResult[] = wrotePolicy ? [{ path: policyRelative, status: "missing", outcome: "create" }] : [];
+  return { name, mode: exists ? "update" : "create", written: [descriptor, ...policy, ...written], migrations };
 }

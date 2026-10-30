@@ -9,12 +9,20 @@ Flare publishes three packages together, always at the same version:
    argument to see what each one says now; it refuses if they disagree. Tests
    fail if any of them drifts.
 2. `pnpm build && node scripts/build-lockfiles.mjs` — regenerates
-   `packages/cli/templates/locks/*`, which is what makes a new app install in
-   about half the time. It pins the version being released, so it has to run
-   after the bump. Regenerate `templates/app/worker-configuration.d.ts` too when
+   `packages/cli/templates/locks/<stack>/*`, which is what makes a new app
+   install in about half the time. One set per stack, because a Next.js app and
+   a Cloudflare app share almost no dependencies. It pins the version being
+   released, so it has to run after the bump. Pass a stack name to do only one
+   while iterating; the release needs both.
+
+   The yarn leg really installs, because yarn 1 has no lockfile-only mode, and
+   it takes far longer than npm and pnpm together — tens of minutes on Windows.
+   `--skip-yarn` leaves the existing `yarn.lock` files alone while you iterate.
+   A missing `yarn.lock` is not fatal: `copyLockfile` ships nothing and the
+   user's first install resolves for itself, slower but correct. Regenerate `templates/app/worker-configuration.d.ts` too when
    the wrangler version changes: `wrangler types` inside a scaffolded app.
 
-   It ends by running `scripts/verify-lockfile.mjs`, which checks the lockfile
+   It ends by running `scripts/verify-lockfile.mjs`, which checks each lockfile
    the way a new app will: pnpm 12, a fresh directory, a cold store. If that
    fails because a version `versions.ts` pins was published in the last 24
    hours, **the release waits** — pnpm 12 refuses a lockfile containing one, and

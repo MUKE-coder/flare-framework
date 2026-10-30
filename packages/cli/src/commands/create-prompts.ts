@@ -58,7 +58,7 @@ export async function askCreateQuestions(given: CreateAnswers, appName?: string)
     answers.stack = stopIfCancelled(
       await prompts.select<Stack>({
         message: "Where will it run?",
-        initialValue: "cloudflare" satisfies Stack,
+        initialValue: "next" satisfies Stack,
         options: STACKS.map((value) => ({ value, label: value === "next" ? "Next.js" : "Cloudflare", hint: STACK_LABELS[value] })),
       }),
     );

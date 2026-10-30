@@ -51,8 +51,11 @@ function memoryRows(seed: Row[] = []): ResourceRows & { all: Row[] } {
     async byId(id) {
       return all.find((row) => row.id === id) ?? null;
     },
-    async titles(ids, titleField) {
-      return all.filter((row) => ids.includes(String(row.id))).map((row) => ({ id: String(row.id), title: row[titleField] }));
+    async titles(ids, titleField, owner) {
+      return all
+        .filter((row) => ids.includes(String(row.id)))
+        .filter((row) => !owner || row[owner.field] === owner.value)
+        .map((row) => ({ id: String(row.id), title: row[titleField] }));
     },
     async insert(values) {
       all.push({ ...values });
@@ -232,6 +235,31 @@ describe("a policy naming a field the resource has not got", () => {
         currentUser: () => ada,
       }),
     ).toThrow(/own\.field is "ownerId"/);
+  });
+});
+
+describe("relation titles", () => {
+  it("names only the records this user may see", async () => {
+    // A relation picker asks for titles by id. Answering for somebody else's invoice
+    // leaks its number to a user whose every other read is confined — and the number is
+    // often the whole secret.
+    const titles = await store().titles(["a1", "b1"]);
+    expect(titles).toEqual({ a1: "A-1" });
+  });
+
+  it("omits an id it will not answer for, the same as one that does not exist", async () => {
+    const titles = await store().titles(["b1", "does-not-exist"]);
+    expect(titles).toEqual({});
+  });
+
+  it("answers for everything when the role is exempt from ownership", async () => {
+    signedInAs = { id: "admin-1", email: "admin@example.com", role: "admin" };
+    expect(await store().titles(["a1", "b1"])).toEqual({ a1: "A-1", b1: "B-1" });
+  });
+
+  it("answers nothing when nobody is signed in", async () => {
+    signedInAs = null;
+    expect(await store().titles(["a1", "b1"])).toEqual({});
   });
 });
 

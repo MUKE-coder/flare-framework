@@ -12,7 +12,8 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-export const STACKS = ["cloudflare", "next"] as const;
+// Next.js first: it is the default, and the order here is the order the prompt offers.
+export const STACKS = ["next", "cloudflare"] as const;
 export type Stack = (typeof STACKS)[number];
 
 export const isStack = (value: unknown): value is Stack => STACKS.includes(value as Stack);

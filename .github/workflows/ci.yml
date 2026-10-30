@@ -54,7 +54,7 @@ jobs:
       # Scaffolded under examples/ so the workspace links @flaredev/* to this checkout,
       # which is the point: CI must test the code in the PR, not the last release.
       - name: Scaffold an app
-        run: node packages/cli/dist/index.js create examples/ci-cf --yes --skip-install --theme mono
+        run: node packages/cli/dist/index.js create examples/ci-cf --stack cloudflare --yes --skip-install --theme mono
 
       - name: Install its dependencies
         run: pnpm install --no-frozen-lockfile

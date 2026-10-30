@@ -129,8 +129,9 @@ export function prismaRows(delegate: PrismaDelegate, client: unknown): ResourceR
       return delegate.findUnique({ where: { id } });
     },
 
-    async titles(ids, titleField) {
-      const rows = await delegate.findMany({ where: { id: { in: ids } }, select: { id: true, [titleField]: true } });
+    async titles(ids, titleField, owner) {
+      const where = owner ? { id: { in: ids }, [owner.field]: owner.value } : { id: { in: ids } };
+      const rows = await delegate.findMany({ where, select: { id: true, [titleField]: true } });
       return rows.map((row) => ({ id: String(row.id), title: row[titleField] }));
     },
 

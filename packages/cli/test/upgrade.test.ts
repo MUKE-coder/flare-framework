@@ -18,11 +18,13 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
-function olderApp(stack?: "next") {
+// Cloudflare unless a test says otherwise: these compare the installed engine against a
+// named stack's template, so the two have to be chosen together.
+function olderApp(stack: "next" | "cloudflare" = "cloudflare") {
   const root = mkdtempSync(join(tmpdir(), "flare-upgrade-"));
   dirs.push(root);
   const dir = join(root, "shop");
-  createApp(dir, { install: false, pm: "pnpm", ...(stack ? { stack } : {}) });
+  createApp(dir, { install: false, pm: "pnpm", stack });
   // What an app from before the move looks like.
   rmSync(join(dir, "lib/resource"), { recursive: true, force: true });
   return dir;

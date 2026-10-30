@@ -65,7 +65,7 @@ export function createCli() {
   cli
     .command("create <dir>", "Scaffold a new Flare app")
     .option("--pm <manager>", "Package manager: pnpm, npm, yarn, or bun (default: detected)")
-    .option("--stack <name>", "Where it runs: cloudflare (default) or next")
+    .option("--stack <name>", "Where it runs: next (default) or cloudflare")
     .option("--theme <name>", "Look of the app: default, coral, amber, sky, mono or emerald")
     .option("--auth <list>", "Sign-in methods: magic-link, email-otp, passkeys, 2fa-app, 2fa-email, all or none (default: all)")
     .option("--auth-providers <list>", "Social sign-in, comma-separated: google, github, apple, microsoft")

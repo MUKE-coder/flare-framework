@@ -1,0 +1,74 @@
+# The services this app expects, running on your machine.
+#
+#   docker compose up -d
+#
+# Without Docker you point the same variables at hosted services instead — Neon for
+# Postgres, Cloudflare R2 for uploads, Upstash for Redis. Nothing in the app knows the
+# difference: MinIO speaks S3 like R2 does, and the Redis proxy speaks Upstash's REST
+# protocol, so `lib/storage.ts` and `lib/redis.ts` are the same code either way.
+#
+# `.env.example` already holds the values that match this file.
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: flare
+      POSTGRES_PASSWORD: flare
+      POSTGRES_DB: app
+    ports: ["5432:5432"]
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flare -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # R2 speaks S3, and so does MinIO, which is how file uploads work locally without a
+  # Cloudflare account.
+  #
+  # bitnamilegacy, pinned: bitnami/minio stopped publishing tags, and both minio/minio on
+  # Docker Hub and quay.io now refuse an anonymous pull. This archived tag still works and
+  # creates the bucket on startup, so there is no setup step after `up`.
+  minio:
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
+    environment:
+      MINIO_ROOT_USER: flare
+      MINIO_ROOT_PASSWORD: flare-secret-123
+      MINIO_DEFAULT_BUCKETS: app-uploads
+    # 9000 is the S3 API, 9001 the web console (http://localhost:9001).
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [minio-data:/bitnami/minio/data]
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:8-alpine
+    # Not published: only the proxy below talks to it, and the app never speaks RESP.
+    expose: ["6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # `@upstash/redis` is a REST client, not a socket client, so it cannot talk to the Redis
+  # above directly. This proxy speaks Upstash's REST protocol in front of it, which keeps
+  # `lib/redis.ts` identical whether you are on your laptop or on Upstash.
+  redis-http:
+    image: hiett/serverless-redis-http:latest
+    environment:
+      SRH_MODE: env
+      SRH_TOKEN: flare-local-token
+      SRH_CONNECTION_STRING: redis://redis:6379
+    ports: ["8079:80"]
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  minio-data:

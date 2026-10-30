@@ -433,16 +433,19 @@ export function createResourceStore(options: ResourceStoreOptions) {
     /**
      * Title-field values for a set of ids (for showing relations). Missing ids are omitted.
      *
-     * Not confined by ownership, and `rows.titles` has no way to be: it returns an id and
-     * a title, not the owner. It is called with ids this resource's rows already point at,
-     * so in practice it shows the names of records you can already see — but if you hand a
-     * confined user a relation picker over a confined resource, the titles are not the
-     * place that restriction is enforced. Filter the ids before calling it.
+     * Confined by ownership, like every other read: a relation picker shown to a user who
+     * only sees their own rows must not name anybody else's. An id they may not see is
+     * simply absent from the result, which the caller already handles — missing ids are
+     * omitted either way, so a title they are not entitled to looks the same as one that
+     * was deleted.
      */
     async titles(ids: string[]): Promise<Record<string, string>> {
       const unique = [...new Set(ids.filter(Boolean))];
       if (unique.length === 0) return {};
-      const found = await rows.titles(unique, resource.titleField);
+      const limit = await confine();
+      // Not signed in where sign-in is required: no titles rather than everyone's.
+      if (isFailure(limit)) return {};
+      const found = await rows.titles(unique, resource.titleField, limit ?? undefined);
       return Object.fromEntries(found.map((row) => [row.id, row.title == null ? row.id : String(row.title)]));
     },
 

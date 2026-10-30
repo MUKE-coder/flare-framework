@@ -3,9 +3,95 @@ title: Quickstart
 description: Scaffold, generate, and deploy a live CRUD app in about five minutes.
 ---
 
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
 This walks through the whole loop: a scaffolded app, a generated resource
 with a working REST API and admin UI, and a live deploy to Cloudflare
 Workers — no hand-written boilerplate at any step.
+
+## Do you need Docker?
+
+Depends on the stack, and it is worth knowing before you start.
+
+<Tabs>
+<TabItem label="Next.js — with Docker">
+
+The Next.js stack uses real Postgres, real S3 and real Redis, so those have to
+come from somewhere. With Docker they come from the `docker-compose.yml` in
+your new app:
+
+```bash
+pnpm create flare-framework myapp --stack next
+cd myapp
+docker compose up -d        # Postgres, MinIO and Redis
+npx flare migrate
+npx flare dev
+```
+
+That is the whole setup. `flare create` already wrote a `.env` holding a fresh
+`BETTER_AUTH_SECRET` and the addresses these three services listen on, so
+there is nothing to edit first.
+
+| Service | What it stands in for | Where |
+| --- | --- | --- |
+| `postgres` | Neon, or any Postgres | `127.0.0.1:5432` |
+| `minio` | Cloudflare R2 (it speaks S3, so the same code works) | `127.0.0.1:9000`, console on `:9001` |
+| `redis` + `redis-http` | Upstash (the proxy speaks Upstash's REST protocol) | `127.0.0.1:8079` |
+
+`docker compose down` stops them; add `-v` to throw the data away too.
+
+</TabItem>
+<TabItem label="Next.js — without Docker">
+
+You need a Postgres database and somewhere to put files. The free tiers are
+enough:
+
+1. **Postgres** — create a project on [Neon](https://neon.tech) and copy the
+   pooled connection string into `DATABASE_URL`.
+2. **Files** — create an [R2](https://developers.cloudflare.com/r2/) bucket and
+   an API token, then set `R2_ENDPOINT`, `R2_BUCKET`, `R2_ACCESS_KEY_ID` and
+   `R2_SECRET_ACCESS_KEY`.
+3. **Redis** — optional. Rate limits fall back to in-memory without it, which
+   is fine on one machine. For the real thing, create an
+   [Upstash](https://upstash.com) database and set the two `UPSTASH_` variables.
+
+```bash
+pnpm create flare-framework myapp --stack next
+cd myapp
+# edit .env with the values above
+npx flare migrate
+npx flare dev
+```
+
+Uploads are the one thing that will not work until R2 is set: `lib/storage.ts`
+signs URLs against whatever `R2_ENDPOINT` points at, and there is no local
+fallback.
+
+</TabItem>
+</Tabs><TabItem label="Cloudflare — no Docker">
+
+**Nothing to install.** Wrangler simulates the whole platform on your machine:
+D1 is a local SQLite file, R2 is a local directory, KV and Durable Objects run
+in the same process. `flare dev` is the only command, and there is no database
+to provision and no bucket to create.
+
+```bash
+pnpm create flare-framework myapp
+cd myapp
+npx flare dev
+```
+
+This is the stack the rest of this page uses.
+
+</TabItem>
+
+
+:::tip[Which stack?]
+**Next.js** is the default, and what most people reach for: real Postgres,
+Prisma, and Vercel. **Cloudflare** is the one to pick when you want the
+cheapest thing to run and the least to install — no Docker, no accounts, one
+command to deploy. [Choosing a stack](/start/stacks/) compares them properly.
+:::
 
 ## 1. Scaffold the app
 
@@ -19,13 +105,16 @@ pnpm when you have it — an app is around 340 packages, which is minutes under
 npm and seconds under pnpm. For a global `flare` command or the install
 scripts, see [Installation](/start/installation/).)
 
-It asks where the app will run first. This page takes the default,
-**Cloudflare** — Workers, D1 and Drizzle. Answering **Next.js** instead gives
-you the same descriptors, generated code and dashboard on Next.js 16,
-Postgres and Prisma, deployed to Vercel; from there follow
-[the Next.js tutorial](/tutorials/next-shop/) rather than this page, because
-the database commands differ. [Choosing a stack](/start/stacks/) compares
-them, and `--stack next` skips the question.
+It asks where the app will run first. The default is **Next.js** — Next.js 16,
+Postgres and Prisma, deployed to Vercel — and
+[the Next.js tutorial](/tutorials/next-shop/) follows it end to end.
+
+**The rest of this page takes the other answer, Cloudflare**, because it is the
+shorter path to something deployed: Workers, D1 and Drizzle, with nothing to
+install and one command to ship. Pass `--stack cloudflare` to skip the
+question. The descriptors, generated code and dashboard are identical either
+way; only the database commands differ, which is why the two have separate
+pages. [Choosing a stack](/start/stacks/) compares them properly.
 
 `flare create` writes a vinext app with TypeScript and Tailwind already
 configured, and wires up:

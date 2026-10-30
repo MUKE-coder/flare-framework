@@ -9,6 +9,7 @@ import { emailOTP } from "better-auth/plugins/email-otp";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { twoFactor } from "better-auth/plugins/two-factor";
 import { hashPassword, verifyPassword } from "@flaredev/core";
+import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { authConfig, type SocialProvider } from "./auth-config";
 import { checkPassword, isBreachedPassword, PASSWORD_MAX_LENGTH } from "./password-rules";
@@ -107,6 +108,45 @@ async function guardPassword(path: string, body: Record<string, unknown> | undef
   }
 }
 
+/**
+ * The first account to exist becomes the admin.
+ *
+ * Generated resources are admin-only, so without this a fresh app has a database, an API
+ * and a dashboard that nobody can reach — and the usual fix for that is to open
+ * everything up, which is how an admin panel ends up on the internet. The person running
+ * sign-up on an empty database is the person setting the app up.
+ *
+ * Done here rather than in `databaseHooks.user.create`, because the admin plugin already
+ * registers one of those (`{ role: defaultRole, ...user }`) and Better Auth does not merge
+ * the two — a second one is silently never called. This runs after the row exists and
+ * states the rule in SQL, which no plugin can quietly win.
+ *
+ * Everyone after them keeps the plugin's default role, and no role reaches an admin-only
+ * resource until you grant one with `flare user:role them@example.com admin`.
+ *
+ * Two people signing up in the same instant would both see two rows and neither would be
+ * promoted, leaving an app with no admin. It needs a brand-new app and millisecond timing,
+ * and `flare user:role you@example.com admin` fixes it, so this stays the simple rule
+ * rather than a transaction nobody can read.
+ */
+let adminSettled = false;
+
+async function promoteFirstUser() {
+  if (adminSettled) return;
+  const db = getDb();
+  // Two rows is all it takes to answer "is there exactly one?".
+  const rows = await db.select({ id: schema.user.id, role: schema.user.role }).from(schema.user).limit(2);
+  if (rows.length !== 1) {
+    // Nobody yet: the next sign-up asks again. More than one: the question is settled.
+    adminSettled = rows.length > 1;
+    return;
+  }
+  if (rows[0]!.role !== "admin") {
+    await db.update(schema.user).set({ role: "admin" }).where(eq(schema.user.id, rows[0]!.id));
+  }
+  adminSettled = true;
+}
+
 export const auth = betterAuth({
   appName: "__APP_NAME__",
   secret: env.BETTER_AUTH_SECRET,
@@ -147,6 +187,11 @@ export const auth = betterAuth({
     before: createAuthMiddleware(async (ctx) => {
       if (disabledPath(ctx.path)) throw new APIError("NOT_FOUND", { message: "This sign-in method isn't enabled." });
       await guardPassword(ctx.path, ctx.body as Record<string, unknown> | undefined);
+    }),
+    // Any route can be the one that creates the first user — a password sign-up, a magic
+    // link, a social callback — so this asks after all of them rather than guessing which.
+    after: createAuthMiddleware(async () => {
+      await promoteFirstUser();
     }),
   },
   plugins: [

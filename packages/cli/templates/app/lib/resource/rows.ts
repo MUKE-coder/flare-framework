@@ -78,7 +78,11 @@ export interface ResourceRows {
   /** How many rows match, giving up at `limit` so a huge table is never fully counted. */
   countUpTo(query: Pick<RowsQuery, "search" | "filters" | "deleted">, limit: number): Promise<number>;
   byId(id: string): Promise<Row | null>;
-  titles(ids: string[], titleField: string): Promise<{ id: string; title: unknown }[]>;
+  /**
+   * Title values for a set of ids. `owner`, when given, restricts the rows considered —
+   * a relation picker shown to a confined user must not name records they cannot see.
+   */
+  titles(ids: string[], titleField: string, owner?: { field: string; value: string }): Promise<{ id: string; title: unknown }[]>;
   insert(values: Row): Promise<Row>;
   /** The saved row, or null when there was nothing with that id. */
   update(id: string, values: Row): Promise<Row | null>;

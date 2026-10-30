@@ -41,7 +41,7 @@ describe("flarePackageSpec", () => {
 describe("createApp", () => {
   it("scaffolds a vinext + TypeScript + Tailwind app", () => {
     const dir = join(tempDir(), "shop");
-    const result = createApp(dir, { install: false, pm: "pnpm", compatibilityDate: "2026-09-17" });
+    const result = createApp(dir, { install: false, pm: "pnpm", stack: "cloudflare", compatibilityDate: "2026-09-17" });
 
     expect(result.name).toBe("shop");
     for (const file of [
@@ -187,8 +187,8 @@ describe("createApp", () => {
 
   it("generates a different auth secret per app", () => {
     const root = tempDir();
-    createApp(join(root, "a"), { install: false, pm: "pnpm" });
-    createApp(join(root, "b"), { install: false, pm: "pnpm" });
+    createApp(join(root, "a"), { install: false, pm: "pnpm", stack: "cloudflare" });
+    createApp(join(root, "b"), { install: false, pm: "pnpm", stack: "cloudflare" });
     expect(readFileSync(join(root, "a/.dev.vars"), "utf8")).not.toBe(readFileSync(join(root, "b/.dev.vars"), "utf8"));
   });
 
@@ -196,7 +196,7 @@ describe("createApp", () => {
     const root = tempDir();
     writeFileSync(join(root, "pnpm-workspace.yaml"), "packages:\n  - examples/*\n");
     const dir = join(root, "examples", "demo");
-    const result = createApp(dir, { install: false, pm: "pnpm" });
+    const result = createApp(dir, { install: false, pm: "pnpm", stack: "cloudflare" });
 
     expect(result.inWorkspace).toBe(true);
     expect(existsSync(join(dir, "pnpm-workspace.yaml"))).toBe(false);
@@ -210,5 +210,62 @@ describe("createApp", () => {
 
   it("rejects unknown package managers", () => {
     expect(() => createApp(join(tempDir(), "x"), { install: false, pm: "pip" })).toThrow(/Unknown package manager/);
+  });
+
+  /**
+   * The stack somebody gets when they do not choose one. Worth pinning: it decides the
+   * database, the ORM and the host, and it is answered by pressing Enter.
+   */
+  it("defaults to the Next.js stack", () => {
+    const dir = tempDir();
+    createApp(dir, { install: false, pm: "pnpm" });
+
+    const manifest = JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as { flare?: { stack?: string }; dependencies?: Record<string, string> };
+    expect(manifest.flare?.stack).toBe("next");
+    expect(manifest.dependencies).toHaveProperty("next");
+    expect(manifest.dependencies).not.toHaveProperty("vinext");
+
+    // Postgres, Prisma and the services that go with them — not D1 and Wrangler.
+    expect(existsSync(join(dir, "prisma"))).toBe(true);
+    expect(existsSync(join(dir, "wrangler.jsonc"))).toBe(false);
+    expect(existsSync(join(dir, "vite.config.ts"))).toBe(false);
+  });
+
+  it("gives a new Next.js app the services it needs, already addressed", () => {
+    const dir = tempDir();
+    createApp(dir, { install: false, pm: "pnpm" });
+
+    // `docker compose up -d` is the whole local setup, so the compose file and the
+    // addresses in .env have to agree.
+    expect(existsSync(join(dir, "docker-compose.yml"))).toBe(true);
+    const compose = readFileSync(join(dir, "docker-compose.yml"), "utf8");
+    const env = readFileSync(join(dir, ".env"), "utf8");
+    for (const service of ["postgres:", "minio:", "redis:"]) expect(compose).toContain(service);
+    expect(env).toContain("DATABASE_URL=postgresql://flare:flare@127.0.0.1:5432/app");
+    expect(env).toContain("R2_ENDPOINT=http://127.0.0.1:9000");
+    expect(env).toMatch(/BETTER_AUTH_SECRET=.+/);
+  });
+
+  it("keeps the other stack's runtime and ORM out of a Next.js app", () => {
+    const dir = tempDir();
+    createApp(dir, { install: false, pm: "pnpm" });
+    const deps = Object.keys((JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as { dependencies: Record<string, string> }).dependencies);
+
+    // @better-auth/drizzle-adapter was shipped in every Next.js app for months: unused,
+    // and with a peer range npm refuses outright, so `npm install` failed on a fresh app.
+    for (const unwanted of ["vinext", "@vinext/cloudflare", "drizzle-orm", "react-server-dom-webpack", "@better-auth/drizzle-adapter"]) {
+      expect(deps, unwanted).not.toContain(unwanted);
+    }
+    // The shared half is still there.
+    for (const wanted of ["better-auth", "@better-auth/passkey", "lucide-react", "next"]) {
+      expect(deps, wanted).toContain(wanted);
+    }
+  });
+
+  it("leaves the Cloudflare stack with nothing to install", () => {
+    const dir = tempDir();
+    createApp(dir, { install: false, pm: "pnpm", stack: "cloudflare" });
+    // Wrangler simulates D1, R2 and KV locally, so there is nothing for Docker to run.
+    expect(existsSync(join(dir, "docker-compose.yml"))).toBe(false);
   });
 });

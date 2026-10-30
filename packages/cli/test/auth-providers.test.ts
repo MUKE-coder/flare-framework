@@ -63,7 +63,8 @@ describe("create with auth and theme choices", () => {
     const root = mkdtempSync(join(tmpdir(), "flare-oauth-"));
     dirs.push(root);
     const dir = join(root, "app");
-    createApp(dir, { install: false, pm: "pnpm", ...options });
+    // Cloudflare: these check .dev.vars and wrangler.jsonc, which the Next.js stack has no equivalent of.
+    createApp(dir, { install: false, pm: "pnpm", stack: "cloudflare", ...options });
     const read = (file: string) => readFileSync(join(dir, file), "utf8");
     return { config: read("lib/auth-config.ts"), site: read("lib/site.ts"), auth: read("lib/auth.ts"), devVars: read(".dev.vars"), example: read(".dev.vars.example") };
   }

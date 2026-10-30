@@ -75,6 +75,8 @@ describe("genResource", () => {
     expect(result.name).toBe("OrderItem");
     expect(result.written.map((w) => w.path)).toEqual([
       "resources/order-item.resource.ts",
+      // A new resource is admin-only until you widen it, so the policy arrives with it.
+      "policies/order-item.policy.ts",
       "db/schema/order_items.ts",
       "app/api/order-items/route.ts",
       "app/api/order-items/[id]/route.ts",
@@ -94,6 +96,7 @@ describe("genResource", () => {
       "db/relations.ts",
       "resources/server.ts",
       "db/schema.ts",
+      "policies/index.ts",
     ]);
     expect(result.written.slice(1).every((w) => w.outcome === "create")).toBe(true);
     expect(readFileSync(join(root, "lib/api.ts"), "utf8")).toContain("export const authorize");

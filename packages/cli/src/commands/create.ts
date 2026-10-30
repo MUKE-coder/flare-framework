@@ -32,7 +32,7 @@ export interface CreateOptions {
   log?: (message: string) => void;
   /** Override the Workers compatibility date (used by tests). */
   compatibilityDate?: string;
-  /** Which stack to target: "cloudflare" (default) or "next". */
+  /** Which stack to target: "next" (default) or "cloudflare". */
   stack?: string;
 }
 
@@ -106,7 +106,7 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   if (options.stack !== undefined && !isStack(options.stack)) {
     throw new Error(`Unknown stack "${options.stack}". Use ${STACKS.join(" or ")}.`);
   }
-  const stack: Stack = (options.stack as Stack | undefined) ?? "cloudflare";
+  const stack: Stack = (options.stack as Stack | undefined) ?? "next";
   const authProviders = parseAuthProviders(options.authProviders);
   const authMethods = parseAuthMethods(options.auth);
   const theme = parseTheme(options.theme);
@@ -136,9 +136,12 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   appendFileSync(join(dir, stack === "next" ? ".env.example" : ".dev.vars.example"), devVarsExampleEntries(authProviders));
 
   const shared = { react: APP_DEPENDENCIES.react, "react-dom": APP_DEPENDENCIES["react-dom"] };
-  const uiOnly = Object.fromEntries(
-    Object.entries(APP_DEPENDENCIES).filter(([key]) => !["vinext", "@vinext/cloudflare", "drizzle-orm", "react-server-dom-webpack"].includes(key)),
-  );
+  // Everything a Next.js app shares with the Cloudflare one: the UI packages, auth, the
+  // fonts. What is left out is what belongs to the other runtime or the other ORM —
+  // including the Drizzle auth adapter, which a Next.js app never imports (the overlay
+  // brings @better-auth/prisma-adapter) and whose peer range npm now refuses to resolve.
+  const cloudflareOnlyPackages = ["vinext", "@vinext/cloudflare", "drizzle-orm", "react-server-dom-webpack", "@better-auth/drizzle-adapter"];
+  const uiOnly = Object.fromEntries(Object.entries(APP_DEPENDENCIES).filter(([key]) => !cloudflareOnlyPackages.includes(key)));
 
   writeJson(join(dir, "package.json"), {
     name,
@@ -179,9 +182,15 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
 
   // Local secrets (git-ignored). On Cloudflare production secrets are set with
   // `wrangler secret put`; on Vercel they are project environment variables.
+  //
+  // The Next.js stack gets the local service addresses already filled in, matching the
+  // docker-compose.yml beside it, so `docker compose up -d` is the only setup step.
+  // Point them at Neon, R2 and Upstash to deploy. The Cloudflare stack needs none of
+  // this: D1, R2 and KV are all simulated locally by Wrangler.
   writeFileSync(
     join(dir, stack === "next" ? ".env" : ".dev.vars"),
-    `BETTER_AUTH_SECRET=${randomBytes(32).toString("base64")}\nRESEND_API_KEY=\nMAIL_FROM=\n${devVarsEntries(authProviders)}`,
+    `BETTER_AUTH_SECRET=${randomBytes(32).toString("base64")}\nRESEND_API_KEY=\nMAIL_FROM=\n${devVarsEntries(authProviders)}` +
+      (stack === "next" ? `\n${LOCAL_SERVICES}` : ""),
   );
 
   if (packageManager === "pnpm" && !inWorkspace) {
@@ -203,7 +212,7 @@ ${ALLOW_BUILDS}
   // just the fetch. Only for published versions: a checkout links @flaredev/* locally,
   // which the lockfile knows nothing about.
   const pinned = flarePackageSpec("core", dir, packageManager).startsWith("^");
-  if (pinned) copyLockfile(packageManager, dir);
+  if (pinned) copyLockfile(packageManager, dir, stack);
 
   const log = options.log ?? ((message: string) => console.log(message));
   log(`${pc.green("✔")} Wrote ${files} files to ${relative(process.cwd(), dir) || "."}`);
@@ -218,11 +227,39 @@ ${ALLOW_BUILDS}
  * The lockfile shipped for this package manager, if there is one. Bun reads npm's, so it
  * gets that one; only bun and npm share a file.
  */
-export function copyLockfile(packageManager: PackageManager, dir: string): boolean {
+/**
+ * Addresses of the services in docker-compose.yml, written into a new Next.js app's
+ * `.env` so there is nothing to edit before the first `pnpm dev`.
+ */
+export const LOCAL_SERVICES = [
+  "# Local services (docker-compose.yml). Swap these for Neon, R2 and Upstash to deploy.",
+  "DATABASE_URL=postgresql://flare:flare@127.0.0.1:5432/app",
+  "BETTER_AUTH_URL=http://localhost:3000",
+  "R2_ENDPOINT=http://127.0.0.1:9000",
+  "R2_BUCKET=app-uploads",
+  "R2_ACCESS_KEY_ID=flare",
+  "R2_SECRET_ACCESS_KEY=flare-secret-123",
+  "UPSTASH_REDIS_REST_URL=http://127.0.0.1:8079",
+  "UPSTASH_REDIS_REST_TOKEN=flare-local-token",
+  "",
+].join("\n");
+
+/**
+ * The lockfile shipped for this package manager and stack, if there is one. Bun reads
+ * npm's, so it gets that one; only bun and npm share a file.
+ *
+ * Per stack, because the two have almost nothing in common — one resolves vinext,
+ * wrangler and drizzle, the other next, prisma and the Vercel CLI. One shared file was
+ * built from the Cloudflare app and copied into Next.js apps as well, where it pinned
+ * packages the app does not have and missed every package it does.
+ */
+export function copyLockfile(packageManager: PackageManager, dir: string, stack: Stack): boolean {
   const file =
     packageManager === "pnpm" ? "pnpm-lock.yaml" : packageManager === "yarn" ? "yarn.lock" : "package-lock.json";
   if (!file) return false;
-  const source = join(templatesDir, "locks", file);
+  const source = join(templatesDir, "locks", stack, file);
+  // Missing is not an error: the install simply resolves for itself, which is slower and
+  // correct. That is also what happens for a stack whose lockfile has not been built yet.
   if (!existsSync(source)) return false;
   copyFileSync(source, join(dir, file));
   return true;

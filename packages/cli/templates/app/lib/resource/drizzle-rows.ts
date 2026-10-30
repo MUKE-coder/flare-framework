@@ -108,9 +108,14 @@ export function drizzleRows(table: SQLiteTable, getDb: () => AnyDatabase): Resou
       return (record as Row | undefined) ?? null;
     },
 
-    async titles(ids, titleField) {
+    async titles(ids, titleField, owner) {
       const titleColumn = columns[titleField] ?? idColumn;
-      const rows = await getDb().select({ id: idColumn, title: titleColumn }).from(table).where(inArray(idColumn, ids));
+      const ownerColumn = owner ? columns[owner.field] : undefined;
+      // An owner naming a column this table does not have would widen the query rather
+      // than narrow it, so it answers nothing instead.
+      if (owner && !ownerColumn) return [];
+      const where = ownerColumn ? and(inArray(idColumn, ids), eq(ownerColumn, owner!.value)) : inArray(idColumn, ids);
+      const rows = await getDb().select({ id: idColumn, title: titleColumn }).from(table).where(where);
       return rows as { id: string; title: unknown }[];
     },
 
