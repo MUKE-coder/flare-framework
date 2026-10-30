@@ -24,6 +24,8 @@ export type Slide =
       caption?: string;
       section?: string;
     }
+  /** A real table: the columns of a resource, or any grid with a header row. */
+  | { id: string; kind: "table"; eyebrow: string; title?: string; head: string[]; rows: string[][]; caption?: string; section?: string }
   /** The closing accounting: every problem, and the one thing that answers it. */
   | { id: string; kind: "scorecard"; eyebrow: string; title: string; rows: { code: string; label: string; answer: string }[]; section?: string };
 

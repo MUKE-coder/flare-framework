@@ -165,6 +165,14 @@ const md = (text: string) =>
       .col li { font-size: 34px; font-weight: 500; }
       .col .note { font-family: var(--mono); font-size: 22px; color: var(--muted); margin-top: 20px; }
 
+      table.cols-table { width: 100%; border-collapse: collapse; font-size: 27px; }
+      table.cols-table th {
+        font-family: var(--mono); font-size: 21px; letter-spacing: 2px; text-transform: uppercase;
+        color: var(--ember); text-align: left; padding: 0 0 14px; border-bottom: 2px solid var(--rule);
+      }
+      table.cols-table td { padding: 12px 24px 12px 0; border-bottom: 1px solid var(--rule); vertical-align: top; color: var(--body); }
+      table.cols-table td.k { font-family: var(--mono); color: var(--ink); font-weight: 500; white-space: nowrap; }
+
       table.score { width: 100%; border-collapse: collapse; font-size: 26px; }
       table.score td { padding: 11px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
       table.score td.c { font-family: var(--mono); color: var(--ember); width: 72px; }
@@ -286,6 +294,24 @@ const md = (text: string) =>
                     {slide.right.note && <p class="note" set:html={md(slide.right.note)} />}
                   </div>
                 </div>
+                {slide.caption && <p class="caption" set:html={md(slide.caption)} />}
+              </>
+            )}
+
+            {slide.kind === "table" && (
+              <>
+                <p class="eyebrow">{slide.eyebrow}</p>
+                {slide.title && <h2 class="headline" style="font-size:56px;margin-bottom:4px">{slide.title}</h2>}
+                <table class="cols-table">
+                  <thead>
+                    <tr>{slide.head.map((h) => <th>{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {slide.rows.map((row) => (
+                      <tr>{row.map((cell, i) => <td class={i === 0 ? "k" : ""} set:html={md(cell)} />)}</tr>
+                    ))}
+                  </tbody>
+                </table>
                 {slide.caption && <p class="caption" set:html={md(slide.caption)} />}
               </>
             )}
