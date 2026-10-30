@@ -24,6 +24,23 @@ export type Slide =
       caption?: string;
       section?: string;
     }
+  /**
+   * One item of a list, bright, with the rest of the list faded beside it. The audience
+   * keeps its place without a progress bar, and the slide carries one idea at a time.
+   */
+  | {
+      id: string;
+      kind: "focus";
+      eyebrow: string;
+      items: { code: string; label: string }[];
+      /** The `code` of the item being made. */
+      active: string;
+      title: string;
+      body?: string;
+      section?: string;
+    }
+  /** The speaker. A portrait, a name, and the handful of facts worth saying out loud. */
+  | { id: string; kind: "portrait"; eyebrow: string; name: string; role: string; image: string; facts: string[]; links?: string; section?: string }
   /** Bold cards: the seven tables as objects you can point at, before the detail. */
   | { id: string; kind: "cards"; eyebrow: string; title?: string; cards: { num: string; name: string; note: string; hangs?: string }[]; caption?: string; section?: string }
   /** A real table: the columns of a resource, or any grid with a header row. */

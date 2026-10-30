@@ -13,19 +13,97 @@ import type { Slide } from "./types";
  */
 
 export const slides: Slide[] = [
-  // ─── The job ────────────────────────────────────────────────────────────────
+  // ─── Opening ────────────────────────────────────────────────────────────────
   {
-    id: "cover",
+    id: "title",
     kind: "cover",
     event: "JS Meetup · 2026",
-    title: "Flare",
-    tagline: "A clinic needs a system by Friday. Two developers, same brief, same room.",
-    speaker: "Muke JohnBaptist",
+    title: "Ship the Whole Thing",
+    tagline:
+      "A real client system — database, API, admin screens, auth, uploads and a deploy — built live in Next.js, without the fortnight of setup nobody puts in the quote.",
+    speaker: "Muke JohnBaptist · Desishub",
   },
+  {
+    id: "not-a-framework",
+    kind: "statement",
+    eyebrow: "What this is",
+    title: 'Flare, the <span style="text-decoration:line-through;text-decoration-thickness:6px;opacity:0.45">framework</span>',
+    body: "Next.js and Cloudflare, with the boilerplate already written — into **your** repository, under your name. There is nothing of Flare left in the route handler. You could delete the CLI tomorrow and the app would still build.",
+  },
+  {
+    id: "me",
+    kind: "portrait",
+    eyebrow: "Who is saying this",
+    name: "Muke JohnBaptist",
+    image: "/talk/jb-portrait.webp",
+    role: "Fullstack engineer · Founder, Desishub Technologies · Kampala",
+    facts: [
+      "150+ client projects shipped across four countries",
+      "`DGateway` — MTN, Airtel and Stripe payments, ~4k transactions a day",
+      "`Grit`, the Go framework this talk's sibling was about",
+      "JB WEB DEVELOPER on YouTube — Next.js, Go, Docker, DevOps",
+    ],
+    links: "github.com/MUKE-coder · @JBWEBDEVELOPER · jb.desishub.com",
+  },
+
+  // ─── Why another one ────────────────────────────────────────────────────────
+  { id: "sec-why", kind: "section", part: "First", title: "Why build<br>another one?", note: "Two questions for the room before I answer that." },
+  {
+    id: "q-next",
+    kind: "statement",
+    eyebrow: "Hands up",
+    title: "Who here builds with Next.js?",
+    body: "Keep them up.",
+  },
+  {
+    id: "q-vercel",
+    kind: "statement",
+    eyebrow: "Second question",
+    title: "And who is quietly nervous about the Vercel bill?",
+    body: "That gap, between the first show of hands and the second, is most of why this talk exists.",
+  },
+  {
+    id: "love-next",
+    kind: "split",
+    eyebrow: "Why we reach for it",
+    left: {
+      heading: "Next.js gets a lot right",
+      items: ["routing you do not configure", "server and client in one file", "the best React story there is", "every tutorial assumes it", "hiring is easy"],
+    },
+    right: {
+      heading: "And the worry is not the code",
+      items: ["pricing that scales with success", "a bill that surprises on a good month", "egress you did not think about", "one vendor holding the deploy", "“what if we need to leave?”"],
+    },
+    caption: "Nobody is nervous about the framework. They are nervous about where it has to run.",
+  },
+  {
+    id: "vinext",
+    kind: "statement",
+    eyebrow: "And now",
+    title: "Next.js is arriving on Cloudflare.",
+    body: "`vinext` runs a Next-compatible app on Workers — D1, R2, KV, no cold starts, and a bill that does not move much. It is beta, and it is the first real answer to the second show of hands.",
+  },
+  {
+    id: "setup-tax",
+    kind: "statement",
+    eyebrow: "But",
+    title: "Both are excellent, and both leave you the same fortnight of work.",
+    body: "Auth. A database. Uploads. An admin panel. A table that sorts, filters and pages. CSV. Roles. A deploy. None of it is the thing the client is paying for, and all of it is billed to you.",
+  },
+  {
+    id: "the-tax",
+    kind: "statement",
+    eyebrow: "Call it what it is",
+    title: "The setup tax.",
+    body: "You pay it on every project, you pay it in full every time, and no estimate you have ever written included it honestly.",
+  },
+
+  // ─── A real job ─────────────────────────────────────────────────────────────
+  { id: "sec-job", kind: "section", part: "So", title: "Take a real job", note: "Monday morning. A client, a brief, a date." },
   {
     id: "the-ask",
     kind: "list",
-    eyebrow: "Monday morning · pick one",
+    eyebrow: "The kind of thing you actually get asked for",
     items: [
       { code: "01", label: "A clinic management system" },
       { code: "02", label: "A school: students, fees, results" },
@@ -39,21 +117,62 @@ export const slides: Slide[] = [
     kind: "statement",
     eyebrow: "We will build this one",
     title: "A clinic management system.",
-    body: "Everyone in this room has sat in a waiting room, so nobody has to be told what a patient or an appointment is. We can spend the whole hour on the building instead.",
+    body: "Everyone in this room has sat in a waiting room, so nobody needs telling what a patient or an appointment is. We can spend the hour on the building instead.",
   },
   {
-    id: "brief",
-    kind: "split",
-    eyebrow: "What the clinic actually asked for",
-    left: {
-      heading: "In their words",
-      items: ["register a patient, with a photo", "book them with a doctor", "write up what happened in the visit", "prescribe something", "bill them", "take the money, sometimes via insurance"],
-    },
-    right: {
-      heading: "What they did not say",
-      items: ["who is allowed to see a patient record", "what happens when the receptionist leaves", "that a cancelled appointment needs a reason", "that insurance needs a claim number", "that the money must not drift"],
-    },
-    caption: "The left column is the quote. The right column is what the project is actually judged on, and none of it is in the brief.",
+    id: "hustle-1",
+    kind: "focus",
+    eyebrow: "What most of us do",
+    active: "01",
+    items: [
+      { code: "01", label: "Open the last project" },
+      { code: "02", label: "Hunt for a template" },
+      { code: "03", label: "Wire the auth, again" },
+      { code: "04", label: "Rebuild the same table" },
+      { code: "05", label: "Leave the admin for last" },
+      { code: "06", label: "Quote two weeks you cannot bill" },
+    ],
+    title: "You open the last project<br>and start pasting.",
+    body: "Auth. Uploads. Email. You wrote them already — and writing a session refresh from scratch a sixth time is worse than copying it. Right up until the copy and the original disagree.",
+  },
+  {
+    id: "hustle-2",
+    kind: "focus",
+    eyebrow: "What most of us do",
+    active: "02",
+    items: [
+      { code: "01", label: "Open the last project" },
+      { code: "02", label: "Hunt for a template" },
+      { code: "03", label: "Wire the auth, again" },
+      { code: "04", label: "Rebuild the same table" },
+      { code: "05", label: "Leave the admin for last" },
+      { code: "06", label: "Quote two weeks you cannot bill" },
+    ],
+    title: "Or you buy a template,<br>and inherit a fork.",
+    body: "It is right once, on the day you clone it. Six months later upstream fixes a session bug and there is no mechanism that brings it to you.",
+  },
+  {
+    id: "hustle-3",
+    kind: "focus",
+    eyebrow: "What most of us do",
+    active: "05",
+    items: [
+      { code: "01", label: "Open the last project" },
+      { code: "02", label: "Hunt for a template" },
+      { code: "03", label: "Wire the auth, again" },
+      { code: "04", label: "Rebuild the same table" },
+      { code: "05", label: "Leave the admin for last" },
+      { code: "06", label: "Quote two weeks you cannot bill" },
+    ],
+    title: "And the admin panel<br>goes in last.",
+    body: "No estimate includes it, so it is built by whoever is free, on the last Friday — and it is the screen the client actually spends their day in.",
+  },
+  {
+    id: "lets-see",
+    kind: "statement",
+    eyebrow: "So",
+    title: "Let's build it instead.",
+    body: "Same brief, same room. One of us does the fortnight. The other describes seven tables.",
   },
 
   // ─── The tables ─────────────────────────────────────────────────────────────
