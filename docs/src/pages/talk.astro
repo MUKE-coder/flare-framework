@@ -1,20 +1,24 @@
 ---
 /**
- * The talk, as slides.
+ * The talk, as a page with the deck on it.
  *
- * Each slide is a 1920x1080 stage scaled to whatever the room's projector turns out to
- * be, so the layout is fixed and only the scale changes — no reflow surprises on stage.
- * Scroll-snap plus arrow keys, and `?print` lays them out one per page for a PDF.
+ * Not a fullscreen deck: a normal page you can link someone to, with the slides framed
+ * in it and a fullscreen button for when you are actually presenting. Each slide is a
+ * fixed 1920x1080 stage scaled to the frame, so the layout never reflows — on a laptop,
+ * in the frame, or on an unfamiliar projector it is the same slide at a different size.
  */
-import { slides, sections } from "../talk/slides";
+import "@fontsource-variable/geist";
+import "@fontsource-variable/geist-mono";
+import { slides } from "../talk/slides";
 import type { Slide } from "../talk/types";
 
 const deck: Slide[] = slides;
-const title = "Flare — nothing is hidden";
+const title = "Flare, as presented";
+const lede =
+  "The whole talk. It starts on a job rather than a framework: a clinic needs a system, here are the seven tables it comes down to, and here are two developers building the same thing.";
 
 /** `backticked` spans become code. The content is ours, so this needs no sanitising. */
-const md = (text: string) =>
-  text.replace(/`([^`]+)`/g, '<code class="inline">$1</code>');
+const md = (text: string) => text.replace(/`([^`]+)`/g, '<code class="inline">$1</code>');
 ---
 
 <!doctype html>
@@ -22,385 +26,367 @@ const md = (text: string) =>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <meta name="description" content="The Flare talk: describe a resource once, own every file it generates, deploy it to two platforms." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
-      rel="stylesheet"
-    />
+    <title>{title} — Flare</title>
+    <meta name="description" content={lede} />
     <style is:global>
       :root {
-        --paper: #141414;
-        --surface: #1b1b1b;
-        --ink: #f7f7f7;
-        --body: #cfcfcf;
-        --muted: #8a8a8a;
-        --rule: #2d2d2d;
+        /* Vercel's register: near-black, hairline borders, one accent, Geist throughout. */
+        --bg: #000000;
+        --panel: #0a0a0a;
+        --ink: #ededed;
+        --muted: #8f8f8f;
+        --line: #1f1f1f;
         --ember: #ff6b35;
-        --ember-soft: rgba(255, 107, 53, 0.14);
-        --on-ember: #141414;
-        --sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
-        --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+        --sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        --mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
       }
-      /* A light slide, used for contrast between parts. */
-      .stage[data-tone="light"] {
-        --paper: #ffffff;
-        --surface: #f6f6f6;
-        --ink: #141414;
-        --body: #3d3d3d;
-        --muted: #717171;
-        --rule: #e6e6e6;
-        --ember: #f2541d;
-        --ember-soft: #fff1ea;
-      }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; background: #0b0b0b; }
-      body { font-family: var(--sans); -webkit-font-smoothing: antialiased; }
-
-      /*
-       * A carousel, not a scroller: one slide occupies the viewport and the rest are
-       * hidden. They all stay in the DOM so the deck is still one page to print, one page
-       * to search, and a slide is still addressable by its #id.
-       */
-      .deck { position: fixed; inset: 0; overflow: hidden; background: #0b0b0b; }
-      .slot {
-        position: absolute;
-        inset: 0;
-        overflow: hidden;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 160ms ease-out;
-      }
-      .slot.is-active { opacity: 1; visibility: visible; }
-
-      /* Controls. Quiet until you reach for them — a deck is not a dashboard. */
-      .controls {
-        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-        display: flex; align-items: center; gap: 10px; z-index: 10;
-        font-family: var(--mono); opacity: 0.28; transition: opacity 160ms ease;
-      }
-      .controls:hover, .controls:focus-within { opacity: 1; }
-      .controls button {
-        font: inherit; font-size: 15px; color: #f5f5f5; background: #202020;
-        border: 1px solid #3a3a3a; border-radius: 7px; padding: 9px 16px; cursor: pointer;
-      }
-      .controls button:hover:not(:disabled) { background: #2d2d2d; border-color: #555; }
-      .controls button:disabled { opacity: 0.35; cursor: default; }
-      .controls .count { font-size: 14px; color: #8a8a8a; min-width: 76px; text-align: center; }
-      .progress {
-        position: fixed; top: 0; left: 0; height: 2px; background: #ff6b35;
-        z-index: 11; transition: width 160ms ease-out;
-      }
-      /*
-       * The stage is a fixed 1920x1080 box centred in the slot and scaled down to fit.
-       * Centred by absolute positioning rather than by grid, because a grid item larger
-       * than its area does not centre — the overflow goes one way and the slide ends up
-       * hanging off the bottom-right of the projector.
-       */
+      /* The slide surfaces. A deck reads better light; the page around it stays dark. */
       .stage {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform-origin: center center;
-        transform: translate(-50%, -50%) scale(var(--scale, 1));
-        width: 1920px;
-        height: 1080px;
-        flex: none;
-        background: var(--paper);
-        color: var(--ink);
-        padding: 120px 128px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        gap: 44px;
-        position: relative;
+        --paper: #ffffff; --s-ink: #0a0a0a; --s-body: #404040;
+        --s-muted: #737373; --s-rule: #e5e5e5; --s-surface: #fafafa; --s-ember: #e0450f;
       }
-      .eyebrow {
-        font-family: var(--mono);
-        font-size: 24px;
-        letter-spacing: 4px;
-        text-transform: uppercase;
-        color: var(--muted);
-        margin: 0;
+      .stage[data-tone="dark"] {
+        --paper: #0a0a0a; --s-ink: #fafafa; --s-body: #c9c9c9;
+        --s-muted: #8f8f8f; --s-rule: #262626; --s-surface: #131313; --s-ember: #ff6b35;
       }
-      .headline { font-size: 78px; font-weight: 700; line-height: 1.08; letter-spacing: -2px; margin: 0; max-width: 1560px; }
-      .headline.big { font-size: 124px; line-height: 1; letter-spacing: -5px; }
-      .lede { font-size: 32px; line-height: 1.5; color: var(--body); margin: 0; max-width: 1280px; }
-      .corner {
-        position: absolute; top: 56px; right: 128px;
-        font-family: var(--mono); font-size: 22px; letter-spacing: 2px; color: var(--muted);
-      }
-      .num { position: absolute; bottom: 56px; right: 128px; font-family: var(--mono); font-size: 22px; color: var(--muted); }
 
-      .cover-title { font-size: 190px; font-weight: 700; letter-spacing: -8px; line-height: 0.9; margin: 0; color: var(--ember); }
-      .rule { height: 2px; background: var(--rule); border: 0; margin: 0; width: 100%; }
+      * { box-sizing: border-box; }
+      html { background: var(--bg); }
+      body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
 
-      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px 80px; }
-      .item { display: flex; gap: 20px; align-items: baseline; font-size: 38px; font-weight: 600; letter-spacing: -0.5px; }
-      .item .code { font-family: var(--mono); font-size: 28px; color: var(--ember); min-width: 68px; }
-      .item.dim { opacity: 0.32; font-weight: 500; }
+      .bar {
+        border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 20px;
+        padding: 0 24px; height: 56px; position: sticky; top: 0; z-index: 20;
+        background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(8px);
+      }
+      .bar .brand { font-weight: 600; letter-spacing: -0.02em; text-decoration: none; color: var(--ink); display: flex; align-items: center; gap: 9px; }
+      .bar .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ember); }
+      .bar nav { margin-left: auto; display: flex; gap: 20px; font-size: 14px; }
+      .bar nav a { text-decoration: none; color: var(--muted); }
+      .bar nav a:hover { color: var(--ink); }
+
+      .page { max-width: 1180px; margin: 0 auto; padding: 56px 24px 96px; }
+      .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0 0 14px; }
+      h1.title { font-size: clamp(32px, 4vw, 46px); line-height: 1.05; letter-spacing: -0.035em; margin: 0 0 18px; font-weight: 600; }
+      p.lede { font-size: 17px; line-height: 1.65; color: var(--muted); margin: 0 0 40px; max-width: 64ch; }
+
+      /* The viewer: a framed 16:9 window with the deck inside it. */
+      .viewer { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); }
+      .screen { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #fff; }
+      .screen[data-dark="1"] { background: #0a0a0a; }
+      .slot { position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity 140ms ease-out; }
+      .slot.is-active { opacity: 1; visibility: visible; }
+      .stage {
+        position: absolute; top: 50%; left: 50%; width: 1920px; height: 1080px;
+        transform-origin: center center; transform: translate(-50%, -50%) scale(var(--scale, 1));
+        background: var(--paper); color: var(--s-ink);
+        /* Deliberately generous. A slide that fills its frame is a slide nobody reads. */
+        padding: 150px 160px; display: flex; flex-direction: column; justify-content: center; gap: 56px;
+      }
+
+      .controls { border-top: 1px solid var(--line); display: flex; align-items: center; gap: 10px; padding: 10px 14px; font-family: var(--mono); font-size: 13px; color: var(--muted); }
+      .controls button { font: inherit; color: var(--ink); background: #141414; border: 1px solid var(--line); border-radius: 7px; padding: 7px 13px; cursor: pointer; }
+      .controls button:hover:not(:disabled) { background: #1d1d1d; }
+      .controls button:disabled { opacity: 0.35; cursor: default; }
+      .controls .spacer { margin-left: auto; }
+      .progress { height: 2px; background: var(--ember); width: 0; transition: width 140ms ease-out; }
+      .hint { font-size: 13px; color: var(--muted); margin: 14px 2px 0; }
+      .hint kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); border-radius: 5px; padding: 2px 6px; background: #141414; }
+
+      .cta { margin-top: 56px; border: 1px solid var(--line); border-radius: 12px; padding: 28px; }
+      .cta h2 { font-size: 19px; margin: 0 0 8px; letter-spacing: -0.02em; font-weight: 600; }
+      .cta p { color: var(--muted); font-size: 15px; line-height: 1.6; margin: 0 0 20px; max-width: 72ch; }
+      .cta .row { display: flex; gap: 10px; flex-wrap: wrap; }
+      .cta a { text-decoration: none; font-size: 14px; font-weight: 500; border-radius: 8px; padding: 10px 16px; border: 1px solid var(--line); color: var(--ink); }
+      .cta a.primary { background: var(--ink); color: #000; border-color: var(--ink); }
+
+      /* ---- Slide internals ------------------------------------------------ */
+      .s-eyebrow { font-family: var(--mono); font-size: 25px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--s-muted); margin: 0; }
+      .s-head { font-size: 82px; font-weight: 600; line-height: 1.06; letter-spacing: -0.035em; margin: 0; max-width: 1480px; color: var(--s-ink); }
+      .s-head.big { font-size: 128px; line-height: 1; letter-spacing: -0.05em; }
+      .s-lede { font-size: 33px; line-height: 1.5; color: var(--s-body); margin: 0; max-width: 1300px; }
+      .corner { position: absolute; top: 70px; right: 160px; font-family: var(--mono); font-size: 22px; color: var(--s-muted); }
+      .num { position: absolute; bottom: 70px; right: 160px; font-family: var(--mono); font-size: 22px; color: var(--s-muted); }
+
+      .cover-title { font-size: 200px; font-weight: 600; letter-spacing: -0.06em; line-height: 0.9; margin: 0; color: var(--s-ember); }
+      hr.rule { height: 1px; background: var(--s-rule); border: 0; margin: 0; }
+
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 90px; }
+      .item { display: flex; gap: 22px; align-items: baseline; font-size: 40px; font-weight: 500; letter-spacing: -0.02em; color: var(--s-ink); }
+      .item .code { font-family: var(--mono); font-size: 27px; color: var(--s-ember); min-width: 74px; }
 
       pre.code {
-        font-family: var(--mono); font-size: 30px; line-height: 1.6;
-        /* No ligatures: `==` rendered as a single glyph reads as `=` from the back of a
-           room, and this deck shows a field grammar where that is the whole point. */
-        font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0;
-        background: var(--surface); border: 1px solid var(--rule); border-left: 4px solid var(--ember);
-        padding: 40px 48px; margin: 0; overflow: hidden; color: var(--ink);
+        font-family: var(--mono); font-size: 31px; line-height: 1.6;
+        background: var(--s-surface); border: 1px solid var(--s-rule); border-left: 3px solid var(--s-ember);
+        border-radius: 10px; padding: 44px 50px; margin: 0; overflow: hidden; color: var(--s-ink);
         white-space: pre-wrap; word-break: break-word;
+        font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0;
       }
-      code.inline {
-        font-family: var(--mono); font-size: 0.86em;
-        background: var(--ember-soft); color: var(--ember);
-        padding: 2px 10px; border-radius: 4px;
-        font-variant-ligatures: none;
-      }
-      .caption { font-size: 28px; color: var(--muted); margin: 0; max-width: 1400px; line-height: 1.5; }
+      .caption { font-size: 27px; color: var(--s-muted); margin: 0; max-width: 1480px; line-height: 1.5; }
 
-      .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; }
-      .col h3 { font-family: var(--mono); font-size: 26px; letter-spacing: 2px; text-transform: uppercase; color: var(--ember); margin: 0 0 24px; }
-      .col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
-      .col li { font-size: 34px; font-weight: 500; }
-      .col .note { font-family: var(--mono); font-size: 22px; color: var(--muted); margin-top: 20px; }
+      .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; }
+      .col h3 { font-family: var(--mono); font-size: 25px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--s-ember); margin: 0 0 26px; font-weight: 500; }
+      .col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+      .col li { font-size: 35px; color: var(--s-ink); line-height: 1.3; }
+      .col .note { font-family: var(--mono); font-size: 23px; color: var(--s-muted); margin-top: 26px; }
 
-      table.cols-table { width: 100%; border-collapse: collapse; font-size: 27px; }
-      table.cols-table th {
-        font-family: var(--mono); font-size: 21px; letter-spacing: 2px; text-transform: uppercase;
-        color: var(--ember); text-align: left; padding: 0 0 14px; border-bottom: 2px solid var(--rule);
-      }
-      table.cols-table td { padding: 12px 24px 12px 0; border-bottom: 1px solid var(--rule); vertical-align: top; color: var(--body); }
-      table.cols-table td.k { font-family: var(--mono); color: var(--ink); font-weight: 500; white-space: nowrap; }
+      /* The tables as objects you can point at, before any of their detail. */
+      .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 26px; }
+      .card { border: 1px solid var(--s-rule); border-radius: 18px; padding: 32px 30px; background: var(--s-surface); display: flex; flex-direction: column; gap: 12px; min-height: 250px; }
+      .card .n { font-family: var(--mono); font-size: 22px; color: var(--s-ember); }
+      .card .nm { font-family: var(--mono); font-size: 38px; font-weight: 600; color: var(--s-ink); letter-spacing: -0.02em; }
+      .card .note { font-size: 25px; color: var(--s-muted); line-height: 1.35; }
+      .card .hangs { font-family: var(--mono); font-size: 21px; color: var(--s-muted); margin-top: auto; padding-top: 14px; border-top: 1px solid var(--s-rule); }
+      .card .hangs b { color: var(--s-ember); font-weight: 500; }
 
-      table.score { width: 100%; border-collapse: collapse; font-size: 26px; }
-      table.score td { padding: 11px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
-      table.score td.c { font-family: var(--mono); color: var(--ember); width: 72px; }
-      table.score td.l { width: 520px; font-weight: 600; }
-      table.score td.a { color: var(--body); }
+      table.cols-table { width: 100%; border-collapse: collapse; font-size: 30px; }
+      table.cols-table th { font-family: var(--mono); font-size: 22px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--s-ember); text-align: left; padding: 0 0 18px; border-bottom: 1px solid var(--s-rule); font-weight: 500; }
+      table.cols-table td { padding: 18px 28px 18px 0; border-bottom: 1px solid var(--s-rule); vertical-align: top; color: var(--s-body); }
+      table.cols-table td.k { font-family: var(--mono); color: var(--s-ink); font-weight: 500; white-space: nowrap; }
 
-      /* The contents page, before the deck starts. */
-      .toc { max-width: 1120px; margin: 0 auto; padding: 96px 32px; color: var(--ink); font-family: var(--sans); }
-      .toc h1 { font-size: 56px; letter-spacing: -2px; margin: 0 0 12px; }
-      .toc p.sub { color: var(--muted); font-size: 20px; margin: 0 0 48px; }
-      .toc ol { list-style: none; counter-reset: s; margin: 0; padding: 0; }
-      .toc li { counter-increment: s; border-top: 1px solid var(--rule); padding: 20px 0; display: grid; grid-template-columns: 60px 1fr; gap: 20px; }
-      .toc li a { color: var(--ink); text-decoration: none; font-size: 28px; font-weight: 600; }
-      .toc li a:hover { color: var(--ember); }
-      .toc li .n { font-family: var(--mono); color: var(--ember); }
-      .toc li .b { color: var(--muted); font-size: 18px; margin-top: 6px; display: block; font-weight: 400; }
+      table.score { width: 100%; border-collapse: collapse; font-size: 28px; }
+      table.score td { padding: 15px 0; border-bottom: 1px solid var(--s-rule); vertical-align: top; }
+      table.score td.c { font-family: var(--mono); color: var(--s-ember); width: 86px; }
+      table.score td.l { width: 600px; font-weight: 500; color: var(--s-ink); }
+      table.score td.a { color: var(--s-body); }
 
+      code.inline { font-family: var(--mono); font-size: 0.86em; background: color-mix(in srgb, var(--s-ember) 12%, transparent); color: var(--s-ember); padding: 2px 10px; border-radius: 5px; font-variant-ligatures: none; }
+
+      @media (max-width: 720px) { .page { padding: 32px 16px 64px; } .controls { flex-wrap: wrap; } }
       @media print {
-        .deck { position: static; overflow: visible; }
-        .slot {
-          position: relative; inset: auto;
-          height: 100vh; opacity: 1; visibility: visible;
-          page-break-after: always;
-        }
-        .controls, .progress { display: none; }
+        .bar, .cta, .hint, .controls, .progress { display: none; }
+        .viewer { border: 0; }
+        .screen { aspect-ratio: auto; height: 100vh; }
+        .slot { position: relative; opacity: 1; visibility: visible; height: 100vh; page-break-after: always; }
       }
     </style>
   </head>
   <body>
-    <main class="deck" id="deck">
-      <section class="slot" id="contents">
-        <div class="toc">
-          <h1>Flare — nothing is hidden</h1>
-          <p class="sub">{deck.length} slides. Arrow keys or scroll. <a href="?print" style="color:var(--ember)">Print view</a>.</p>
-          <ol>
-            {sections.map((s, i) => (
-              <li>
-                <span class="n">{String(i + 1).padStart(2, "0")}</span>
-                <span><a href={`#${s.id}`}>{s.title}</a><span class="b">{s.blurb}</span></span>
-              </li>
-            ))}
-          </ol>
+    <header class="bar">
+      <a class="brand" href="/"><span class="dot"></span> Flare</a>
+      <nav>
+        <a href="/start/quickstart/">Docs</a>
+        <a href="/concepts/field-grammar/">Field grammar</a>
+        <a href="https://github.com/MUKE-coder/flare-framework">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="page">
+      <p class="eyebrow">JS Meetup · 2026</p>
+      <h1 class="title">{title}</h1>
+      <p class="lede">{lede}</p>
+
+      <div class="viewer" id="viewer">
+        <div class="screen" id="screen">
+          {deck.map((slide, index) => (
+            <section class="slot" id={slide.id}>
+              <div class="stage" data-tone={slide.kind === "section" || slide.kind === "cover" ? "dark" : "light"}>
+                {slide.kind === "cover" && (
+                  <>
+                    <p class="s-eyebrow">{slide.event}</p>
+                    <h2 class="cover-title">{slide.title}</h2>
+                    <p class="s-lede" style="font-size:40px;max-width:1560px">{slide.tagline}</p>
+                    <hr class="rule" />
+                    <p class="s-eyebrow" style="letter-spacing:0.08em">{slide.speaker}</p>
+                  </>
+                )}
+
+                {slide.kind === "section" && (
+                  <>
+                    <p class="s-eyebrow">{slide.part}</p>
+                    <h2 class="s-head big" set:html={slide.title} />
+                    {slide.range && <p style="font-family:var(--mono);font-size:28px;color:var(--s-ember);letter-spacing:0.08em;margin:0">{slide.range}</p>}
+                    {slide.note && <p class="s-lede" set:html={md(slide.note)} />}
+                  </>
+                )}
+
+                {slide.kind === "statement" && (
+                  <>
+                    <p class="s-eyebrow">{slide.eyebrow}</p>
+                    <h2 class="s-head" set:html={slide.title} />
+                    {slide.body && <p class="s-lede" set:html={md(slide.body)} />}
+                  </>
+                )}
+
+                {slide.kind === "list" && (
+                  <>
+                    <p class="s-eyebrow">{slide.eyebrow}</p>
+                    <div class="grid-2">
+                      {slide.items.map((it) => (
+                        <p class="item"><span class="code">{it.code}</span>{it.label}</p>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {slide.kind === "problem" && (
+                  <>
+                    <p class="s-eyebrow">{slide.code}</p>
+                    <h2 class="s-head">{slide.title}</h2>
+                    <p class="s-lede" set:html={md(slide.body)} />
+                  </>
+                )}
+
+                {slide.kind === "code" && (
+                  <>
+                    <p class="s-eyebrow">{slide.eyebrow}</p>
+                    {slide.title && <h2 class="s-head" style="font-size:52px">{slide.title}</h2>}
+                    <pre class="code">{slide.code}</pre>
+                    {slide.caption && <p class="caption" set:html={md(slide.caption)} />}
+                  </>
+                )}
+
+                {slide.kind === "split" && (
+                  <>
+                    <p class="s-eyebrow">{slide.eyebrow}</p>
+                    <div class="cols">
+                      <div class="col">
+                        <h3>{slide.left.heading}</h3>
+                        <ul>{slide.left.items.map((i) => <li set:html={md(i)} />)}</ul>
+                        {slide.left.note && <p class="note" set:html={md(slide.left.note)} />}
+                      </div>
+                      <div class="col">
+                        <h3>{slide.right.heading}</h3>
+                        <ul>{slide.right.items.map((i) => <li set:html={md(i)} />)}</ul>
+                        {slide.right.note && <p class="note" set:html={md(slide.right.note)} />}
+                      </div>
+                    </div>
+                    {slide.caption && <p class="caption" set:html={md(slide.caption)} />}
+                  </>
+                )}
+
+                {slide.kind === "cards" && (
+                  <>
+                    <p class="s-eyebrow">{slide.eyebrow}</p>
+                    {slide.title && <h2 class="s-head" style="font-size:62px">{slide.title}</h2>}
+                    <div class="cards">
+                      {slide.cards.map((c) => (
+                        <div class="card">
+                          <span class="n">{c.num}</span>
+                          <span class="nm">{c.name}</span>
+                          <span class="note">{c.note}</span>
+                          {c.hangs && <span class="hangs">{c.hangs}</span>}
+                        </div>
+                      ))}
+                    </div>
+                    {slide.caption && <p class="caption" set:html={md(slide.caption)} />}
+                  </>
+                )}
+
+                {slide.kind === "table" && (
+                  <>
+                    <p class="s-eyebrow">{slide.eyebrow}</p>
+                    {slide.title && <h2 class="s-head" style="font-size:62px">{slide.title}</h2>}
+                    <table class="cols-table">
+                      <thead><tr>{slide.head.map((h) => <th>{h}</th>)}</tr></thead>
+                      <tbody>
+                        {slide.rows.map((row) => (
+                          <tr>{row.map((cell, i) => <td class={i === 0 ? "k" : ""} set:html={md(cell)} />)}</tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {slide.caption && <p class="caption" set:html={md(slide.caption)} />}
+                  </>
+                )}
+
+                {slide.kind === "scorecard" && (
+                  <>
+                    <p class="s-eyebrow">{slide.eyebrow}</p>
+                    <h2 class="s-head" style="font-size:56px">{slide.title}</h2>
+                    <table class="score">
+                      <tbody>
+                        {slide.rows.map((r) => (
+                          <tr><td class="c">{r.code}</td><td class="l">{r.label}</td><td class="a" set:html={md(r.answer)} /></tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                )}
+
+                <span class="corner">flare-docs.codetotech.com</span>
+                <span class="num">{String(index + 1).padStart(2, "0")} / {deck.length}</span>
+              </div>
+            </section>
+          ))}
+        </div>
+
+        <div class="progress" id="progress"></div>
+        <div class="controls">
+          <button type="button" id="prev" aria-label="Previous slide">←</button>
+          <button type="button" id="next" aria-label="Next slide">→</button>
+          <span id="count">1 / {deck.length}</span>
+          <span class="spacer"></span>
+          <button type="button" id="full" aria-label="Present fullscreen">Present</button>
+        </div>
+      </div>
+
+      <p class="hint">
+        <kbd>←</kbd> <kbd>→</kbd> to page through, <kbd>F</kbd> for fullscreen. Every command in the deck was run before it went on a slide.
+      </p>
+
+      <section class="cta">
+        <h2>Build the clinic yourself</h2>
+        <p>
+          The seven commands in the deck are the whole build. The field grammar page documents every type they use, including the
+          conditional fields that only apply sometimes.
+        </p>
+        <div class="row">
+          <a class="primary" href="/start/quickstart/">Start building →</a>
+          <a href="/concepts/field-grammar/">Field grammar</a>
+          <a href="https://github.com/MUKE-coder/flare-framework">GitHub</a>
         </div>
       </section>
-
-      {deck.map((slide, index) => (
-        <section class="slot" id={slide.id}>
-          <div class="stage" data-tone={slide.kind === "section" || slide.kind === "cover" ? "dark" : "light"}>
-            {slide.kind === "cover" && (
-              <>
-                <p class="eyebrow">{slide.event}</p>
-                <h1 class="cover-title">{slide.title}</h1>
-                <p class="lede" style="font-size:40px;max-width:1500px">{slide.tagline}</p>
-                <hr class="rule" />
-                <p class="eyebrow" style="letter-spacing:2px">{slide.speaker}</p>
-              </>
-            )}
-
-            {slide.kind === "section" && (
-              <>
-                <p class="eyebrow">{slide.part}</p>
-                <h2 class="headline big" set:html={slide.title} />
-                {slide.range && <p style="font-family:var(--mono);font-size:28px;color:var(--ember);letter-spacing:2px;margin:0">{slide.range}</p>}
-                {slide.note && <p class="lede" set:html={md(slide.note)} />}
-              </>
-            )}
-
-            {slide.kind === "statement" && (
-              <>
-                <p class="eyebrow">{slide.eyebrow}</p>
-                <h2 class="headline" set:html={slide.title} />
-                {slide.body && <p class="lede" set:html={md(slide.body)} />}
-              </>
-            )}
-
-            {slide.kind === "list" && (
-              <>
-                <p class="eyebrow">{slide.eyebrow}</p>
-                <div class="grid-2">
-                  {slide.items.map((it) => (
-                    <p class="item"><span class="code">{it.code}</span>{it.label}</p>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {slide.kind === "problem" && (
-              <>
-                <p class="eyebrow">{slide.code}</p>
-                <h2 class="headline">{slide.title}</h2>
-                <p class="lede" set:html={md(slide.body)} />
-                {slide.answer && (
-                  <p style="font-family:var(--mono);font-size:28px;color:var(--ember);margin:0">{slide.answer}</p>
-                )}
-              </>
-            )}
-
-            {slide.kind === "code" && (
-              <>
-                <p class="eyebrow">{slide.eyebrow}</p>
-                {slide.title && <h2 class="headline" style="font-size:56px">{slide.title}</h2>}
-                <pre class="code">{slide.code}</pre>
-                {slide.caption && <p class="caption" set:html={md(slide.caption)} />}
-              </>
-            )}
-
-            {slide.kind === "split" && (
-              <>
-                <p class="eyebrow">{slide.eyebrow}</p>
-                <div class="cols">
-                  <div class="col">
-                    <h3>{slide.left.heading}</h3>
-                    <ul>{slide.left.items.map((i) => <li set:html={md(i)} />)}</ul>
-                    {slide.left.note && <p class="note" set:html={md(slide.left.note)} />}
-                  </div>
-                  <div class="col">
-                    <h3>{slide.right.heading}</h3>
-                    <ul>{slide.right.items.map((i) => <li set:html={md(i)} />)}</ul>
-                    {slide.right.note && <p class="note" set:html={md(slide.right.note)} />}
-                  </div>
-                </div>
-                {slide.caption && <p class="caption" set:html={md(slide.caption)} />}
-              </>
-            )}
-
-            {slide.kind === "table" && (
-              <>
-                <p class="eyebrow">{slide.eyebrow}</p>
-                {slide.title && <h2 class="headline" style="font-size:56px;margin-bottom:4px">{slide.title}</h2>}
-                <table class="cols-table">
-                  <thead>
-                    <tr>{slide.head.map((h) => <th>{h}</th>)}</tr>
-                  </thead>
-                  <tbody>
-                    {slide.rows.map((row) => (
-                      <tr>{row.map((cell, i) => <td class={i === 0 ? "k" : ""} set:html={md(cell)} />)}</tr>
-                    ))}
-                  </tbody>
-                </table>
-                {slide.caption && <p class="caption" set:html={md(slide.caption)} />}
-              </>
-            )}
-
-            {slide.kind === "scorecard" && (
-              <>
-                <p class="eyebrow">{slide.eyebrow}</p>
-                <h2 class="headline" style="font-size:52px;margin-bottom:8px">{slide.title}</h2>
-                <table class="score">
-                  <tbody>
-                    {slide.rows.map((r) => (
-                      <tr><td class="c">{r.code}</td><td class="l">{r.label}</td><td class="a" set:html={md(r.answer)} /></tr>
-                    ))}
-                  </tbody>
-                </table>
-              </>
-            )}
-
-            <span class="corner">flare-docs.codetotech.com</span>
-            <span class="num">{String(index + 1).padStart(2, "0")} / {deck.length}</span>
-          </div>
-        </section>
-      ))}
     </main>
 
-    <div class="progress" id="progress"></div>
-    <nav class="controls" aria-label="Slides">
-      <button type="button" id="prev" aria-label="Previous slide">&larr; Prev</button>
-      <span class="count" id="count">1 / 1</span>
-      <button type="button" id="next" aria-label="Next slide">Next &rarr;</button>
-    </nav>
-
     <script is:inline>
-      // The stage is a fixed 1920x1080 so nothing reflows on an unfamiliar projector;
-      // only the scale changes. Recomputed on resize, and once on load for the first paint.
-      function fit() {
-        const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-        document.documentElement.style.setProperty("--scale", String(scale));
-      }
-      fit();
-      addEventListener("resize", fit);
-
+      const screen = document.getElementById("screen");
+      const viewer = document.getElementById("viewer");
       const slots = Array.from(document.querySelectorAll(".slot"));
       const prev = document.getElementById("prev");
       const next = document.getElementById("next");
       const count = document.getElementById("count");
       const progress = document.getElementById("progress");
+      const full = document.getElementById("full");
       let at = 0;
+
+      // The stage is a fixed 1920x1080 box; only its scale changes, so a slide looks the
+      // same in the frame as it does filling a projector.
+      function fit() {
+        document.documentElement.style.setProperty("--scale", String(screen.clientWidth / 1920));
+      }
+      fit();
+      new ResizeObserver(fit).observe(screen);
 
       function show(index, pushHash) {
         at = Math.min(Math.max(index, 0), slots.length - 1);
         slots.forEach((slot, i) => slot.classList.toggle("is-active", i === at));
-        // Match the number printed on the slide itself. Slot 0 is the contents page and
-        // is not slide one — two different numbers for the same position is a distraction
-        // nobody needs while presenting.
-        count.textContent = at === 0 ? "Contents" : at + " / " + (slots.length - 1);
+        count.textContent = at + 1 + " / " + slots.length;
         prev.disabled = at === 0;
         next.disabled = at === slots.length - 1;
         progress.style.width = ((at + 1) / slots.length) * 100 + "%";
-        // The id in the address bar, so a slide can be linked to and reloaded onto.
-        if (pushHash !== false) {
-          history.replaceState(null, "", "#" + slots[at].id);
-        }
+        // The frame takes the slide's own ground, so a dark slide has no white edge.
+        screen.dataset.dark = slots[at].querySelector(".stage").dataset.tone === "dark" ? "1" : "0";
+        if (pushHash !== false) history.replaceState(null, "", "#" + slots[at].id);
       }
 
       prev.addEventListener("click", () => show(at - 1));
       next.addEventListener("click", () => show(at + 1));
+      full.addEventListener("click", () => {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else viewer.requestFullscreen?.();
+      });
 
       addEventListener("keydown", (event) => {
-        if (["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(event.key)) {
-          event.preventDefault();
-          show(at + 1);
-        } else if (["ArrowLeft", "ArrowUp", "PageUp", "Backspace"].includes(event.key)) {
-          event.preventDefault();
-          show(at - 1);
-        } else if (event.key === "Home") {
-          show(0);
-        } else if (event.key === "End") {
-          show(slots.length - 1);
-        }
+        if (["ArrowRight", "PageDown", " "].includes(event.key)) { event.preventDefault(); show(at + 1); }
+        else if (["ArrowLeft", "PageUp"].includes(event.key)) { event.preventDefault(); show(at - 1); }
+        else if (event.key === "Home") show(0);
+        else if (event.key === "End") show(slots.length - 1);
+        else if (event.key.toLowerCase() === "f") full.click();
       });
 
-      // A click anywhere on the slide advances, which is what a presenter remote sends.
-      // Not on a link, so the contents page still works.
-      document.querySelector(".deck").addEventListener("click", (event) => {
-        if (!event.target.closest("a")) show(at + 1);
-      });
+      // A click on the slide advances, which is what a presenter remote sends.
+      screen.addEventListener("click", () => show(at + 1));
 
-      // Deep links: /talk#build-cond opens on that slide, and the contents links work.
       function fromHash() {
         const id = location.hash.slice(1);
         const found = slots.findIndex((slot) => slot.id === id);

@@ -1,4 +1,4 @@
-import type { Section, Slide } from "./types";
+import type { Slide } from "./types";
 
 /**
  * The talk.
@@ -11,17 +11,6 @@ import type { Section, Slide } from "./types";
  * Every command here was run. The line counts are `wc -l` of what came out. If a number
  * changes, change it here rather than saying something different on stage.
  */
-export const sections: Section[] = [
-  { id: "cover", title: "The job", blurb: "A clinic has asked for a system. Monday morning." },
-  { id: "sec-tables", title: "The tables", blurb: "Seven of them. This is the actual work." },
-  { id: "sec-two", title: "Two developers", blurb: "The same table, built twice, side by side." },
-  { id: "sec-commands", title: "The commands", blurb: "Seven lines, derived from the seven tables." },
-  { id: "sec-out", title: "What came out", blurb: "Worth reading, because you own all of it." },
-  { id: "sec-fields", title: "Three fields", blurb: "Money, a photo, and one that only sometimes applies." },
-  { id: "sec-own", title: "What you own", blurb: "And what still gets fixed for you." },
-  { id: "sec-deploy", title: "Running it", blurb: "Two platforms, one description." },
-  { id: "scorecard", title: "The accounting", blurb: "What you did not have to build, and what is missing." },
-];
 
 export const slides: Slide[] = [
   // ─── The job ────────────────────────────────────────────────────────────────
@@ -71,66 +60,91 @@ export const slides: Slide[] = [
   { id: "sec-tables", kind: "section", part: "Part one", title: "The tables", note: "Before a line of code. Get these right and the rest is typing." },
   {
     id: "tables-all",
-    kind: "table",
+    kind: "cards",
     eyebrow: "Seven tables",
     title: "The whole system",
-    head: ["Table", "What it holds", "Hangs off"],
-    rows: [
-      ["patients", "the person, and their photo", "—"],
-      ["doctors", "who sees them, and their licence", "—"],
-      ["appointments", "a booking at a time, with a status", "patient, doctor"],
-      ["visits", "what actually happened", "appointment"],
-      ["prescriptions", "what was given, and how often", "visit"],
-      ["invoices", "what it costs", "patient, visit"],
-      ["payments", "what was paid, and how", "invoice"],
+    cards: [
+      { num: "01", name: "patients", note: "The person, and their photo" },
+      { num: "02", name: "doctors", note: "Who sees them, and their licence" },
+      { num: "03", name: "appointments", note: "A booking at a time, with a status", hangs: "patient · doctor" },
+      { num: "04", name: "visits", note: "What actually happened", hangs: "appointment" },
+      { num: "05", name: "prescriptions", note: "What was given, and how often", hangs: "visit" },
+      { num: "06", name: "invoices", note: "What it costs", hangs: "patient · visit" },
+      { num: "07", name: "payments", note: "What was paid, and how", hangs: "invoice" },
     ],
-    caption: "A chain: a patient is booked, the booking becomes a visit, the visit produces a prescription and an invoice, the invoice is paid. Every arrow is a foreign key.",
+    caption: "A chain. A patient is booked, the booking becomes a visit, the visit produces a prescription and an invoice, the invoice is paid.",
   },
   {
     id: "table-patient",
     kind: "table",
-    eyebrow: "Table one",
-    title: "patients",
-    head: ["Column", "Type", "Why"],
+    eyebrow: "01 · patients",
+    title: "The person",
+    head: ["Field", "Type", "Why"],
     rows: [
       ["name", "text, required", "—"],
-      ["phone", "text, unique", "how the clinic reaches them; no two patients share one"],
+      ["phone", "text, unique", "how the clinic reaches them"],
       ["dateOfBirth", "date", "a paediatric dose depends on it"],
       ["sex", "female | male", "a closed list, not free text"],
-      ["nationalId", "text, optional", "not everyone has one on them"],
       ["photo", "image, max 5MB", "the receptionist matches a face to a file"],
-      ["allergies", "long text, optional", "the one field a doctor reads first"],
+      ["allergies", "long text, optional", "the field a doctor reads first"],
+    ],
+  },
+  {
+    id: "table-doctor",
+    kind: "table",
+    eyebrow: "02 · doctors",
+    title: "Who sees them",
+    head: ["Field", "Type", "Why"],
+    rows: [
+      ["name", "text, required", "—"],
+      ["email", "email, unique", "one account per doctor"],
+      ["specialty", "a closed list of five", "drives who can be booked for what"],
+      ["licenceNumber", "text, unique", "a clinic is inspected on this"],
+      ["active", "true | false", "a locum leaves; the history stays"],
     ],
   },
   {
     id: "table-appointment",
     kind: "table",
-    eyebrow: "Table three · the interesting one",
-    title: "appointments",
-    head: ["Column", "Type", "Why"],
+    eyebrow: "03 · appointments · the interesting one",
+    title: "The booking",
+    head: ["Field", "Type", "Why"],
     rows: [
-      ["patientId", "→ patients", "—"],
+      ["patientId", "→ patients", "restrict: you cannot delete a booked patient"],
       ["doctorId", "→ doctors", "—"],
       ["scheduledFor", "date and time", "—"],
-      ["reason", "text", "what they say on the phone"],
-      ["status", "booked | arrived | seen | cancelled | noShow", "the whole front desk runs on this"],
-      ["cancelledBecause", "text — **only when cancelled**", "an empty reason on a cancellation is a complaint waiting to happen"],
+      ["status", "booked | arrived | seen | cancelled | noShow", "the front desk runs on this"],
+      ["cancelledBecause", "text — **only when cancelled**", "an empty reason is a complaint waiting to happen"],
     ],
-    caption: "That last row is the one the brief did not mention and the clinic manager will ask for in week two.",
+    caption: "The last row is the one the brief did not mention and the clinic manager asks for in week two.",
+  },
+  {
+    id: "table-visit",
+    kind: "table",
+    eyebrow: "04 · visits",
+    title: "What happened",
+    head: ["Field", "Type", "Why"],
+    rows: [
+      ["appointmentId", "→ appointments", "a visit only exists for a booking"],
+      ["complaint", "long text", "in the patient's words"],
+      ["diagnosis", "text", "in the doctor's"],
+      ["followUp", "true | false", "—"],
+      ["followUpOn", "date — **only when followUp**", "a date on a visit needing no follow-up is noise"],
+    ],
   },
   {
     id: "table-money",
     kind: "table",
-    eyebrow: "Tables six and seven",
-    title: "invoices · payments",
-    head: ["Column", "Type", "Why"],
+    eyebrow: "06 · 07 · invoices and payments",
+    title: "The money",
+    head: ["Field", "Type", "Why"],
     rows: [
       ["amount", "money", "not a float — three 7p items come to 0.21000000000000002"],
       ["status", "draft | sent | paid | overdue", "—"],
       ["method", "cash | mobileMoney | card | insurance", "a Ugandan clinic takes all four"],
-      ["claimNumber", "text — **only when insurance**", "useless on a cash payment, and required on a claim"],
+      ["claimNumber", "text — **only when insurance**", "useless on cash, required on a claim"],
     ],
-    caption: "Two tables, two fields that only sometimes apply, and one that must not be stored in a float. None of this is exotic; all of it is where projects go wrong.",
+    caption: "Two fields that only sometimes apply, and one that must not be a float. None of it exotic; all of it where projects go wrong.",
   },
 
   // ─── Two developers ─────────────────────────────────────────────────────────

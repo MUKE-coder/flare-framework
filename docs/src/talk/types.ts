@@ -24,6 +24,8 @@ export type Slide =
       caption?: string;
       section?: string;
     }
+  /** Bold cards: the seven tables as objects you can point at, before the detail. */
+  | { id: string; kind: "cards"; eyebrow: string; title?: string; cards: { num: string; name: string; note: string; hangs?: string }[]; caption?: string; section?: string }
   /** A real table: the columns of a resource, or any grid with a header row. */
   | { id: string; kind: "table"; eyebrow: string; title?: string; head: string[]; rows: string[][]; caption?: string; section?: string }
   /** The closing accounting: every problem, and the one thing that answers it. */
