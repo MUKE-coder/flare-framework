@@ -4,7 +4,7 @@
  * Deliberately few. A deck with twenty layouts is a deck nobody can add to a week later,
  * and every one of these earns its place by appearing more than twice.
  */
-export type Slide =
+type SlideKind =
   | { id: string; kind: "cover"; event: string; title: string; tagline: string; speaker: string; section?: string }
   | { id: string; kind: "section"; part: string; title: string; range?: string; note?: string; section?: string }
   /** A single claim, large. The workhorse. */
@@ -47,6 +47,12 @@ export type Slide =
   | { id: string; kind: "table"; eyebrow: string; title?: string; head: string[]; rows: string[][]; caption?: string; section?: string }
   /** The closing accounting: every problem, and the one thing that answers it. */
   | { id: string; kind: "scorecard"; eyebrow: string; title: string; rows: { code: string; label: string; answer: string }[]; section?: string };
+
+/**
+ * Speaker notes ride on any slide and never render on stage: the viewer shows them in a
+ * panel under the deck when N is pressed, the way the presenter sees them in rehearsal.
+ */
+export type Slide = SlideKind & { notes?: string };
 
 export interface Section {
   id: string;
