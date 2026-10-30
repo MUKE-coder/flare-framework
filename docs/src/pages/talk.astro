@@ -1,0 +1,306 @@
+---
+/**
+ * The talk, as slides.
+ *
+ * Each slide is a 1920x1080 stage scaled to whatever the room's projector turns out to
+ * be, so the layout is fixed and only the scale changes — no reflow surprises on stage.
+ * Scroll-snap plus arrow keys, and `?print` lays them out one per page for a PDF.
+ */
+import { slides, sections } from "../talk/slides";
+import type { Slide } from "../talk/types";
+
+const deck: Slide[] = slides;
+const title = "Flare — nothing is hidden";
+
+/** `backticked` spans become code. The content is ours, so this needs no sanitising. */
+const md = (text: string) =>
+  text.replace(/`([^`]+)`/g, '<code class="inline">$1</code>');
+---
+
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content="The Flare talk: describe a resource once, own every file it generates, deploy it to two platforms." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style is:global>
+      :root {
+        --paper: #141414;
+        --surface: #1b1b1b;
+        --ink: #f7f7f7;
+        --body: #cfcfcf;
+        --muted: #8a8a8a;
+        --rule: #2d2d2d;
+        --ember: #ff6b35;
+        --ember-soft: rgba(255, 107, 53, 0.14);
+        --on-ember: #141414;
+        --sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+      }
+      /* A light slide, used for contrast between parts. */
+      .stage[data-tone="light"] {
+        --paper: #ffffff;
+        --surface: #f6f6f6;
+        --ink: #141414;
+        --body: #3d3d3d;
+        --muted: #717171;
+        --rule: #e6e6e6;
+        --ember: #f2541d;
+        --ember-soft: #fff1ea;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: #0b0b0b; }
+      body { font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+
+      .deck { scroll-snap-type: y mandatory; overflow-y: auto; height: 100dvh; }
+      .slot {
+        scroll-snap-align: start;
+        height: 100dvh;
+        position: relative;
+        overflow: hidden;
+      }
+      /*
+       * The stage is a fixed 1920x1080 box centred in the slot and scaled down to fit.
+       * Centred by absolute positioning rather than by grid, because a grid item larger
+       * than its area does not centre — the overflow goes one way and the slide ends up
+       * hanging off the bottom-right of the projector.
+       */
+      .stage {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform-origin: center center;
+        transform: translate(-50%, -50%) scale(var(--scale, 1));
+        width: 1920px;
+        height: 1080px;
+        flex: none;
+        background: var(--paper);
+        color: var(--ink);
+        padding: 120px 128px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 44px;
+        position: relative;
+      }
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 24px;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0;
+      }
+      .headline { font-size: 78px; font-weight: 700; line-height: 1.08; letter-spacing: -2px; margin: 0; max-width: 1560px; }
+      .headline.big { font-size: 124px; line-height: 1; letter-spacing: -5px; }
+      .lede { font-size: 32px; line-height: 1.5; color: var(--body); margin: 0; max-width: 1280px; }
+      .corner {
+        position: absolute; top: 56px; right: 128px;
+        font-family: var(--mono); font-size: 22px; letter-spacing: 2px; color: var(--muted);
+      }
+      .num { position: absolute; bottom: 56px; right: 128px; font-family: var(--mono); font-size: 22px; color: var(--muted); }
+
+      .cover-title { font-size: 190px; font-weight: 700; letter-spacing: -8px; line-height: 0.9; margin: 0; color: var(--ember); }
+      .rule { height: 2px; background: var(--rule); border: 0; margin: 0; width: 100%; }
+
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px 80px; }
+      .item { display: flex; gap: 20px; align-items: baseline; font-size: 38px; font-weight: 600; letter-spacing: -0.5px; }
+      .item .code { font-family: var(--mono); font-size: 28px; color: var(--ember); min-width: 68px; }
+      .item.dim { opacity: 0.32; font-weight: 500; }
+
+      pre.code {
+        font-family: var(--mono); font-size: 30px; line-height: 1.6;
+        /* No ligatures: `==` rendered as a single glyph reads as `=` from the back of a
+           room, and this deck shows a field grammar where that is the whole point. */
+        font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0;
+        background: var(--surface); border: 1px solid var(--rule); border-left: 4px solid var(--ember);
+        padding: 40px 48px; margin: 0; overflow: hidden; color: var(--ink);
+        white-space: pre-wrap; word-break: break-word;
+      }
+      code.inline {
+        font-family: var(--mono); font-size: 0.86em;
+        background: var(--ember-soft); color: var(--ember);
+        padding: 2px 10px; border-radius: 4px;
+        font-variant-ligatures: none;
+      }
+      .caption { font-size: 28px; color: var(--muted); margin: 0; max-width: 1400px; line-height: 1.5; }
+
+      .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; }
+      .col h3 { font-family: var(--mono); font-size: 26px; letter-spacing: 2px; text-transform: uppercase; color: var(--ember); margin: 0 0 24px; }
+      .col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+      .col li { font-size: 34px; font-weight: 500; }
+      .col .note { font-family: var(--mono); font-size: 22px; color: var(--muted); margin-top: 20px; }
+
+      table.score { width: 100%; border-collapse: collapse; font-size: 26px; }
+      table.score td { padding: 11px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+      table.score td.c { font-family: var(--mono); color: var(--ember); width: 72px; }
+      table.score td.l { width: 520px; font-weight: 600; }
+      table.score td.a { color: var(--body); }
+
+      /* The contents page, before the deck starts. */
+      .toc { max-width: 1120px; margin: 0 auto; padding: 96px 32px; color: var(--ink); font-family: var(--sans); }
+      .toc h1 { font-size: 56px; letter-spacing: -2px; margin: 0 0 12px; }
+      .toc p.sub { color: var(--muted); font-size: 20px; margin: 0 0 48px; }
+      .toc ol { list-style: none; counter-reset: s; margin: 0; padding: 0; }
+      .toc li { counter-increment: s; border-top: 1px solid var(--rule); padding: 20px 0; display: grid; grid-template-columns: 60px 1fr; gap: 20px; }
+      .toc li a { color: var(--ink); text-decoration: none; font-size: 28px; font-weight: 600; }
+      .toc li a:hover { color: var(--ember); }
+      .toc li .n { font-family: var(--mono); color: var(--ember); }
+      .toc li .b { color: var(--muted); font-size: 18px; margin-top: 6px; display: block; font-weight: 400; }
+
+      @media print {
+        .deck { height: auto; overflow: visible; }
+        .slot { height: auto; page-break-after: always; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="deck" id="deck">
+      <section class="slot" id="contents">
+        <div class="toc">
+          <h1>Flare — nothing is hidden</h1>
+          <p class="sub">{deck.length} slides. Arrow keys or scroll. <a href="?print" style="color:var(--ember)">Print view</a>.</p>
+          <ol>
+            {sections.map((s, i) => (
+              <li>
+                <span class="n">{String(i + 1).padStart(2, "0")}</span>
+                <span><a href={`#${s.id}`}>{s.title}</a><span class="b">{s.blurb}</span></span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {deck.map((slide, index) => (
+        <section class="slot" id={slide.id}>
+          <div class="stage" data-tone={slide.kind === "section" || slide.kind === "cover" ? "dark" : "light"}>
+            {slide.kind === "cover" && (
+              <>
+                <p class="eyebrow">{slide.event}</p>
+                <h1 class="cover-title">{slide.title}</h1>
+                <p class="lede" style="font-size:40px;max-width:1500px">{slide.tagline}</p>
+                <hr class="rule" />
+                <p class="eyebrow" style="letter-spacing:2px">{slide.speaker}</p>
+              </>
+            )}
+
+            {slide.kind === "section" && (
+              <>
+                <p class="eyebrow">{slide.part}</p>
+                <h2 class="headline big" set:html={slide.title} />
+                {slide.range && <p style="font-family:var(--mono);font-size:28px;color:var(--ember);letter-spacing:2px;margin:0">{slide.range}</p>}
+                {slide.note && <p class="lede" set:html={md(slide.note)} />}
+              </>
+            )}
+
+            {slide.kind === "statement" && (
+              <>
+                <p class="eyebrow">{slide.eyebrow}</p>
+                <h2 class="headline" set:html={slide.title} />
+                {slide.body && <p class="lede" set:html={md(slide.body)} />}
+              </>
+            )}
+
+            {slide.kind === "list" && (
+              <>
+                <p class="eyebrow">{slide.eyebrow}</p>
+                <div class="grid-2">
+                  {slide.items.map((it) => (
+                    <p class="item"><span class="code">{it.code}</span>{it.label}</p>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {slide.kind === "problem" && (
+              <>
+                <p class="eyebrow">{slide.code}</p>
+                <h2 class="headline">{slide.title}</h2>
+                <p class="lede" set:html={md(slide.body)} />
+                {slide.answer && (
+                  <p style="font-family:var(--mono);font-size:28px;color:var(--ember);margin:0">{slide.answer}</p>
+                )}
+              </>
+            )}
+
+            {slide.kind === "code" && (
+              <>
+                <p class="eyebrow">{slide.eyebrow}</p>
+                {slide.title && <h2 class="headline" style="font-size:56px">{slide.title}</h2>}
+                <pre class="code">{slide.code}</pre>
+                {slide.caption && <p class="caption" set:html={md(slide.caption)} />}
+              </>
+            )}
+
+            {slide.kind === "split" && (
+              <>
+                <p class="eyebrow">{slide.eyebrow}</p>
+                <div class="cols">
+                  <div class="col">
+                    <h3>{slide.left.heading}</h3>
+                    <ul>{slide.left.items.map((i) => <li set:html={md(i)} />)}</ul>
+                    {slide.left.note && <p class="note" set:html={md(slide.left.note)} />}
+                  </div>
+                  <div class="col">
+                    <h3>{slide.right.heading}</h3>
+                    <ul>{slide.right.items.map((i) => <li set:html={md(i)} />)}</ul>
+                    {slide.right.note && <p class="note" set:html={md(slide.right.note)} />}
+                  </div>
+                </div>
+                {slide.caption && <p class="caption" set:html={md(slide.caption)} />}
+              </>
+            )}
+
+            {slide.kind === "scorecard" && (
+              <>
+                <p class="eyebrow">{slide.eyebrow}</p>
+                <h2 class="headline" style="font-size:52px;margin-bottom:8px">{slide.title}</h2>
+                <table class="score">
+                  <tbody>
+                    {slide.rows.map((r) => (
+                      <tr><td class="c">{r.code}</td><td class="l">{r.label}</td><td class="a" set:html={md(r.answer)} /></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+
+            <span class="corner">flare-docs.codetotech.com</span>
+            <span class="num">{String(index + 1).padStart(2, "0")} / {deck.length}</span>
+          </div>
+        </section>
+      ))}
+    </main>
+
+    <script is:inline>
+      // The stage is a fixed 1920x1080 so nothing reflows on an unfamiliar projector;
+      // only the scale changes. Recomputed on resize, and once on load for the first paint.
+      function fit() {
+        const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+        document.documentElement.style.setProperty("--scale", String(scale));
+      }
+      fit();
+      window.addEventListener("resize", fit);
+
+      const slots = [...document.querySelectorAll(".slot")];
+      function go(step) {
+        const here = slots.findIndex((s) => s.getBoundingClientRect().top >= -2);
+        const next = slots[Math.min(Math.max(here + step, 0), slots.length - 1)];
+        next?.scrollIntoView({ behavior: "smooth" });
+      }
+      addEventListener("keydown", (event) => {
+        if (["ArrowRight", "ArrowDown", "PageDown", " "].includes(event.key)) { event.preventDefault(); go(1); }
+        if (["ArrowLeft", "ArrowUp", "PageUp"].includes(event.key)) { event.preventDefault(); go(-1); }
+        if (event.key === "Home") slots[0]?.scrollIntoView();
+        if (event.key === "End") slots.at(-1)?.scrollIntoView();
+      });
+    </script>
+  </body>
+</html>
