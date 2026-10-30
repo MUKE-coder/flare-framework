@@ -34,6 +34,18 @@ const generated = [
   { path: "app/admin/contacts/[id]/edit/page.tsx", what: "Edit form" },
 ];
 
+/**
+ * What the one descriptor turns into, top to bottom. The order is the stack as somebody
+ * meets it — the screen first, the table last — which is the opposite of how it is
+ * generated and the right way round for explaining it.
+ */
+const layers = [
+  { id: "admin", num: "01", name: "Admin screens", detail: "Table, form, record page, skeletons", file: "app/dashboard/contacts/*" },
+  { id: "api", num: "02", name: "REST API", detail: "Cursor paging, filters, policies", file: "app/api/contacts/route.ts" },
+  { id: "valid", num: "03", name: "Validation", detail: "Strict Zod schemas, readable errors", file: "resources/contact.validators.ts" },
+  { id: "db", num: "04", name: "Database", detail: "Table, indexes, constraints, migration", file: "db/schema/contacts.ts" },
+];
+
 const stack = ["Cloudflare Workers", "Next.js", "D1", "Postgres", "Drizzle", "Prisma", "R2", "Better Auth", "Stripe", "Resend"];
 
 /**
@@ -346,6 +358,64 @@ const faq = [
     </section>
 
     <!-- Two stacks -->
+    <!--
+      The same description, seen as a stack. The plates are one CSS 3D scene: each is
+      translated along Z by its own --z, so hovering the stage spreads them apart without
+      touching the markup.
+    -->
+    <section class="fl-section fl-layers-section fl-rail" aria-labelledby="fl-layers">
+      <div class="fl-layers-grid">
+        <div>
+          <p class="fl-step"><span>[ how it works ]</span> Layers</p>
+          <h2 id="fl-layers" class="fl-h2">One file at the top,<br /><span class="fl-ember-text">every layer underneath</span></h2>
+          <p class="fl-layers-lead">
+            The descriptor is the only thing you write. Each layer below is real code in your repository, generated from it and
+            kept in step with it.
+          </p>
+          <ol class="fl-layer-list">
+            {layers.map((layer) => (
+              <li data-layer={layer.id}>
+                <span class="fl-layer-num">{layer.num}</span>
+                <span class="fl-layer-name">{layer.name}</span>
+                <span class="fl-layer-detail">{layer.detail}</span>
+                <code class="fl-layer-file">{layer.file}</code>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div class="fl-iso-stage" aria-hidden="true">
+          <div class="fl-iso">
+            <div class="fl-plate fl-plate-db" style="--z:0">
+              <span class="fl-plate-label">Database</span>
+              <div class="fl-mini-table">{Array.from({ length: 12 }, () => <i />)}</div>
+            </div>
+            <div class="fl-plate fl-plate-valid" style="--z:1">
+              <span class="fl-plate-label">Validation</span>
+              <div class="fl-mini-checks"><i>email ✓</i><i>status ✓</i><i>name ✓</i></div>
+            </div>
+            <div class="fl-plate fl-plate-api" style="--z:2">
+              <span class="fl-plate-label">API</span>
+              <div class="fl-mini-routes"><i>GET</i><i>POST</i><i>PATCH</i><i>DELETE</i></div>
+            </div>
+            <div class="fl-plate fl-plate-admin" style="--z:3">
+              <span class="fl-plate-label">Admin</span>
+              <div class="fl-mini-bars">
+                {["38%", "62%", "45%", "80%", "56%", "92%", "70%"].map((h) => <i style={`--h:${h}`} />)}
+              </div>
+            </div>
+            <div class="fl-plate fl-plate-file" style="--z:4.4">
+              <span class="fl-plate-file-name">
+                <svg class="fl-logo fl-logo-brand" viewBox="0 0 24 24" width="0.9rem" height="0.9rem" style="--brand:#3178C6" aria-hidden="true"><path d="M1.125 0C.502 0 0 .502 0 1.125v21.75C0 23.498.502 24 1.125 24h21.75c.623 0 1.125-.502 1.125-1.125V1.125C24 .502 23.498 0 22.875 0zm17.363 9.75c.612 0 1.154.037 1.627.111a6.38 6.38 0 0 1 1.306.34v2.458a3.95 3.95 0 0 0-.643-.361 5.093 5.093 0 0 0-.717-.26 5.453 5.453 0 0 0-1.426-.2c-.3 0-.573.028-.819.086a2.1 2.1 0 0 0-.623.242c-.17.104-.3.229-.393.374a.888.888 0 0 0-.14.49c0 .196.053.373.156.529.104.156.252.304.443.444s.423.276.696.41c.273.135.582.274.926.416.47.197.892.407 1.266.628.374.222.695.473.963.753.268.279.472.598.614.957.142.359.214.776.214 1.253 0 .657-.125 1.21-.373 1.656a3.033 3.033 0 0 1-1.012 1.085 4.38 4.38 0 0 1-1.487.596c-.566.12-1.163.18-1.79.18a9.916 9.916 0 0 1-1.84-.164 5.544 5.544 0 0 1-1.512-.493v-2.63a5.033 5.033 0 0 0 3.237 1.2c.333 0 .624-.03.872-.09.249-.06.456-.144.623-.25.166-.108.29-.234.373-.38a1.023 1.023 0 0 0-.074-1.089 2.12 2.12 0 0 0-.537-.5 5.597 5.597 0 0 0-.807-.444 27.72 27.72 0 0 0-1.007-.436c-.918-.383-1.602-.852-2.053-1.405-.45-.553-.676-1.222-.676-2.005 0-.614.123-1.141.369-1.582.246-.441.58-.804 1.004-1.089a4.494 4.494 0 0 1 1.47-.629 7.536 7.536 0 0 1 1.77-.201zm-15.113.188h9.563v2.166H9.506v9.646H6.789v-9.646H3.375z" /></svg>
+                contact.resource.ts
+              </span>
+              <span class="fl-plate-file-code">{"defineResource({ … })"}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="fl-section fl-rail" aria-labelledby="fl-stacks">
       <p class="fl-step"><span>[ pick one ]</span> Stacks</p>
       <div class="fl-section-head">
@@ -1975,4 +2045,84 @@ const faq = [
       display: none;
     }
   }
+  /* ---- Layers: the descriptor, seen as a stack -------------------------
+     From the Flare design system (project/components/IsoStack). The plates are one
+     3D scene; --z spaces them and the stage's hover widens --gap, so the spread is a
+     single transition rather than five.
+  ---------------------------------------------------------------------- */
+.fl-h2{letter-spacing:-.04em;color:var(--fl-ink);text-wrap:balance;margin:0;font-size:clamp(1.875rem,1.2rem + 2.6vw,3rem);font-weight:650;line-height:1.05}
+
+.fl-layers-grid{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);align-items:center;gap:2rem 3rem;display:grid}
+
+.fl-layers-lead{max-width:34rem;color:var(--fl-muted);margin:1.25rem 0 2rem;font-size:1.0625rem}
+
+.fl-layer-list{border-top:1px solid var(--fl-rule);margin:0;padding:0;list-style:none}
+
+.fl-layer-list li{border-bottom:1px solid var(--fl-rule);cursor:default;grid-template-columns:2.25rem minmax(0,1fr) auto;gap:.15rem .75rem;padding:.9rem .75rem;transition:background-color .15s;display:grid}
+
+.fl-layer-list li:hover{background:linear-gradient(90deg, var(--fl-ember-soft), transparent)}
+
+.fl-layer-num{font-family:var(--sl-font-mono);color:var(--fl-ember);grid-row:span 2;padding-top:.2rem;font-size:.75rem}
+
+.fl-layer-name{color:var(--fl-ink);letter-spacing:-.01em;font-weight:600}
+
+.fl-layer-detail{color:var(--fl-muted);grid-column:2;font-size:.875rem}
+
+.fl-layer-file{color:var(--fl-muted);grid-area:1/3/span 2;align-self:center;font-size:.72rem!important}
+
+.fl-iso-stage{perspective:2400px;place-items:center;height:30rem;display:grid;position:relative}
+
+.fl-iso-stage:before{content:"";background:radial-gradient(closest-side, var(--fl-glow), transparent);filter:blur(30px);border-radius:50%;position:absolute;inset:10% 5%}
+
+.fl-iso{--gap:3.75rem;width:15rem;height:15rem;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.2,.7,.2,1);position:relative;transform:rotateX(56deg)rotate(-42deg)translateZ(-5rem)}
+
+.fl-iso-stage:hover .fl-iso{--gap:4.25rem;transform:rotateX(56deg)rotate(-36deg)translateZ(-5rem)}
+
+.fl-plate{border:1px solid var(--fl-rule-strong);background:linear-gradient(135deg, #fff6, transparent 40%), linear-gradient(160deg, var(--fl-paper), var(--fl-surface));box-shadow:0 1px 0 var(--fl-rule-strong), -14px 14px 30px -6px #0000002e;transform:translateZ(calc(var(--z) * var(--gap)));border-radius:1rem;padding:1rem;transition:transform .6s cubic-bezier(.2,.7,.2,1),border-color .2s,box-shadow .2s;position:absolute;inset:0}
+
+.fl-plate-label{font-family:var(--sl-font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--fl-muted);margin-bottom:.75rem;font-size:.7rem;display:inline-block}
+
+.fl-plate-file{border-color:var(--fl-ember);background:linear-gradient(135deg, #ffffff59, transparent 45%), linear-gradient(160deg, color-mix(in srgb, var(--fl-ember) 85%, #fff), var(--fl-ember-strong));color:#fff;box-shadow:-16px 16px 40px -6px color-mix(in srgb, var(--fl-ember) 55%, transparent);flex-direction:column;justify-content:space-between;display:flex;inset:2.5rem}
+
+.fl-plate-file-name{font-family:var(--sl-font-mono);align-items:center;gap:.4rem;font-size:.72rem;font-weight:600;display:inline-flex}
+
+.fl-plate-file-name .fl-logo{fill:#fff}
+
+.fl-plate-file-code{font-family:var(--sl-font-mono);opacity:.9;font-size:.8rem}
+
+.fl-iso[data-active=db] .fl-plate-db,.fl-iso[data-active=valid] .fl-plate-valid,.fl-iso[data-active=api] .fl-plate-api,.fl-iso[data-active=admin] .fl-plate-admin{border-color:var(--fl-ember);box-shadow:0 0 0 4px var(--fl-ember-soft), -14px 14px 34px -6px var(--fl-glow);transform:translateZ(calc(var(--z) * var(--gap) + .75rem))}
+
+.fl-mini-table{grid-template-columns:1.4fr 1fr .8fr;gap:.35rem;display:grid}
+
+.fl-mini-table i,.fl-mini-checks i,.fl-mini-routes i{background:var(--fl-raised);border:1px solid var(--fl-rule);border-radius:.25rem;height:.6rem;font-style:normal;display:block}
+
+.fl-mini-table i:nth-child(-n+3){background:var(--fl-ember-soft);border-color:var(--fl-edge)}
+
+.fl-mini-checks,.fl-mini-routes{flex-wrap:wrap;gap:.4rem;display:flex}
+
+.fl-mini-checks i,.fl-mini-routes i{height:auto;font-family:var(--sl-font-mono);color:var(--fl-body);padding:.2rem .5rem;font-size:.65rem}
+
+.fl-mini-routes i:first-child{color:var(--fl-ember-strong);border-color:var(--fl-edge)}
+
+.fl-mini-bars{align-items:flex-end;gap:.4rem;height:6.5rem;display:flex}
+
+.fl-mini-bars i{height:var(--h);background:linear-gradient(180deg, var(--fl-ember), color-mix(in srgb, var(--fl-ember) 35%, transparent));border-radius:.25rem .25rem .125rem .125rem;flex:1}
+
+:root:not([data-theme=light]) .fl-face,:root:not([data-theme=light]) .fl-plate,:root:not([data-theme=light]) .fl-icon,:root:not([data-theme=light]) .fl-logo-tile{background-image:radial-gradient(120% 90% at 20% 10%, #ffffff12, transparent 55%), linear-gradient(150deg, color-mix(in srgb, var(--fl-ember) 9%, #1d1d1d), #141414)}
+
+:root:not([data-theme=light]) .fl-plate-file{background:linear-gradient(135deg,#ffffff40,#0000 45%),linear-gradient(160deg,#ff7a49,#d9430f)}
+
+:root:not([data-theme=light]) .fl-plate{box-shadow:0 1px #333,-14px 14px 34px -6px #0009}
+
+  /* Brand marks, tinted by a --brand custom property set on the element. */
+.fl-marquee li:hover .fl-logo{fill:var(--brand)}
+
+.fl-plate-file-name .fl-logo{fill:#fff}
+
+.fl-logo-tile{border:1px solid var(--fl-rule);background:linear-gradient(160deg, var(--fl-paper), var(--fl-surface));width:2.5rem;height:2.5rem;color:var(--fl-ink);border-radius:.75rem;place-items:center;display:grid;box-shadow:inset 0 1px #fff9,0 6px 14px -8px #00000040}
+
+:root:not([data-theme=light]) .fl-face,:root:not([data-theme=light]) .fl-plate,:root:not([data-theme=light]) .fl-icon,:root:not([data-theme=light]) .fl-logo-tile{background-image:radial-gradient(120% 90% at 20% 10%, #ffffff12, transparent 55%), linear-gradient(150deg, color-mix(in srgb, var(--fl-ember) 9%, #1d1d1d), #141414)}
+
+:root:not([data-theme=light]) .fl-pill,:root:not([data-theme=light]) .fl-btn-quiet,:root:not([data-theme=light]) .fl-logo-tile{box-shadow:inset 0 1px #ffffff0f}
+
 </style>

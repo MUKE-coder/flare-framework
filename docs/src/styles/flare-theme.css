@@ -28,6 +28,28 @@
   --fl-on-ember: #141414;
   --fl-code-chrome: #1f1f1f;
 
+  /* ---- Added for the landing redesign (design system: project/tokens.json) ---- */
+  /* The landing's ground, one step below paper. Docs pages stay on paper. */
+  --fl-page: #121212;
+  /* End stop of the ember text gradient on headlines. Never a solid text fill. */
+  --fl-ember-light: #ff8f5e;
+  /* Shading on 3D ember objects: the extruded mark, the dark side of an orb. */
+  --fl-ember-deep: #992e08;
+  /* Ember at ~22%, always inside a radial-gradient to transparent, usually blurred. */
+  --fl-glow: #ff6b3538;
+  /* The faintest ember fade (~7%): corner washes, card tops. */
+  --fl-glow-soft: #ff6b3512;
+  /* Ember 30% into the rule colour: gradient borders, cube edges, hovered cards. */
+  --fl-edge: #6a3e2d;
+  /* The hero terminal is dark in BOTH themes; its text is #e5e5e5, dim #8a8a8a. */
+  --fl-term-bg: #121212;
+  --fl-ok: #3fb950;
+  --fl-caution: #d29922;
+  --fl-danger: #f85149;
+  /* Hand-written code panes on the landing. Strings use --fl-ember-strong. */
+  --fl-syntax-keyword: #d2a8ff;
+  --fl-syntax-fn: #79c0ff;
+
   --sl-font: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --sl-font-mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
@@ -84,6 +106,20 @@
   --fl-ember-soft: #fff1ea;
   --fl-on-ember: #ffffff;
   --fl-code-chrome: #f6f6f6;
+
+  --fl-page: #fafafa;
+  --fl-ember-light: #ff8f5e;
+  --fl-ember-deep: #992e08;
+  --fl-glow: #f2541d2e;
+  --fl-glow-soft: #f2541d12;
+  --fl-edge: #ecbdad;
+  /* Dark in light mode too, on purpose. */
+  --fl-term-bg: #121212;
+  --fl-ok: #1a7f37;
+  --fl-caution: #9a6700;
+  --fl-danger: #cf222e;
+  --fl-syntax-keyword: #8250df;
+  --fl-syntax-fn: #0550ae;
 
   --sl-color-gray-1: #262626;
   --sl-color-gray-2: #404040;
