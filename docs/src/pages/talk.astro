@@ -106,6 +106,20 @@ const md = (text: string) =>
         mask-image: radial-gradient(75% 80% at 50% 45%, #000 15%, transparent 78%);
       }
 
+      /* Speaker notes: a quiet panel under the deck, toggled with N. Never on the slide. */
+      .notes-panel {
+        border-top: 1px solid var(--line);
+        padding: 14px 18px;
+        font-size: 14.5px;
+        line-height: 1.6;
+        color: var(--muted);
+        background: var(--panel);
+        max-height: 128px;
+        overflow-y: auto;
+      }
+      .notes-panel::before { content: "Notes · "; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ember); }
+      .notes-panel:empty::after, .notes-panel[data-empty]::after { content: "No notes on this slide."; opacity: 0.6; }
+
       .controls { border-top: 1px solid var(--line); display: flex; align-items: center; gap: 10px; padding: 10px 14px; font-family: var(--mono); font-size: 13px; color: var(--muted); }
       .controls button { font: inherit; color: var(--ink); background: #141414; border: 1px solid var(--line); border-radius: 7px; padding: 7px 13px; cursor: pointer; }
       .controls button:hover:not(:disabled) { background: #1d1d1d; }
@@ -140,7 +154,8 @@ const md = (text: string) =>
       .item .code { font-family: var(--mono); font-size: 27px; color: var(--s-ember); min-width: 74px; }
 
       pre.code {
-        font-family: var(--mono); font-size: 31px; line-height: 1.6;
+        /* 26px holds ~96 mono columns on the 1920 stage, which every command here fits. */
+        font-family: var(--mono); font-size: 26px; line-height: 1.55;
         background: var(--s-surface); border: 1px solid var(--s-rule); border-left: 3px solid var(--s-ember);
         border-radius: 10px; padding: 44px 50px; margin: 0; overflow: hidden; color: var(--s-ink);
         white-space: pre-wrap; word-break: break-word;
@@ -200,7 +215,7 @@ const md = (text: string) =>
 
       @media (max-width: 720px) { .page { padding: 32px 16px 64px; } .controls { flex-wrap: wrap; } }
       @media print {
-        .bar, .cta, .hint, .controls, .progress { display: none; }
+        .bar, .cta, .hint, .controls, .progress, .notes-panel { display: none; }
         .viewer { border: 0; }
         .screen { aspect-ratio: auto; height: 100vh; }
         .slot { position: relative; opacity: 1; visibility: visible; height: 100vh; page-break-after: always; }
@@ -225,7 +240,7 @@ const md = (text: string) =>
       <div class="viewer" id="viewer">
         <div class="screen" id="screen">
           {deck.map((slide, index) => (
-            <section class="slot" id={slide.id}>
+            <section class="slot" id={slide.id} data-notes={slide.notes ?? ""}>
               <div class="stage" data-tone={slide.kind === "section" || slide.kind === "cover" ? "dark" : "light"}>
                 {slide.kind === "cover" && (
                   <>
@@ -390,6 +405,7 @@ const md = (text: string) =>
           ))}
         </div>
 
+        <div class="notes-panel" id="notes" hidden></div>
         <div class="progress" id="progress"></div>
         <div class="controls">
           <button type="button" id="prev" aria-label="Previous slide">←</button>
@@ -401,7 +417,7 @@ const md = (text: string) =>
       </div>
 
       <p class="hint">
-        <kbd>←</kbd> <kbd>→</kbd> to page through, <kbd>F</kbd> for fullscreen. Every command in the deck was run before it went on a slide.
+        <kbd>←</kbd> <kbd>→</kbd> to page through, <kbd>N</kbd> for speaker notes, <kbd>F</kbd> for fullscreen. Every command in the deck was run before it went on a slide.
       </p>
 
       <section class="cta">
@@ -427,7 +443,16 @@ const md = (text: string) =>
       const count = document.getElementById("count");
       const progress = document.getElementById("progress");
       const full = document.getElementById("full");
+      const notes = document.getElementById("notes");
       let at = 0;
+      let notesOn = false;
+
+      function renderNotes() {
+        const text = slots[at].dataset.notes || "";
+        notes.textContent = text;
+        notes.toggleAttribute("data-empty", !text);
+        notes.hidden = !notesOn;
+      }
 
       // The stage is a fixed 1920x1080 box; only its scale changes, so a slide looks the
       // same in the frame as it does filling a projector.
@@ -446,6 +471,7 @@ const md = (text: string) =>
         progress.style.width = ((at + 1) / slots.length) * 100 + "%";
         // The frame takes the slide's own ground, so a dark slide has no white edge.
         screen.dataset.dark = slots[at].querySelector(".stage").dataset.tone === "dark" ? "1" : "0";
+        renderNotes();
         if (pushHash !== false) history.replaceState(null, "", "#" + slots[at].id);
       }
 
@@ -462,6 +488,7 @@ const md = (text: string) =>
         else if (event.key === "Home") show(0);
         else if (event.key === "End") show(slots.length - 1);
         else if (event.key.toLowerCase() === "f") full.click();
+        else if (event.key.toLowerCase() === "n") { notesOn = !notesOn; renderNotes(); }
       });
 
       // A click on the slide advances, which is what a presenter remote sends.
