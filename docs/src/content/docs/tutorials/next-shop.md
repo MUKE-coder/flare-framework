@@ -186,10 +186,11 @@ talks to the database. `updatedAt` is explicit because `@updatedAt` is a
 Prisma-client behaviour and `createMany` skips it.
 
 :::note
-`flare seed:resource`, the one-liner that fills a table straight from a
-descriptor, is Cloudflare-only: it writes to D1 through wrangler. Seed files
-are the Postgres path, and the CLI tells you so if you reach for the other
-one.
+`flare seed:resource Product 5k` fills a table straight from its descriptor on
+this stack too. It goes through the app's own Prisma client rather than raw
+SQL, so a `text[]`, a `jsonb` column and a Postgres enum are encoded by the
+thing that defined them. Seed files are still the way to write data you have
+decided on, rather than data that merely looks right.
 :::
 
 ## 4. Run it

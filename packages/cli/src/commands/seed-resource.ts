@@ -11,7 +11,9 @@ import { loadResources } from "../generator/load.js";
 import { openLocalD1, type D1Binding } from "../seed/local-d1.js";
 import { readStack } from "../stack.js";
 import { bulkInsert, insertStatements, type SqlSink } from "../seed/bulk.js";
+import { prismaModel } from "../seed/prisma-rows.js";
 import { seedColumns, seedRows, type ParentIds } from "../seed/rows.js";
+import { seedResourceWithPrisma } from "./seed-resource-prisma.js";
 import { formatCount, formatDuration, formatRate, progressLine } from "../terminal.js";
 import { readD1Databases, runWrangler, type D1Database } from "../utils/wrangler.js";
 import { findAppRoot, resolveBin } from "./run.js";
@@ -80,6 +82,18 @@ function pickDatabase(databases: D1Database[], wanted?: string): D1Database {
   return databases[0]!;
 }
 
+/** Resources this one belongs to, named for the descriptor and for the Prisma client. */
+function parentTargetsOf(resource: Resource, all: Resource[]): { resource: string; model: string }[] {
+  const targets = new Set(
+    Object.values(resource.fields)
+      .filter((field) => field.kind === "belongsTo")
+      .map((field) => (field as { target: string }).target),
+  );
+  return [...targets]
+    .filter((target) => all.some((candidate) => candidate.name === target))
+    .map((target) => ({ resource: target, model: prismaModel(all.find((candidate) => candidate.name === target)!) }));
+}
+
 /** Resources this one belongs to, and the ids available to point at. */
 async function parentsOf(resource: Resource, all: Resource[], ids: (table: string) => Promise<string[]>): Promise<ParentIds> {
   const targets = new Set(
@@ -123,14 +137,7 @@ export async function seedResourceCommand(name: string, options: SeedResourceOpt
 export async function seedResource(name: string, options: SeedResourceOptions = {}): Promise<SeedResourceResult> {
   const log = options.log ?? ((message: string) => console.log(message));
   const appRoot = findAppRoot(options.cwd ?? process.cwd());
-  // This one writes to D1 directly, through wrangler; there is no Postgres path yet.
-  if (readStack(appRoot) === "next") {
-    throw new Error(
-      "flare seed:resource is Cloudflare-only so far. On this stack, write a seed with `flare seed:make <name> --resource " +
-        name +
-        "` — it comes with rows already filled in — and run it with `flare seed`.",
-    );
-  }
+  const stack = readStack(appRoot);
   const resources = (await loadResources(appRoot)).map(({ resource }) => resource);
   const resource = pickResource(resources, name);
   const total = parseCount(options.count);
@@ -138,6 +145,26 @@ export async function seedResource(name: string, options: SeedResourceOptions = 
 
   if (options.remote && !options.yes) {
     throw new Error(`Seeding the remote database writes ${total.toLocaleString()} rows to ${resource.table}. Re-run with --yes to confirm.`);
+  }
+
+  if (stack === "next") {
+    // Postgres has no local/remote split the way D1 does: there is one DATABASE_URL and
+    // it points wherever it points. Say so rather than appearing to target a second
+    // database that does not exist.
+    if (options.remote) log(pc.dim("On Next.js, this is whichever database DATABASE_URL points at."));
+    const started = Date.now();
+    const rows = await seedResourceWithPrisma(
+      appRoot,
+      resource,
+      {
+        count: total,
+        truncate: options.truncate,
+        seed: options.seed,
+        parentTargets: parentTargetsOf(resource, resources),
+      },
+      log,
+    );
+    return { resource, rows, ms: Date.now() - started, where };
   }
 
   const columns = seedColumns(resource);

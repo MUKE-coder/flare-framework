@@ -230,22 +230,31 @@ npx flare seed contacts    # just seeds/contacts.seed.ts
 ## `flare seed:resource <resource> [count]`
 
 Fill a resource's table with sample rows built from its descriptor. About
-14,000 rows a second locally.
+14,000 rows a second locally on Cloudflare.
 
 ```bash
 npx flare seed:resource Contact --count 1000
 npx flare seed:resource Contact 1m
-npx flare seed:resource Contact 5k --remote --yes
+npx flare seed:resource Contact 5k --remote --yes   # Cloudflare
 ```
+
+Both stacks, by different routes. Cloudflare writes SQL straight at D1.
+Next.js goes through the app's own Prisma client, because that is the only
+thing that knows how this schema maps to Postgres — a multiselect is a real
+`text[]`, a `json` field is `jsonb`, and an enum is a Postgres enum whose
+member identifier is not always the value in the column.
+
+A `belongsTo` field points at rows that already exist, so seed the parent
+first; the command says which one is empty rather than failing partway.
 
 | Flag | |
 | --- | --- |
 | `--count <rows>` | `1000`, `25k`, `1m` (default `25`) |
 | `--truncate` | Delete the table's rows first |
 | `--seed <number>` | Same number, same rows |
-| `--remote` | The deployed database (requires `--yes`) |
-| `--database <binding>` | D1 binding, when the app has several |
-| `--env <name>` | Wrangler environment |
+| `--remote` | Cloudflare: the deployed database (requires `--yes`). On Next.js there is no second database — `DATABASE_URL` is whichever one you point it at |
+| `--database <binding>` | D1 binding, when the app has several (Cloudflare) |
+| `--env <name>` | Wrangler environment (Cloudflare) |
 
 ## `flare db:push <table...>`
 

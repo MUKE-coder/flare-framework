@@ -270,8 +270,3 @@ Being straight about it:
 - **Traffic analytics in-app.** The observability page reads Cloudflare's
   analytics API on the other stack; here it points you at Vercel's dashboard
   rather than holding a token that can read your whole account.
-- **`flare seed:resource`.** The one-liner that fills a table from its
-  descriptor writes to D1 through wrangler, so it is Cloudflare-only. Seed
-  files themselves work: `flare seed:make <name> --resource Product` writes
-  one with the rows filled in, and `flare seed` runs it. What it hands you is
-  the app's own Prisma client, plus an `insertMany` over `createMany`.

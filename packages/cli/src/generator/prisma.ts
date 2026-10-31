@@ -18,9 +18,18 @@ const q = (value: unknown) => JSON.stringify(value);
 /** `Product` + `kind` → `ProductKind`, the Prisma enum a field of that shape needs. */
 export const enumTypeName = (resource: string, key: string) => `${pascalCase(resource)}${pascalCase(key)}`;
 
-/** A Prisma enum value has to be an identifier; "in-progress" can't be one. */
+/**
+ * The identifier a Prisma enum member gets. "in-progress" can't be one, so it becomes
+ * `in_progress` and the real value is kept with `@map`.
+ *
+ * Anything going through the Prisma client — `createMany` in a seed, a `where` clause —
+ * has to use this name rather than the value stored in the column, so it is exported
+ * and shared rather than written twice.
+ */
+export const prismaEnumMember = (option: string) => option.replace(/[^A-Za-z0-9_]/g, "_").replace(/^(?=\d)/, "v_");
+
 const enumMember = (option: string) => {
-  const safe = option.replace(/[^A-Za-z0-9_]/g, "_").replace(/^(?=\d)/, "v_");
+  const safe = prismaEnumMember(option);
   return safe === option ? `  ${safe}` : `  ${safe} @map(${q(option)})`;
 };
 

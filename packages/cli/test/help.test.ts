@@ -60,10 +60,13 @@ describe("help text about the database", () => {
     expect(help(appOn("cloudflare"))).toMatch(/migrate\s+Apply pending D1 migrations/);
   });
 
-  it("says seed:resource is Cloudflare-only where it is", () => {
-    // It throws on next with a pointer to seed:make; the description should say so
-    // before someone runs it.
-    expect(help(appOn("next"))).toMatch(/seed:resource[^\n]*Cloudflare only/);
+  it("offers seed:resource on both stacks, and names the database each one means", () => {
+    // It was Cloudflare-only until it learned Postgres. The help said so, which is worth
+    // asserting in the other direction now: neither stack should be told it is missing.
+    const next = help(appOn("next"));
+    expect(next).toMatch(/seed:resource/);
+    expect(next).not.toMatch(/seed:resource[^\n]*Cloudflare only/);
+    expect(next).toContain("DATABASE_URL");
     expect(help(appOn("cloudflare"))).not.toMatch(/seed:resource[^\n]*Cloudflare only/);
   });
 

@@ -295,12 +295,19 @@ export function createCli() {
       "seed:resource <resource> [count]",
       perStack(
         "Fill a resource's table with sample rows built from its descriptor",
-        "Cloudflare only — on this stack use `flare seed:make <name> --resource <Resource>` then `flare seed`",
-        "Fill a resource's table with sample rows built from its descriptor (Cloudflare only)",
+        "Fill a resource's table with sample rows built from its descriptor (the database in DATABASE_URL)",
+        "Fill a resource's table with sample rows built from its descriptor",
       ),
     )
     .option("--count <rows>", "How many rows: 1000, 25k, 1m (default: 25)")
-    .option("--remote", cloudflareOnly("Seed the deployed database instead of the local one (needs --yes)"))
+    .option(
+      "--remote",
+      perStack(
+        "Seed the deployed database instead of the local one (needs --yes)",
+        "No separate remote: DATABASE_URL is whichever database you point it at",
+        "Seed the deployed database instead of the local one (Cloudflare only; needs --yes)",
+      ),
+    )
     .option("--truncate", "Delete the table's rows first")
     .option("--seed <number>", "Same number, same rows")
     .option("--env <name>", cloudflareOnly("Wrangler environment"))
