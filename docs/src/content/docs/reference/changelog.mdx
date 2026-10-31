@@ -23,6 +23,48 @@ pnpm add -D @flaredev/cli@latest    # upgrade it
 
 <Release version="Unreleased" date="merged, ships in 0.12.0">
 
+**`flare seed:resource` works on the Next.js stack.**
+([#24](https://github.com/MUKE-coder/flare-framework/issues/24))
+
+The one-liner that fills a table from its descriptor was Cloudflare-only,
+which stopped being a footnote when Next.js became the default: the quickest
+way to get something to build against was missing from the stack most people
+now start on.
+
+```bash
+npx flare seed:resource Ticket 5k
+```
+
+Cloudflare still writes SQL straight at D1. Postgres goes through the app's
+own Prisma client, because hand-writing the literal syntax for a `text[]`, a
+`jsonb` column and a Postgres enum is three chances to be subtly wrong about
+escaping, and the client already knows all three. About 2,000 rows a second
+against local Postgres, against ~14,000 on D1.
+
+`--remote` has no meaning here — Postgres has one `DATABASE_URL` and it points
+wherever you point it — and the command says so rather than implying a second
+database.
+
+**A store now says whether it is confined to one person's rows.**
+([#23](https://github.com/MUKE-coder/flare-framework/issues/23))
+
+`createResourceStore` built without `currentUser` quietly stopped applying an
+`own` policy and returned every row. That is right for a seed and a hole in a
+server action, and both were written the same way — so the dangerous reading
+was the one you got by forgetting an argument.
+
+```ts
+createResourceStore({ resource, rows, policy, currentUser });    // confined
+createResourceStore({ resource, rows, policy, system: true });   // on purpose
+createResourceStore({ resource, rows, policy });                 // throws
+```
+
+Passing both is allowed and means what it says: a job that wants the user for
+an audit hook and still needs every row. Nothing Flare generates changes —
+every route and the dashboard already passed `currentUser`, which is why this
+went unnoticed. The call sites it catches are hand-written ones, and the first
+one it caught was Flare's own CI script.
+
 **The first changes that came from somebody else.**
 
 Seven pull requests are merged and waiting on the next release. All of this is
