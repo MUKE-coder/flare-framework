@@ -216,12 +216,31 @@ describe("without a session", () => {
   });
 });
 
-describe("a store built with no currentUser at all", () => {
+describe("a store built with neither a session nor `system`", () => {
+  it("throws where it is built, rather than quietly ignoring the policy", () => {
+    // This used to be the unrestricted store, which meant the dangerous reading of an
+    // `own` policy was the one you got by forgetting an argument.
+    expect(() => createResourceStore({ resource: invoice, rows, policy })).toThrow(/currentUser.*system: true/s);
+  });
+
+  it("names the resource, so the stack trace is not the only clue", () => {
+    expect(() => createResourceStore({ resource: invoice, rows, policy })).toThrow(/Invoice/);
+  });
+});
+
+describe("a store that says `system: true`", () => {
   it("is unrestricted, which is how a seed writes rows for anybody", async () => {
-    const seeding = createResourceStore({ resource: invoice, rows, policy });
+    const seeding = createResourceStore({ resource: invoice, rows, policy, system: true });
     const result = await seeding.list(new URLSearchParams());
     expect(result.ok && result.data.data.map((row) => row.id)).toEqual(["a1", "b1"]);
     expect((await seeding.create({ number: "S-1", total: 1, userId: bob.id })).ok).toBe(true);
+  });
+
+  it("stays unrestricted even with a session, because that is what it asked for", async () => {
+    // A job can want the user for an audit hook and still run across every row.
+    const job = createResourceStore({ resource: invoice, rows, policy, currentUser: () => ada, system: true });
+    const result = await job.list(new URLSearchParams());
+    expect(result.ok && result.data.data.map((row) => row.id)).toEqual(["a1", "b1"]);
   });
 });
 

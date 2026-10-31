@@ -79,7 +79,7 @@ function memoryRows(seed: Row[] = []) {
 }
 
 let rows: ReturnType<typeof memoryRows>;
-const store = () => createResourceStore({ resource: invoice, rows });
+const store = () => createResourceStore({ resource: invoice, rows, system: true });
 
 beforeEach(() => {
   rows = memoryRows();
@@ -208,7 +208,7 @@ describe("validation", () => {
   it("refuses a fraction of a zero-exponent currency declared as a float", async () => {
     // Where the int check does not apply, the money check is what catches it.
     const yenFloat = defineResource({ name: "Ticket", fields: { price: field.float({ format: "money", currency: "JPY" }) } });
-    const result = await createResourceStore({ resource: yenFloat, rows: memoryRows() }).create({ price: 1500.5 });
+    const result = await createResourceStore({ resource: yenFloat, rows: memoryRows(), system: true }).create({ price: 1500.5 });
     expect(result.ok).toBe(false);
     expect(!result.ok && JSON.stringify(result.issues)).toMatch(/whole amount/i);
   });

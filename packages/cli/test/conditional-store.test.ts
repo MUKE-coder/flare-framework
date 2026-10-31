@@ -72,7 +72,7 @@ function memoryRows(seed: Row[] = []) {
 }
 
 let rows: ReturnType<typeof memoryRows>;
-const store = () => createResourceStore({ resource: project, rows });
+const store = () => createResourceStore({ resource: project, rows, system: true });
 const data = (result: unknown) => (result as { data: Row }).data;
 
 beforeEach(() => {

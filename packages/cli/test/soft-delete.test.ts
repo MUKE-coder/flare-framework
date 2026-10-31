@@ -70,7 +70,7 @@ function memoryRows(seed: Row[] = []): ResourceRows & { all: Row[] } {
 }
 
 let rows: ReturnType<typeof memoryRows>;
-const store = () => createResourceStore({ resource: ticket, rows });
+const store = () => createResourceStore({ resource: ticket, rows, system: true });
 
 beforeEach(() => {
   rows = memoryRows([
@@ -102,7 +102,7 @@ describe("deleting", () => {
 
   it("still removes the row on a resource that does not soft-delete", async () => {
     const notes = memoryRows([{ id: "n", title: "x", createdAt: new Date(), updatedAt: new Date() }]);
-    const open = createResourceStore({ resource: plain, rows: notes });
+    const open = createResourceStore({ resource: plain, rows: notes, system: true });
     expect((await open.delete("n")).ok).toBe(true);
     expect(notes.all).toEqual([]);
   });
@@ -157,7 +157,7 @@ describe("restoring", () => {
   it("is 404 on a resource that does not keep deleted rows", async () => {
     // There is nothing to restore, and pretending otherwise would be worse than saying so.
     const notes = memoryRows([{ id: "n", title: "x", createdAt: new Date(), updatedAt: new Date() }]);
-    const open = createResourceStore({ resource: plain, rows: notes });
+    const open = createResourceStore({ resource: plain, rows: notes, system: true });
     const result = await open.restore("n");
     expect(!result.ok && result.status).toBe(404);
   });

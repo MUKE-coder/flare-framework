@@ -141,11 +141,29 @@ the field before validation, so the client never sends it and never has to.
 
 ### Two things to know
 
-**A store built without `currentUser` is not confined.** That is how seeds
-and scripts write rows on behalf of anybody — they have no session to
-scope to. If you build a store by hand in a server action or a job, pass
-`currentUser` when you want the restriction and leave it out when you
-don't. The choice is visible at the call site rather than hidden.
+**A store has to say which one it is.** Pass `currentUser` and an `own`
+policy confines every read and write to that person's rows. Pass
+`system: true` and it is deliberately unconfined, which is how a seed, a
+cron job or a migration script writes rows on behalf of anybody:
+
+```ts
+const store = createResourceStore({
+  resource: invoiceResource,
+  rows: drizzleRows(invoices, getDb),
+  policy: policyFor("Invoice"),
+  system: true, // a job, not a request: no session to scope to
+});
+```
+
+A store with neither throws where it is built. It used to be allowed, and
+it meant the dangerous reading — an `own` policy quietly not applying —
+was the one you got by forgetting an argument in a server action. Now the
+unconfined case is the one you have to ask for by name.
+
+You can pass both: a job that wants the user for an audit hook, and still
+wants to see every row, says `currentUser` and `system: true`. `system`
+decides what is visible; `currentUser` only decides what the hooks are
+told.
 
 **`store.titles()` is not confined**, and cannot be: the row adapter
 returns an id and a title, not an owner. It exists so a relation picker can

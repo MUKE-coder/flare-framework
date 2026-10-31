@@ -41,6 +41,12 @@ export interface ResourceHandlerOptions {
   authorize: Authorize;
   /** Who is making the request, for the descriptor's hooks. */
   currentUser?: ResourceStoreOptions["currentUser"];
+  /**
+   * Serve every row, whoever is asking. See {@link ResourceStoreOptions.system} — the
+   * store needs this or `currentUser`, and a route that genuinely has no session is the
+   * one case where it is the honest answer.
+   */
+  system?: ResourceStoreOptions["system"];
   /** Called after a write succeeds, for cache invalidation. */
   onChange?: (event: ChangeEvent) => void | Promise<void>;
 }

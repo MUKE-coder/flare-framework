@@ -105,10 +105,21 @@ export interface ResourceStoreOptions {
    * perform the action at all is decided before the store is reached, by `authorize` on
    * the API and by the dashboard's own check.
    *
-   * Ownership applies only when `currentUser` is also given. A store built without one
-   * has no session to scope to, which is how a seed or a script writes rows for anybody.
+   * Ownership applies unless `system` says otherwise.
    */
   policy?: Policy | null;
+  /**
+   * Run unconfined, on purpose.
+   *
+   * A store with no session cannot scope anything to an owner, which is right for a
+   * seed, a cron job or a migration script and wrong for anything serving a request.
+   * The two used to look identical — leave `currentUser` off and an `own` policy simply
+   * stopped applying — so the dangerous case was the one you got by forgetting.
+   *
+   * Now it has to be said. Pass `currentUser`, or pass `system: true`; a store with
+   * neither throws where it is built rather than returning everybody's rows at runtime.
+   */
+  system?: true;
   /**
    * Called after a write succeeds, for cache invalidation. Runs before the
    * operation returns, so a caller that revalidates tags can't hand back a
@@ -128,6 +139,16 @@ export function createResourceStore(options: ResourceStoreOptions) {
   const { resource, rows } = options;
   const validators = createValidators(resource);
   const fields = storedFields(resource);
+
+  // Before anything else, because the failure it prevents is silent. A store with no
+  // session and no `system` cannot confine an `own` policy, so it would hand back every
+  // row — correct for a seed, a hole in a server action somebody wrote in a hurry.
+  if (!options.currentUser && !options.system) {
+    throw new Error(
+      `Resource "${resource.name}": a store needs \`currentUser\`, or \`system: true\` to say it is meant to run unconfined. ` +
+        `Without one of them an \`own\` policy cannot be applied, and every row would be returned.`,
+    );
+  }
 
   // Drizzle can say up front whether the table matches the descriptor; a Prisma client
   // can't be asked the same question without a round trip, so that check stays here.
@@ -305,14 +326,16 @@ export function createResourceStore(options: ResourceStoreOptions) {
   /**
    * The owner this call is confined to: `null` to touch every row, or a Failure.
    *
-   * Only when a `currentUser` was given — see the option. A policy that restricts rows
-   * and a request with no session is a 403, not an unrestricted query: the API refuses
-   * that earlier, but the dashboard and server actions come through here too, and a
-   * missing session must never widen what a query returns.
+   * Unconfined only when the store said `system` — see the option. A policy that
+   * restricts rows and a request with no session is a 403, not an unrestricted query:
+   * the API refuses that earlier, but the dashboard and server actions come through here
+   * too, and a missing session must never widen what a query returns.
    */
   async function confine(): Promise<{ field: string; value: string } | Failure | null> {
-    if (!ownership || !options.currentUser) return null;
-    const user = await options.currentUser();
+    // `system` is the only way past an ownership policy, and the constructor has already
+    // insisted that a store without one has a `currentUser` to confine to.
+    if (!ownership || options.system) return null;
+    const user = await options.currentUser!();
     if (!user) return fail(403, "Sign in required.");
     return ownershipFilter(options.policy, user);
   }
