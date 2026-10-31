@@ -23,7 +23,9 @@ const check = (name: string, ok: boolean, detail = "") => {
 };
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
-const store = createResourceStore({ resource: contactResource, rows: prismaRows(prisma.contact, prisma) });
+// A script, not a request: there is no session to confine to, and these checks want to
+// see every row. Saying so is now required — see the store's `system` option.
+const store = createResourceStore({ resource: contactResource, rows: prismaRows(prisma.contact, prisma), system: true });
 
 // 0.8.1 — the export asked for a bigger page than the cap allowed and failed every time.
 const listed = await store.list(new URLSearchParams({ page: "1", perPage: "500" }), { maxPerPage: 500 });
