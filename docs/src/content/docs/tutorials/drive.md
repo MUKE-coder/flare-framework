@@ -287,7 +287,7 @@ push up — unlike rows, the objects are only ever where they were uploaded.
   from inside its own subtree, and the breadcrumb's depth cap stops mattering.
 - **Sharing.** `createReadUrl` takes an `expiresIn`; a "copy link" action that
   signs a week-long URL is a few lines.
-- **Per-person drives.** Add `owner:belongsTo(User)` and a policy, and the
+- **Per-person drives.** Add `ownerId:string` and a policy, and the
   generated API filters to the signed-in person on its own.
 - **Thumbnails.** `contentType` is already stored; for `image/*`, sign a read
   URL and show it on the card.

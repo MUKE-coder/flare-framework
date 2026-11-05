@@ -23,15 +23,64 @@ export const humanize = (value: string) => {
   return text ? text[0]!.toUpperCase() + text.slice(1) : text;
 };
 
-const UNCOUNTABLE = new Set(["equipment", "information", "rice", "money", "species", "series", "fish", "sheep", "data", "news"]);
-const IRREGULAR: Record<string, string> = { person: "people", man: "men", woman: "women", child: "children", mouse: "mice" };
+const UNCOUNTABLE = new Set(["equipment", "information", "rice", "money", "species", "series", "fish", "sheep", "data", "news", "staff"]);
+
+/**
+ * Plurals no rule produces.
+ *
+ * The -f words are here one by one rather than as an `f → ves` rule, because English
+ * does not have one: shelves and knives, but roofs, chiefs, proofs and beliefs. A rule
+ * would be right about half the time and wrong about `Proof` and `Belief`, which are
+ * likelier to turn up in an app than `Sheaf`.
+ */
+const IRREGULAR: Record<string, string> = {
+  person: "people",
+  man: "men",
+  woman: "women",
+  child: "children",
+  mouse: "mice",
+  // -f / -fe → -ves
+  shelf: "shelves",
+  half: "halves",
+  knife: "knives",
+  life: "lives",
+  leaf: "leaves",
+  loaf: "loaves",
+  wolf: "wolves",
+  wife: "wives",
+  calf: "calves",
+  self: "selves",
+  thief: "thieves",
+  elf: "elves",
+  // Latin endings an app meets in a catalogue or a lab
+  index: "indexes",
+  matrix: "matrices",
+  vertex: "vertices",
+  appendix: "appendices",
+  analysis: "analyses",
+  diagnosis: "diagnoses",
+  thesis: "theses",
+  basis: "bases",
+  crisis: "crises",
+  criterion: "criteria",
+  curriculum: "curricula",
+  syllabus: "syllabuses",
+  alumnus: "alumni",
+  campus: "campuses",
+  status: "statuses",
+  quiz: "quizzes",
+};
 
 /** English plural of the last word: "category" → "categories", "OrderItem" → "OrderItems". */
 export function pluralize(value: string): string {
-  const match = /([A-Za-z]+)$/.exec(value);
-  if (!match) return value;
-  const word = match[1]!;
-  const lower = word.toLowerCase();
+  if (!/[A-Za-z]$/.test(value)) return value;
+  // The last *word*, not the last run of letters: "BookShelf" ends in "Shelf", which is
+  // the one the irregular list knows. Matching /[A-Za-z]+$/ instead takes the whole of
+  // "BookShelf", finds nothing, and produces "BookShelfs".
+  const parts = words(value);
+  const lower = parts[parts.length - 1];
+  if (!lower) return value;
+  const word = value.slice(value.length - lower.length);
   const head = value.slice(0, value.length - word.length);
   const keepCase = (plural: string) => (word[0] === word[0]!.toUpperCase() ? plural[0]!.toUpperCase() + plural.slice(1) : plural);
 

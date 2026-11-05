@@ -1,0 +1,206 @@
+---
+title: Lost and found portal
+description: A campus lost-property system — reports with photos, suggested matches, and a claim workflow. Five commands, on either stack.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Students report what they lost and what they found. The office matches the
+two and hands things back to whoever can prove the item is theirs.
+
+It is the smallest of these projects and the right one to start on. It still
+has everything that makes a real app awkward: photos, two relations pointing
+at the same table, and a field that only exists when a claim is rejected.
+
+:::note[Every command here was run]
+Against both stacks, from an empty app, in the order shown. Where something
+does not work the page says so rather than showing a command that fails.
+:::
+
+## The design
+
+This comes from the standard brief — reports, matches, claims — with one
+change made for Flare's sake, explained below the table.
+
+| Table | What it holds |
+| --- | --- |
+| `categories` | Phones, ID cards, bags, keys |
+| `spots` | Campus places, with coordinates |
+| `items` | One report: lost or found, with a photo and a date |
+| `matches` | A lost report paired with a found one, and a score |
+| `claims` | Somebody saying an item is theirs, and the proof |
+
+**Why `spots` and not `locations`.** Nothing in Flare objects to `Location`,
+but generated client code sits next to the browser's own `location`, and a
+line reading `location.name` meaning the record is a bug waiting for a tired
+evening. The brief's own word is fine; this one is a suggestion.
+
+**The one real departure: there is no `users` resource.** Every Flare app
+already has one — Better Auth's — and generating a second would give you two
+competing user tables. So `reporterId` and `claimantId` are plain `string`
+columns holding the signed-in account's id:
+
+```bash
+reporterId:string
+```
+
+Not `belongsTo(User)`. That command fails, because `User` is not a Flare
+resource for a foreign key to point at
+([#73](https://github.com/MUKE-coder/flare-framework/issues/73) tracks making
+it work). The cost is the admin showing a raw id instead of a picker. For
+"who reported this" that is usually right anyway — the answer is whoever is
+signed in, not someone chosen from a list — and it is the field an ownership
+policy names.
+
+## 1. The app
+
+The `gen` commands below are identical on both stacks. Only getting the app
+running differs.
+
+<Tabs syncKey="stack">
+<TabItem label="Next.js">
+
+```bash
+pnpm create flare-framework lost-and-found
+cd lost-and-found
+docker compose up -d          # Postgres, MinIO and Redis
+```
+
+</TabItem>
+<TabItem label="Cloudflare">
+
+```bash
+pnpm create flare-framework lost-and-found --stack cloudflare
+cd lost-and-found
+```
+
+Nothing else to start: Wrangler simulates D1 and R2 locally.
+
+</TabItem>
+</Tabs>
+
+## 2. The two lookup tables
+
+Start with the tables nothing points at yet. A `belongsTo` needs its target
+to exist already, so the order here is not arbitrary — it is the only order
+that works.
+
+```bash
+npx flare gen resource Category \
+  --icon tags --group Catalogue \
+  --fields 'name:string!'
+
+npx flare gen resource Spot \
+  --icon map-pin --group Catalogue \
+  --fields 'name:string!, latitude:float?, longitude:float?'
+```
+
+`name:string!` — the `!` is a unique constraint, so two categories cannot
+both be called "Phones". It is enforced by the database, not by the form, so
+a race between two tabs still cannot create a duplicate.
+
+## 3. The report
+
+```bash
+npx flare gen resource Item \
+  --icon package --group "Lost & found" \
+  --fields 'title:string, description:text?, kind:enum(lost,found), status:enum(open,matched,claimed,returned), photo:file:[image]:5mb?, eventDate:date, reporterId:string, category:belongsTo(Category), spot:belongsTo(Spot)?'
+```
+
+Four things worth naming:
+
+- **`kind`, not `type`.** `type` is legal, but it collides with enough
+  JavaScript and SQL for the generated code to read badly.
+- **`photo:file:[image]:5mb?`** is the whole upload. A drop zone, a signed
+  URL, a MIME check, and a cap checked twice — in the browser before the
+  upload starts and on the server against the real bytes. The `5mb` is
+  optional; leave it off and you get 10MB.
+- **`eventDate:date`, not `datetime`.** When something was lost is a day,
+  not an instant. A `date` column has no timezone to be wrong about.
+- **`spot:belongsTo(Spot)?`** is optional, because people genuinely do not
+  remember where. `category` is not — a report you cannot search by category
+  is not much of a report.
+
+## 4. Matches: two relations to one table
+
+```bash
+npx flare gen resource Match \
+  --icon git-compare --group "Lost & found" \
+  --fields 'score:int, status:enum(suggested,confirmed,rejected), lostItem:belongsTo(Item), foundItem:belongsTo(Item)'
+```
+
+Both point at `Item`. That is the case most generators either refuse or get
+wrong — Prisma needs the two relations named to tell them apart, and the
+admin needs two separate pickers rather than one used twice. Flare writes
+both, and the detail page shows the two items side by side.
+
+## 5. Claims, and a field that is sometimes there
+
+```bash
+npx flare gen resource Claim \
+  --icon hand --group "Lost & found" \
+  --fields 'proof:text, status:enum(pending,approved,rejected), rejectedBecause:text if status == rejected, item:belongsTo(Item), claimantId:string, reviewedById:string?'
+```
+
+`rejectedBecause:text if status == rejected` is the clause worth learning.
+The field appears in the form only while the status is `rejected`, the
+validator requires it only then, and — the part a hidden input cannot do —
+the store **nulls the column** when the status moves away from rejected. A
+hidden field stops the browser sending a value; it does not remove the value
+already in the row, which is how an approved claim ends up still carrying
+the reason it was once refused.
+
+## 6. Run it
+
+```bash
+npx flare migrate
+npx flare seed:resource Category 5
+npx flare seed:resource Spot 8
+npx flare seed:resource Item 40
+npx flare seed:resource Match 15
+npx flare dev
+```
+
+The same six lines on both stacks. Seed the parents first: an `Item` needs a
+`Category` to point at, and the command names the empty table rather than
+failing half way through.
+
+Sign up at `/dashboard` — the first account becomes the admin — and there is
+a working portal: five resources in the sidebar, tables that sort, filter,
+page and export, forms with the pickers and the conditional field, and a
+detail page per record.
+
+## What you have, and what you still owe
+
+Generated, and worth not rewriting:
+
+- five tables, their migrations, and an index on every foreign key
+- a REST API with the policy already on it, and an OpenAPI document
+- the admin: list, create, edit and detail for each resource
+- uploads end to end
+- a typed client per resource
+
+Not generated, because it is the part that is actually your project:
+
+- **The matching algorithm.** Scoring a lost report against found ones by
+  category, date distance, place and words in the description. This is your
+  contribution and the thing an examiner will ask about. It belongs in a
+  hook or a scheduled job that writes `Match` rows.
+- **The verification questions.** "What is the lock-screen photo?" — asked
+  of a claimant, answered against something only the owner knows.
+- **Notifications** when a match appears. `lib/mail.ts` is already wired.
+- **The statistics page**: most-lost categories, hot spots.
+
+That division is the point. Flare wrote the two-thirds that is the same in
+every project, so your time goes on the third that is not.
+
+## Make it yours
+
+- **Confine reports to their reporter.**
+  `npx flare gen policy Item --roles '*' --own reporterId --own-except admin`
+  and a student sees only their own reports while staff see all of them.
+- **More than one photo.** A `file` field holds one file. Several means a
+  child resource:
+  `npx flare gen resource ItemPhoto --fields 'image:file:[image]:5mb, item:belongsTo(Item)'`.
+- **Soft delete**, so a withdrawn report can be restored rather than lost:
+  pass `--soft-delete` when generating `Item`.

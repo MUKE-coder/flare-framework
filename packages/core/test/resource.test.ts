@@ -289,3 +289,48 @@ describe("clientResource", () => {
     expect(forClient.defaultSort).toEqual(order.defaultSort);
   });
 });
+
+describe("pluralize", () => {
+  it("handles the regular cases", () => {
+    expect(pluralize("Book")).toBe("Books");
+    expect(pluralize("Category")).toBe("Categories");
+    expect(pluralize("Class")).toBe("Classes");
+    expect(pluralize("Dish")).toBe("Dishes");
+    expect(pluralize("Day")).toBe("Days"); // vowel + y keeps the y
+  });
+
+  it("knows the -f words that take -ves", () => {
+    // "6 shelfs" in the admin is the kind of thing a demo never recovers from.
+    expect(pluralize("Shelf")).toBe("Shelves");
+    expect(pluralize("Knife")).toBe("Knives");
+    expect(pluralize("Life")).toBe("Lives");
+    expect(pluralize("Half")).toBe("Halves");
+  });
+
+  it("leaves alone the -f words that do not", () => {
+    // Which is why these are a list and not a rule.
+    expect(pluralize("Roof")).toBe("Roofs");
+    expect(pluralize("Chief")).toBe("Chiefs");
+    expect(pluralize("Proof")).toBe("Proofs");
+    expect(pluralize("Belief")).toBe("Beliefs");
+  });
+
+  it("handles the endings a campus app actually meets", () => {
+    expect(pluralize("Quiz")).toBe("Quizzes");
+    expect(pluralize("Status")).toBe("Statuses");
+    expect(pluralize("Thesis")).toBe("Theses");
+    expect(pluralize("Curriculum")).toBe("Curricula");
+    expect(pluralize("Alumnus")).toBe("Alumni");
+    expect(pluralize("Criterion")).toBe("Criteria");
+  });
+
+  it("pluralizes only the last word of a compound name", () => {
+    expect(pluralize("BookShelf")).toBe("BookShelves");
+    expect(pluralize("OrderItem")).toBe("OrderItems");
+  });
+
+  it("leaves uncountable nouns alone", () => {
+    expect(pluralize("Equipment")).toBe("Equipment");
+    expect(pluralize("Staff")).toBe("Staff");
+  });
+});

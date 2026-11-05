@@ -77,9 +77,14 @@ roles, and it is a different question from which roles may act. Add it with
 `--own`, naming the field that holds the owning user's id:
 
 ```bash
-npx flare gen resource Invoice --fields 'number:string!, total:money, userId:belongsTo(User)'
+npx flare gen resource Invoice --fields 'number:string!, total:money, userId:string'
 npx flare gen policy Invoice --roles staff,admin --own userId --own-except admin
 ```
+
+`userId` is a plain `string`, not a `belongsTo`. `User` is Better Auth's
+table rather than a Flare resource, so there is nothing for a foreign key to
+reference — the column holds the id of whoever was signed in, and the store
+sets it on create so the client never sends it.
 
 ```ts
 export default definePolicy({

@@ -124,7 +124,7 @@ export function createCli() {
     .example("flare gen migration add_phone                       # Next.js: prisma migrate dev, refusing a drop")
     .option("--roles <roles>", "policy: roles allowed to read, create and update, e.g. admin,staff")
     .option("--delete-roles <roles>", "policy: roles allowed to delete (default: the first --roles entry)")
-    .option("--own <field>", "policy: confine each user to rows whose belongsTo(User) field holds their id, e.g. --own userId")
+    .option("--own <field>", "policy: confine each user to rows whose field holds their id, e.g. --own userId")
     .option("--own-except <roles>", "policy: roles that see every row despite --own, e.g. admin")
     .option("--provider <provider>", "billing: payment provider (default: stripe)")
     .option("--mode <mode>", "billing: subscriptions (the default; includes one-time checkout)")

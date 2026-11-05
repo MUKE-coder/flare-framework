@@ -81,11 +81,28 @@ expected; `restrict` gives a clear error instead.
 A `belongsTo` with `unique: true`. Each row may claim at most one target.
 
 ```bash
-npx flare gen resource Profile --fields 'bio:text?, website:website?, user:belongsTo(User)!'
+npx flare gen resource Membership --fields 'tier:enum(free,pro)?, member:belongsTo(Member)!'
 ```
 
-The `!` makes the foreign key unique, so two profiles cannot point at the same
-user — that is the whole difference between one-to-one and one-to-many.
+The `!` makes the foreign key unique, so two memberships cannot point at the
+same member — that is the whole difference between one-to-one and
+one-to-many.
+
+:::caution[`belongsTo(User)` is not one of these]
+`User` is Better Auth's table, not a Flare resource, so the generator has
+nothing to point a foreign key at and refuses the command. Hold the account
+id as a plain column instead:
+
+```bash
+npx flare gen resource Profile --fields 'bio:text?, website:website?, userId:string!'
+```
+
+That is also the field an ownership policy names — see
+[roles and policies](/guides/roles-and-policies/). You lose the relation
+picker in the admin, which is the trade; for "who owns this" that is usually
+right anyway, since the answer is the person signed in rather than one chosen
+from a list.
+:::
 
 ```prisma
 userId String @unique @map("user_id")
@@ -211,7 +228,7 @@ export default defineResource({
 | --- | --- | --- |
 | One category, many products | `category:belongsTo(Category)?` | On `Product` |
 | See a category's products | `products: field.hasMany("Product")` | On `Category` |
-| One profile per user | `user:belongsTo(User)!` | On `Profile` |
+| One profile per account | `userId:string!` — not a relation, see above | On `Profile` |
 | Products in many orders | An `OrderItem` resource with two `belongsTo` | Its own resource |
 | A fixed set of tags | `tags:multiselect(a,b,c)?` | No relation at all |
 | Sub-categories | `parent:belongsTo(Category)?` | On itself |
