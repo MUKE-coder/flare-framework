@@ -54,13 +54,14 @@ export const slides: Slide[] = [
     image: "/talk/jb-portrait.webp",
     role: "Fullstack engineer · Founder, Desishub Technologies · Kampala",
     facts: [
-      "30+ client projects shipped across four countries",
-      "`DGateway` — MTN, Airtel and Stripe payments, over **100M** in transactions",
-      "`Flare` — the framework this talk is about",
-      "`Grit` — its Go sibling",
-      "JB WEB DEVELOPER on YouTube — **15.9k** subscribers",
+      "[30+ client projects](https://www.desishub.com/case-studies) shipped across four countries",
+      "[`DGateway`](https://dgateway.desispay.com/) — MTN, Airtel and Stripe payments, over **100M** in transactions",
+      "[`Flare`](https://flare-docs.codetotech.com) — the framework this talk is about",
+      "[`Grit`](https://gritframework.dev) — its Go sibling",
+      "[JB WEB DEVELOPER](https://www.youtube.com/@JBWEBDEVELOPER) on YouTube — **16K** subscribers",
     ],
-    links: "github.com/MUKE-coder · @JBWEBDEVELOPER · jb.desishub.com",
+    links:
+      "[github.com/MUKE-coder](https://github.com/MUKE-coder) · [@JBWEBDEVELOPER](https://www.youtube.com/@JBWEBDEVELOPER) · [jb.desishub.com](https://jb.desishub.com)",
     notes: "Thirty seconds, no more. The fact to lean on is the 100M through DGateway — it is the licence for everything that follows. Do not read the list; let them read it.",
   },
 

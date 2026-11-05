@@ -22,10 +22,18 @@ const lede =
  * so this needs no sanitising — and it stays this small on purpose: a slide that needs
  * more markup than this is a slide carrying too much.
  */
+/**
+ * The small amount of Markdown a slide is allowed: code, bold, and links.
+ *
+ * Links go last so a label can already be `code` or **bold** by the time it is wrapped
+ * — neither of the earlier passes emits a bracket, so there is nothing for this one to
+ * catch by accident.
+ */
 const md = (text: string) =>
   text
     .replace(/`([^`]+)`/g, '<code class="inline">$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
 ---
 
 <!doctype html>
@@ -201,6 +209,32 @@ const md = (text: string) =>
       .facts li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 14px; height: 2px; background: var(--s-ember); }
       .portrait-links { font-family: var(--mono); font-size: 25px; color: var(--s-muted); margin: 34px 0 0; }
 
+      /*
+       * Links on a slide.
+       *
+       * Underlined rather than coloured: from the back of a room the ember is already
+       * doing work for code and emphasis, and a fifth colour on one slide is noise. The
+       * underline sits far enough off the baseline to survive a projector, and the hover
+       * is for the person reading it on the web afterwards.
+       */
+      .stage a {
+        color: inherit;
+        text-decoration: underline;
+        text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+        text-decoration-thickness: 2px;
+        text-underline-offset: 6px;
+        transition: text-decoration-color 140ms, color 140ms;
+      }
+      .stage a:hover {
+        color: var(--s-ember);
+        text-decoration-color: var(--s-ember);
+      }
+      /* A link whose whole label is a code chip keeps the chip, not a second underline. */
+      .stage a:has(> code.inline:only-child) { text-decoration: none; }
+      .stage a:has(> code.inline:only-child):hover code.inline {
+        background: color-mix(in srgb, var(--s-ember) 22%, transparent);
+      }
+
       /* The tables as objects you can point at, before any of their detail. */
       .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 26px; }
       .card { border: 1px solid var(--s-rule); border-radius: 18px; padding: 32px 30px; background: var(--s-surface); display: flex; flex-direction: column; gap: 12px; min-height: 250px; }
@@ -365,7 +399,7 @@ const md = (text: string) =>
                         <h2 class="s-head" style="font-size:88px">{slide.name}</h2>
                         <p class="s-lede" style="margin-top:18px">{slide.role}</p>
                         <ul class="facts">{slide.facts.map((f) => <li set:html={md(f)} />)}</ul>
-                        {slide.links && <p class="portrait-links">{slide.links}</p>}
+                        {slide.links && <p class="portrait-links" set:html={md(slide.links)} />}
                       </div>
                     </div>
                   </>
