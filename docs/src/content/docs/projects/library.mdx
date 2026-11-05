@@ -1,0 +1,181 @@
+---
+title: Library management system
+description: A campus library — catalogue, copies, loans and fines. The many-to-many, the title-versus-copy split, and money done properly.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Catalogue books, issue and return copies, charge for overdue ones. The
+classic final-year project, and the one that teaches the two modelling
+decisions people most often get wrong.
+
+Read [lost and found](/projects/lost-and-found/) first if you have not —
+it explains the conventions these pages share.
+
+## The two decisions
+
+**A book is not a copy.** The library owns three copies of one title. A
+loan is of a *copy*, a reservation is of a *title*, and the catalogue
+searches titles. Collapse the two and you cannot answer "is it available?"
+without a bug. So: `Book` for the bibliographic record, `Copy` for the
+physical thing on the shelf with its own barcode.
+
+**A book has many authors, and an author has many books.** Flare has no
+many-to-many field, deliberately — that relationship always grows a column
+eventually (billing order, "with contributions by"), and a junction you
+cannot add a column to has to be rebuilt the day it does. So you write the
+junction yourself, as an ordinary resource with two `belongsTo` fields. It
+is three more words on the command line and it never needs undoing.
+
+| Resource | What it holds |
+| --- | --- |
+| `Shelf` | Where in the building |
+| `Author` | A person who wrote things |
+| `Book` | The title: ISBN, publisher, cover |
+| `BookAuthor` | The junction, one row per pairing |
+| `Copy` | One physical book, with a barcode and a condition |
+| `Loan` | A copy, out with somebody, due back |
+| `Fine` | What they owe, and whether it is paid |
+
+## 1. The app
+
+<Tabs syncKey="stack">
+<TabItem label="Next.js">
+
+```bash
+pnpm create flare-framework library
+cd library
+docker compose up -d
+```
+
+</TabItem>
+<TabItem label="Cloudflare">
+
+```bash
+pnpm create flare-framework library --stack cloudflare
+cd library
+```
+
+</TabItem>
+</Tabs>
+
+## 2. The catalogue
+
+```bash
+npx flare gen resource Shelf --icon library --group Catalogue \
+  --fields 'name:string!'
+
+npx flare gen resource Author --icon user-pen --group Catalogue \
+  --fields 'name:string!, bio:text?'
+
+npx flare gen resource Book --icon book --group Catalogue \
+  --fields 'isbn:string!, title:string, publisher:string?, year:int?, description:markdown?, cover:file:[image]:2mb?, shelf:belongsTo(Shelf)?'
+```
+
+`isbn:string!` is unique, which is the whole of "do not catalogue the same
+title twice" — enforced by the database rather than by whoever is typing.
+
+`description:markdown?` gives a Markdown editor in the form and renders the
+result on the detail page. A blurb wants a paragraph break and the odd
+italic; a plain `text?` would show them as literal asterisks.
+
+## 3. The junction
+
+```bash
+npx flare gen resource BookAuthor --icon link --group Catalogue \
+  --fields 'book:belongsTo(Book), author:belongsTo(Author)'
+```
+
+That is the many-to-many. Both sides get a searchable picker, both foreign
+keys get an index, and when you later need `role:enum(author,editor,translator)`
+on it, you add a field to a table that already exists.
+
+:::tip[Keep it out of the librarian's sidebar]
+A junction is rarely something anyone browses. The sidebar lists only the
+resources the signed-in person may *read*, so a policy is enough:
+
+```bash
+npx flare gen policy BookAuthor --roles admin
+```
+
+A librarian no longer sees it; an admin still can. The list is built by
+`visibleResources()` in `app/dashboard/layout.tsx` — your file, if you want
+a different rule.
+:::
+
+## 4. Circulation
+
+```bash
+npx flare gen resource Copy --icon copy --group Circulation \
+  --fields 'barcode:string!, shelfMark:string?, condition:enum(new,good,worn,damaged), status:enum(available,onLoan,reserved,lost), book:belongsTo(Book)'
+
+npx flare gen resource Loan --icon arrow-right-left --group Circulation \
+  --fields 'issuedAt:date, dueDate:date, returnedAt:date?, renewals:int, borrowerId:string, copy:belongsTo(Copy)'
+```
+
+`barcode:string!` is what the scanner types. Unique, because two copies with
+the same barcode is the one failure a scanner cannot recover from.
+
+`returnedAt:date?` nullable *is* the open-loan flag. Resist adding
+`isReturned:boolean` beside it — two columns that must agree will one day
+disagree, and then you have to decide which is telling the truth.
+
+`borrowerId:string` is the account id, as on every page here. See
+[lost and found](/projects/lost-and-found/#the-design) for why it is not a
+relation.
+
+## 5. Fines, and the thing to get right about money
+
+```bash
+npx flare gen resource Fine --icon banknote --group Circulation \
+  --fields 'amount:money, reason:enum(overdue,damage,loss), paid:boolean, paidAt:datetime?, loan:belongsTo(Loan)'
+```
+
+`money` is not a float. It is stored as **whole minor units** — 1500 for
+UGX 1,500, 250 for $2.50 — because 0.1 + 0.2 is not 0.3 in binary, and a
+fines ledger that drifts by a cent a row is a fines ledger nobody trusts.
+The form shows and accepts the amount the way a person writes it; the
+column holds an integer.
+
+The exponent comes from the currency, so a zero-decimal currency like UGX
+or JPY stores the whole number and a two-decimal one stores cents. You do
+not configure that.
+
+## 6. Run it
+
+```bash
+npx flare migrate
+npx flare seed:resource Shelf 6
+npx flare seed:resource Author 20
+npx flare seed:resource Book 60
+npx flare seed:resource Copy 120
+npx flare seed:resource Loan 50
+npx flare seed:resource Fine 20
+npx flare dev
+```
+
+Parents before children, or the command tells you which table is empty.
+
+## What you still owe
+
+- **The fine calculation.** Days overdue times a rate, capped, waived for
+  some member types. A hook on `Loan` update, or a scheduled job. This is
+  your algorithm and the thing to write about.
+- **Availability.** "Is this title on the shelf" is a count of its copies
+  with `status = available`. A computed field on `Book`, or a view.
+- **Reservations and renewals**, with their own rules: how many, how long,
+  who jumps the queue.
+- **The barcode scanner.** A scanner is a keyboard; the work is a form that
+  listens for a fast burst of keystrokes ending in Enter.
+- **Search.** The generated table filters and sorts. Real catalogue search
+  across title, author and ISBN wants an index built for it — Postgres
+  full-text on the Next.js stack, FTS5 on Cloudflare.
+
+## Make it yours
+
+- **Members see only their own loans.**
+  `npx flare gen policy Loan --roles '*' --own borrowerId --own-except librarian,admin`
+- **E-books.** Add `file:file:[pdf]:50mb?` to `Book`, or a separate
+  `Ebook` resource if a title can have several formats.
+- **Never lose a withdrawn title.** Generate `Book` with `--soft-delete`
+  and a removed record goes to a Trash view instead of away.

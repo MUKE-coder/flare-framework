@@ -130,6 +130,17 @@ export default defineConfig({
             { label: "Tutorial: a catalogue", slug: "tutorials/next-shop" },
           ],
         },
+        // Worked student projects: a table design taken to a running app, with every
+        // command on the page run on both stacks before it was written down.
+        {
+          label: "Projects to build",
+          collapsed: false,
+          items: [
+            { label: "All projects", slug: "projects" },
+            { label: "1 · Lost and found", slug: "projects/lost-and-found" },
+            { label: "2 · Library", slug: "projects/library" },
+          ],
+        },
         {
           label: "Reference",
           items: [

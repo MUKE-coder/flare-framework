@@ -1,0 +1,64 @@
+---
+title: Projects to build
+description: Final-year projects, built with Flare. Every command on every page was run on both stacks before it was written down.
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Ten student projects, each one taken from its table design to a working
+app. They are ordered: the first teaches the conventions the rest assume,
+and each adds one thing the last did not have.
+
+These are not screenshots of something that once worked. Every command was
+run from an empty app, on both stacks, in the order it appears — and three
+bugs in Flare were found and fixed in the writing of the first two pages.
+Where something does not work, the page says so instead of showing a
+command that fails.
+
+## The pages
+
+<CardGrid>
+  <LinkCard
+    title="Lost and found portal"
+    href="/projects/lost-and-found/"
+    description="Start here. Photos, two relations to one table, and a field that only exists when a claim is rejected."
+  />
+  <LinkCard
+    title="Library management system"
+    href="/projects/library/"
+    description="The many-to-many, the title-versus-copy split, and money stored so it cannot drift."
+  />
+</CardGrid>
+
+More are being added; this page lists the ones that are finished and
+verified rather than the ones that are planned.
+
+## What these pages assume
+
+That you have read [the quickstart](/start/quickstart/) and have an app
+running. Beyond that they are self-contained, and each says which of the
+others it builds on.
+
+## How to use one
+
+Read the design section first and argue with it. The table design *is* the
+project — it is the part your supervisor will question and the part Flare
+turns directly into code. If you disagree with a modelling decision, change
+it; the commands are three lines of text, not a scaffold you are stuck
+with.
+
+Then run the commands. Then read the last section of the page, which is the
+part Flare does **not** write: the matching algorithm, the fine
+calculation, the timetable solver. That is your actual contribution, and
+every page names it explicitly so you can tell the difference between what
+you generated and what you built.
+
+## A note on scope
+
+Flare generates the parts of an application that are the same in every
+application: tables, migrations, validation, a REST API, an admin with
+list, create, edit and detail screens, uploads, roles. That is most of the
+code and almost none of the interesting decisions.
+
+It does not generate your domain logic, and these pages do not pretend it
+does. A library without a fine rule is a catalogue; the rule is yours.
