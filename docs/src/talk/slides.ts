@@ -52,8 +52,9 @@ export const slides: Slide[] = [
     eyebrow: "Who is telling it",
     name: "Muke JohnBaptist (JB)",
     image: "/talk/jb-portrait.webp",
-    role: "Fullstack engineer · Founder, Desishub Technologies · Kampala",
+    role: "Fullstack engineer · Kampala, Uganda",
     facts: [
+      "Founder of [Desishub Technologies](https://www.desishub.com)",
       "[30+ client projects](https://www.desishub.com/case-studies) shipped across four countries",
       "[`DGateway`](https://dgateway.desispay.com/) — MTN, Airtel and Stripe payments, over **100M** in transactions",
       "[`Flare`](https://flare-docs.codetotech.com) — the framework this talk is about",
@@ -374,6 +375,35 @@ npx flare gen resource Contact \\
     notes: "Read the second command as the sentence it is: a contact has a name, maybe a phone, a unique email, and maybe a group. Nobody has to be taught this syntax twice.",
   },
   {
+    id: "cmd-anatomy",
+    kind: "code",
+    eyebrow: "That command, piece by piece",
+    lang: "bash",
+    code: `npx flare gen resource <Name> --fields '<field>:<type><modifiers>, …'
+          ╰── verb ──╯ ╰name╯          ╰───── the table design ─────╯
+
+# the one you just ran
+npx flare gen resource Contact \\
+  --fields 'name:string, phone:tel?, email:email!, group:belongsTo(Group)?'`,
+    caption: "`Contact` becomes the `contacts` table, `/api/contacts`, and **Contacts** in the sidebar — you name it once. Two optional flags decide where it sits: `--icon` and `--group`.",
+    notes: "This is the slide to go slowly on, because every command for the rest of the talk is this shape. The name is singular and Flare pluralises it. Everything that matters is inside the quotes, and that is the next slide.",
+  },
+  {
+    id: "cmd-fields",
+    kind: "table",
+    eyebrow: "And inside the quotes",
+    title: "`<field>:<type><modifiers>`",
+    head: ["In that command", "Reads as"],
+    rows: [
+      ["`name:string`", "a required line of text"],
+      ["`phone:tel?`", "`?` — optional: nullable, and not demanded by the form"],
+      ["`email:email!`", "`!` — unique: a constraint in the database, not a check in the form"],
+      ["`group:belongsTo(Group)?`", "a relation: a foreign key, an index, and a searchable picker"],
+    ],
+    caption: "Four fields, four decisions, one line. Every type there is comes two slides from now — these are the four you need to read anything else in this talk.",
+    notes: "Point at the ! and say it once: unique is enforced by the database, so a race between two tabs cannot create a duplicate. That single character is the difference between validation and a guarantee.",
+  },
+  {
     id: "first-what",
     kind: "statement",
     eyebrow: "Those two commands wrote",
@@ -402,18 +432,6 @@ npx flare dev`,
     notes: "Pause properly here. Let somebody answer. The clinic that follows is the same trick at seven times the size, and this is the slide that makes them believe the number.",
   },
 
-  {
-    id: "cmd-anatomy",
-    kind: "code",
-    eyebrow: "The taxonomy of a Flare command",
-    lang: "bash",
-    code: `npx flare gen resource <Name> \\
-       --icon  <lucide-icon>   # the sidebar icon
-       --group <Group>         # where it sits in the admin nav
-       --fields '<field>:<type><modifiers>, …'`,
-    caption: "`gen resource` is the verb. The `--fields` string is the table design, written as a sentence — the grammar on the next slide.",
-    notes: "Read it as grammar: verb, name, two cosmetic flags, and then the fields string, which is where all the meaning lives.",
-  },
   {
     id: "field-grammar",
     kind: "table",
