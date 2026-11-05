@@ -165,17 +165,22 @@ then from a signed URL.
 
 ## Where the bytes go
 
-On the **Cloudflare** stack, an R2 bucket binding is created for you and there
-is nothing to configure.
+`STORAGE_DRIVER` picks where they go. The default needs nothing set: on
+Cloudflare it is the R2 bucket your app is already bound to, and on Next.js it
+is whatever `docker compose up` or your `R2_*` variables point at.
 
-On the **Next.js** stack, pick a driver with `STORAGE_DRIVER`:
+| `STORAGE_DRIVER` | What it is | Needs | Stack |
+| --- | --- | --- | --- |
+| `r2` *(default)* | The bound bucket on Cloudflare. On Next.js, anything S3-compatible: R2, MinIO, B2, S3 | nothing on Cloudflare; four `R2_*` variables on Next.js | both |
+| `disk` | The local filesystem, like Laravel's `local` disk | nothing | Next.js |
+| `cloudinary` | A CDN with an image pipeline | three `CLOUDINARY_*` variables | both |
+| `uploadthing` | A CDN with an uploader | a token, an app id, and `pnpm add uploadthing` | both |
 
-| `STORAGE_DRIVER` | What it is | Needs |
-| --- | --- | --- |
-| `r2` *(default)* | Anything S3-compatible: R2, MinIO, Backblaze B2, S3 | four `R2_*` variables |
-| `disk` | The local filesystem, like Laravel's `local` disk | nothing |
-| `cloudinary` | A CDN with an image pipeline | three `CLOUDINARY_*` variables |
-| `uploadthing` | A CDN with an uploader | a token, an app id, and `pnpm add uploadthing` |
+`disk` is the one exception: a Worker has no filesystem to write to, and the
+bound bucket already covers what it is for.
+
+On Cloudflare these are secrets, so set them with
+`wrangler secret put CLOUDINARY_API_SECRET` rather than in `wrangler.jsonc`.
 
 Each one is an ordinary file in `lib/storage/` in your repository. A driver
 answers three questions — store these bytes, give them back, throw them away —
@@ -198,7 +203,12 @@ Set `STORAGE_PUBLIC=false` to keep every read signed and proxied, and they
 become ordinary private storage with a good pipeline attached.
 :::
 
-### r2 — S3-compatible
+### r2 — the default
+
+On **Cloudflare**, nothing to do: the app is bound to a `STORAGE` bucket that
+Wrangler provisions on first deploy and simulates locally as a directory.
+
+On **Next.js**, four variables, and they work against any S3:
 
 ```ini
 STORAGE_DRIVER=r2
@@ -214,6 +224,8 @@ shows what was uploaded. MinIO speaks S3, so this is the same code path you
 deploy.
 
 ### disk — no account, no network
+
+Next.js only.
 
 ```ini
 STORAGE_DRIVER=disk
@@ -268,9 +280,12 @@ between them.
 ### Writing another one
 
 A driver is a `StorageBucket`: `get`, `put`, `delete`, and optionally
-`publicUrl`. `lib/storage/disk.ts` is the shortest of the four and the one to
-copy. Add it to the `switch` in `lib/storage.ts`, which is the only place that
-knows which driver is in use.
+`publicUrl`. `lib/storage/cloudinary.ts` is a good one to copy — it is a CDN
+driver written with nothing but `fetch` and Web Crypto, so it runs unchanged
+on both stacks. Add it to the `switch` in `lib/storage.ts`, which is the only
+place that knows which driver is in use.
+
+A driver that needs Node — `disk` does — belongs in a Next.js app only.
 
 ## Reading a file back in your own code
 

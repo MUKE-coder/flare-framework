@@ -11,3 +11,18 @@ BETTER_AUTH_SECRET=
 RESEND_API_KEY=
 # Sender on a domain verified in Resend, e.g. "Acme <hello@acme.com>"
 MAIL_FROM=
+
+# Where uploads go. The default is the bound STORAGE bucket, which needs nothing set.
+# Set a driver only to send files to a CDN instead — see the file-uploads guide.
+# STORAGE_DRIVER=cloudinary
+# CLOUDINARY_CLOUD_NAME=
+# CLOUDINARY_API_KEY=
+# CLOUDINARY_API_SECRET=
+
+# STORAGE_DRIVER=uploadthing   # needs: pnpm add uploadthing
+# UPLOADTHING_TOKEN=
+# UPLOADTHING_APP_ID=
+
+# Both serve files from their own CDN, so a read URL is public and does not expire.
+# Set this to keep every read signed and proxied by the app instead.
+# STORAGE_PUBLIC=false

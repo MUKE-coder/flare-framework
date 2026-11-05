@@ -4,9 +4,10 @@ description: Signed uploads and reads, content sniffing, per-field scoping, and 
 ---
 
 On Cloudflare, every app gets a `STORAGE` R2 binding
-(`bucket_name: <app>-storage`). On Next.js, `STORAGE_DRIVER` picks between
-R2, the local disk, Cloudinary and UploadThing — see
-[file uploads](/guides/file-uploads/) for setting each one up.
+(`bucket_name: <app>-storage`), and that is the default. `STORAGE_DRIVER`
+sends files elsewhere instead: Cloudinary or UploadThing on either stack, and
+the local disk on Next.js — see [file uploads](/guides/file-uploads/) for
+setting each one up.
 
 Either way `lib/storage.ts` wraps `createStorage()` from `@flaredev/core`,
 and `app/api/storage/route.ts` redeems the signed URLs it issues. This page

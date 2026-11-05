@@ -3,9 +3,9 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { resourceType, sign } from "../templates/next/lib/storage/cloudinary.js";
+import { resourceType, sign } from "../templates/app/lib/storage/cloudinary.js";
 import { diskBucket } from "../templates/next/lib/storage/disk.js";
-import { customIdFor } from "../templates/next/lib/storage/uploadthing.js";
+import { customIdFor } from "../templates/app/lib/storage/uploadthing.js";
 
 const text = async (body: ReadableStream) => new Response(body).text();
 

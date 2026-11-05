@@ -21,7 +21,7 @@ npx flare create myapp --stack cloudflare      # Cloudflare Workers
 | Database | D1 (SQLite) | Neon (serverless Postgres) |
 | ORM | Drizzle | Prisma 7 |
 | Cache | Workers KV | Upstash Redis |
-| Files | R2 | R2, disk, Cloudinary or UploadThing |
+| Files | R2, Cloudinary or UploadThing | R2, disk, Cloudinary or UploadThing |
 | Auth | Better Auth | Better Auth |
 | Email | Resend | Resend + React Email |
 | Payments | Stripe | Stripe |
