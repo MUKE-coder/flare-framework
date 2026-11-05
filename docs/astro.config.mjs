@@ -142,6 +142,8 @@ export default defineConfig({
             { label: "3 · Marketplace", slug: "projects/marketplace" },
             { label: "4 · Complaints", slug: "projects/complaints" },
             { label: "5 · Event ticketing", slug: "projects/events" },
+            { label: "6 · Fees and payments", slug: "projects/fees" },
+            { label: "7 · Campus clinic", slug: "projects/clinic" },
           ],
         },
         {

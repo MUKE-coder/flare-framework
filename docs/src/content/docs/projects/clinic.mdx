@@ -1,0 +1,200 @@
+---
+title: Campus clinic
+description: Appointments, visits, diagnoses and a pharmacy. Confidential records, a one-to-one visit, and the enum that will not take a plus sign.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Students book appointments, nurses record vitals, doctors diagnose, the
+pharmacy dispenses. The records are confidential, which changes how you
+think about every policy on the page.
+
+New here: a visit that belongs to exactly one appointment, stock with
+expiry dates, and the one place where Flare's field grammar says no.
+
+| Resource | What it holds |
+| --- | --- |
+| `Patient` | The person, their blood group and allergies |
+| `Clinician` | Nurse, doctor or pharmacist, with a licence |
+| `Appointment` | A booking |
+| `Visit` | What happened, with the vitals |
+| `Diagnosis` | What was found |
+| `Medicine` | The catalogue |
+| `StockBatch` | A delivery, with an expiry date |
+| `Prescription` | What was given, and when it was dispensed |
+
+## The enum that will not take a plus sign
+
+Blood groups are `A+`, `O-`, `AB+`. That command fails:
+
+```bash
+npx flare gen resource Patient --fields 'bloodGroup:enum(A+,A-,B+,B-,O+,O-,AB+,AB-)?'
+```
+```
+✖ enum option "A+" may only use letters, digits, _ and -.
+```
+
+Not an oversight. An enum option becomes a Prisma enum *member*, and a
+member has to be an identifier — so `+` and `-` both become `_`, and `A+`
+and `A-` collide into one member. Refusing is better than generating a
+schema with two members of the same name.
+
+Spell them out, and map back for display:
+
+```bash
+bloodGroup:enum(aPos,aNeg,bPos,bNeg,oPos,oNeg,abPos,abNeg)?
+```
+
+[#74](https://github.com/MUKE-coder/flare-framework/issues/74) tracks
+relaxing this with a collision-free encoding. Until then this is the
+workaround, and it is worth knowing the reason rather than just the rule —
+grades (`A+`, `B-`) hit it too.
+
+## 1. The app
+
+<Tabs syncKey="stack">
+<TabItem label="Next.js">
+
+```bash
+pnpm create flare-framework clinic
+cd clinic
+docker compose up -d
+```
+
+</TabItem>
+<TabItem label="Cloudflare">
+
+```bash
+pnpm create flare-framework clinic --stack cloudflare
+cd clinic
+```
+
+</TabItem>
+</Tabs>
+
+## 2. People
+
+```bash
+npx flare gen resource Patient --icon user --group Clinic \
+  --fields 'regNumber:string!, fullName:string, bloodGroup:enum(aPos,aNeg,bPos,bNeg,oPos,oNeg,abPos,abNeg)?, allergies:text?, emergencyContact:tel?, userId:string?'
+
+npx flare gen resource Clinician --icon stethoscope --group Clinic \
+  --fields 'fullName:string, role:enum(nurse,doctor,pharmacist), licenceNo:string!, speciality:string?, userId:string?'
+```
+
+Both have `userId:string?` — nullable. A patient exists in the register
+before they ever sign in, and a clinician's record outlives their account.
+Same reasoning as [the fees project](/projects/fees/#why-there-is-a-student-table-here).
+
+`allergies:text?` is free text on purpose. A fixed list is wrong the first
+time somebody is allergic to something not on it, and in a clinic that is
+not a feature request.
+
+## 3. Appointments and visits
+
+```bash
+npx flare gen resource Appointment --icon calendar-check --group Clinic \
+  --fields 'scheduledAt:datetime, reason:text, status:enum(booked,seen,cancelled,noShow), cancelledBecause:text if status == cancelled, patient:belongsTo(Patient), clinician:belongsTo(Clinician)?'
+
+npx flare gen resource Visit --icon clipboard-list --group Clinic \
+  --fields 'checkedInAt:datetime, temperature:float?, pulse:int?, weightKg:float?, bloodPressure:string?, notes:text?, appointment:belongsTo(Appointment)!, patient:belongsTo(Patient)'
+```
+
+`appointment:belongsTo(Appointment)!` — unique, so one visit per
+appointment. Turn up twice and that is two appointments.
+
+The vitals are all optional, because triage is partial: a nurse takes a
+temperature now and a weight if the scale is free. A required vital means
+a nurse inventing a number to get past the form, which is worse than a
+blank.
+
+`bloodPressure:string?` and not two integers — it is written and read as
+`120/80`, and splitting it buys you arithmetic nobody does.
+
+`patient` is on `Visit` as well as on `Appointment`. Denormalised on
+purpose: every query about a patient's history starts there, and going
+through the appointment to find it is a join on every single read.
+
+## 4. Diagnoses
+
+```bash
+npx flare gen resource Diagnosis --icon activity --group Clinic \
+  --fields 'code:string?, description:string, notes:text?, visit:belongsTo(Visit), clinician:belongsTo(Clinician)'
+```
+
+A visit has many: people arrive with more than one thing wrong.
+
+## 5. The pharmacy
+
+```bash
+npx flare gen resource Medicine --icon pill --group Pharmacy \
+  --fields 'name:string!, form:enum(tablet,capsule,syrup,injection,ointment), strength:string?, unitPrice:money'
+
+npx flare gen resource StockBatch --icon boxes --group Pharmacy \
+  --fields 'quantity:int, expiresOn:date, receivedAt:date, medicine:belongsTo(Medicine)'
+
+npx flare gen resource Prescription --icon file-pen --group Pharmacy \
+  --fields 'dosage:string, durationDays:int, quantity:int, dispensedAt:datetime?, dispensedById:string?, visit:belongsTo(Visit), medicine:belongsTo(Medicine)'
+```
+
+**Stock is batches, not a number.** A `quantity` column on `Medicine` cannot
+answer "what expires this month", and expiry is the whole job of a pharmacy
+store. Each delivery is a row with its own expiry; stock on hand is a sum,
+and dispensing draws from the batch expiring soonest.
+
+`dispensedAt:datetime?` null means prescribed but not collected — the same
+pattern as the ticket in [event ticketing](/projects/events/).
+
+## 6. Run it
+
+```bash
+npx flare migrate
+npx flare seed:resource Patient 60
+npx flare seed:resource Clinician 10
+npx flare seed:resource Appointment 90
+npx flare seed:resource Visit 60
+npx flare seed:resource Medicine 25
+npx flare seed:resource Prescription 80
+npx flare dev
+```
+
+## Confidentiality is the project
+
+Every other project on this site can be a bit loose about who reads what.
+This one cannot. Medical records have a different standard, and your
+examiner will push on it.
+
+Generated resources arrive admin-only, which is the right default here.
+Open them deliberately:
+
+```bash
+npx flare gen policy Visit --roles nurse,doctor,admin
+npx flare gen policy Diagnosis --roles doctor,admin
+npx flare gen policy Prescription --roles doctor,pharmacist,admin
+```
+
+Note what that does **not** say: a pharmacist can see a prescription and
+not a diagnosis. That is the point — access by role, per resource, rather
+than one "medical staff" gate that gives the pharmacy the psychiatric
+notes.
+
+## What you still owe
+
+- **The access log.** Every read of a record, by whom, when. The brief asks
+  for it and it is the thing that makes confidentiality auditable rather
+  than merely claimed. A hook on read, writing to an append-only resource.
+- **Stock deduction on dispensing**, drawing from the batch expiring first,
+  and refusing when there is not enough.
+- **Queue management** — who is waiting, in what order.
+- **Referral letters** as PDFs.
+- **The statistics dashboard, anonymised.** Common illnesses by month
+  without exposing who had them, which is harder than it sounds in a small
+  clinic and is a good thing to write about.
+
+## Make it yours
+
+- **Patients see their own records.** The owner is on `Patient`, not on
+  `Visit`, so this is a hook rather than `--own`.
+- **Soft delete everywhere clinical.** A deleted visit should be
+  recoverable and visible to an auditor: pass `--soft-delete`.
+- **Expiry alerts** from `StockBatch`, as a scheduled job.

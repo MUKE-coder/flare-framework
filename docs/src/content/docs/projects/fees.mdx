@@ -1,0 +1,186 @@
+---
+title: Student fees and payments
+description: Invoices, installments, mobile money and waivers. The project where getting money wrong is expensive, and the one that needs a Student table.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Fee structures per programme and semester, invoices per student, payments
+against them, and a balance that decides whether someone sits an exam.
+
+Two things make this project different from the others: money is the whole
+point, and it is the first one that needs a **`Student`** resource of its
+own rather than leaning on the signed-in account.
+
+| Resource | What it holds |
+| --- | --- |
+| `Programme` | A course of study |
+| `Semester` | The period everything is scoped to |
+| `FeeItem` | Tuition, library, ICT, examination |
+| `Student` | The person as the bursary knows them |
+| `Invoice` | What one student owes this semester |
+| `InvoiceLine` | One fee item on it |
+| `Payment` | Money received, and how |
+| `Waiver` | A scholarship or bursary |
+
+## Why there is a Student table here
+
+The other projects used `submitterId:string` — the signed-in account — and
+that was right, because "who reported this" is whoever is logged in.
+
+A student is not that. A student has a registration number, a programme, a
+year of study, and exists in the bursary's records **before** they ever
+sign in, possibly long before. Attach all that to an auth account and you
+cannot invoice somebody who has not activated their email, which is most of
+first year in September.
+
+So `Student` is its own resource, with `userId:string?` — nullable —
+linking to an account once there is one. Every invoice points at the
+student, not the login. The brief's own tables say the same thing; it is
+worth noticing *why*.
+
+## 1. The app
+
+<Tabs syncKey="stack">
+<TabItem label="Next.js">
+
+```bash
+pnpm create flare-framework fees
+cd fees
+docker compose up -d
+```
+
+</TabItem>
+<TabItem label="Cloudflare">
+
+```bash
+pnpm create flare-framework fees --stack cloudflare
+cd fees
+```
+
+</TabItem>
+</Tabs>
+
+## 2. Setup
+
+```bash
+npx flare gen resource Programme --icon graduation-cap --group Setup \
+  --fields 'name:string!, code:string!, durationYears:int'
+
+npx flare gen resource Semester --icon calendar-range --group Setup \
+  --fields 'name:string, academicYear:string, startsOn:date, endsOn:date, current:boolean'
+
+npx flare gen resource FeeItem --icon list --group Setup \
+  --fields 'name:string!, description:text?'
+```
+
+## 3. The student
+
+```bash
+npx flare gen resource Student --icon user --group People \
+  --fields 'regNumber:string!, fullName:string, email:email!, yearOfStudy:int, status:enum(active,suspended,graduated,withdrawn), userId:string?, programme:belongsTo(Programme)'
+```
+
+`regNumber:string!` and `email:email!` are both unique. The `email` type is
+not just a label: it validates the format, gives the right keyboard on a
+phone, and renders as a link in the table.
+
+## 4. Invoices
+
+```bash
+npx flare gen resource Invoice --icon file-text --group Finance \
+  --fields 'number:string!, total:money, balance:money, status:enum(draft,issued,partlyPaid,paid,waived), student:belongsTo(Student), semester:belongsTo(Semester)'
+
+npx flare gen resource InvoiceLine --icon list-plus --group Finance \
+  --fields 'amount:money, invoice:belongsTo(Invoice), feeItem:belongsTo(FeeItem)'
+```
+
+## 5. Money, and why it is an integer
+
+```bash
+npx flare gen resource Payment --icon banknote --group Finance \
+  --fields 'amount:money, method:enum(cash,bank,mobileMoney,card), transactionRef:string!, paidAt:datetime, recordedById:string, invoice:belongsTo(Invoice)'
+```
+
+Look at what `money` generates:
+
+```ts
+total: integer("total").notNull(),
+```
+
+An **integer**, holding whole minor units. Not a float, not a decimal
+string. The form takes and shows `2,500.00`; the column holds `250000`.
+
+This is the single most important line on this page. `0.1 + 0.2` is
+`0.30000000000000004` in every language with IEEE floats, which is all of
+them. Store a fee as a float and a statement that should read 1,500,000
+reads 1,499,999.99 after enough arithmetic — and in a fees system that is
+not a rounding curiosity, it is a student at a window arguing with a
+cashier.
+
+The exponent comes from the currency, so UGX (zero decimals) stores the
+whole number and USD stores cents. You do not configure it and you cannot
+get it wrong per-row.
+
+`transactionRef:string!` is unique, which is what makes a mobile-money
+webhook safe to receive twice. Providers retry; a duplicate insert fails on
+the index rather than crediting the payment again. That uniqueness is your
+idempotency, and it is one character.
+
+## 6. Waivers
+
+```bash
+npx flare gen resource Waiver --icon percent --group Finance \
+  --fields 'kind:enum(scholarship,bursary,staffChild,hardship), amount:money, note:text?, approvedById:string, student:belongsTo(Student), semester:belongsTo(Semester)'
+```
+
+A waiver is a row, not a discount applied to an invoice and forgotten.
+Somebody approved it, for a reason, in a semester — all of which the
+auditor will ask about.
+
+## 7. Run it
+
+```bash
+npx flare migrate
+npx flare seed:resource Programme 6
+npx flare seed:resource Semester 4
+npx flare seed:resource FeeItem 8
+npx flare seed:resource Student 80
+npx flare seed:resource Invoice 120
+npx flare seed:resource Payment 150
+npx flare dev
+```
+
+## What you still owe
+
+- **The balance.** `balance` is a column here, which is a decision, not an
+  accident: a running balance is read constantly and recomputing it from
+  payments on every page is slow. But a stored balance can disagree with
+  the payments that produced it, so it must be maintained in one place — a
+  hook on `Payment` create — and there should be a reconciliation job that
+  recomputes and complains. Deciding between a stored balance and a
+  computed one, and defending it, is a genuinely good viva answer.
+- **Mobile money.** MTN and Airtel collections, with a webhook. The
+  uniqueness on `transactionRef` is the half that stops double-crediting;
+  verifying the callback signature is the half that stops a stranger
+  crediting an account.
+- **Fee structures.** "Year 2 Computer Science pays these six items" —
+  modelled as a `FeeStructure` with lines, then copied onto an invoice when
+  it is issued. Copied, not referenced: last year's invoice must not change
+  when this year's fees go up.
+- **Installment plans**, **PDF receipts and statements**, and the
+  **defaulters report**.
+- **The clearance flag** that blocks results — which is one query and a
+  policy, and the feature everybody actually notices.
+
+## Make it yours
+
+- **Students see only their own invoices.** The owning field is on
+  `Student`, not the invoice, so this one is a hook rather than
+  `--own`: look up the student for the signed-in account, then filter.
+  Worth doing deliberately — it is the case `--own` does not cover.
+- **Bursars and students see different things.**
+  `npx flare gen policy Payment --roles bursar,admin --delete-roles admin`
+  keeps recording money to the people who should.
+- **Never delete a payment.** Generate it with `--soft-delete` so a
+  reversal is a row, not a disappearance.
