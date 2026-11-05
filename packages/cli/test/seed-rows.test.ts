@@ -218,3 +218,99 @@ describe("insertMany", () => {
     await expect(insertMany(null, 1, () => ({ nickname: "Ada" }))).rejects.toThrow(/no column called nickname/);
   });
 });
+
+
+/** The ids a parent table would already hold. */
+const parentIds = (n: number, prefix = "p") => Array.from({ length: n }, (_, i) => `${prefix}${i}`);
+
+describe("seeded numbers respect the declared format", () => {
+  it("keeps a rating inside the five stars it is drawn with", () => {
+    // It used to take its range from the field's *name*, so `rating:rating` fell through
+    // to 1–1000 and seeded 702 — which no star control can show.
+    const Review = defineResource({ name: "Review", fields: { rating: field.int({ format: "rating" }) } });
+    for (const row of seedRows(Review, 200, { seed: 3 })) {
+      expect(row.rating).toBeGreaterThanOrEqual(1);
+      expect(row.rating).toBeLessThanOrEqual(5);
+      expect(Number.isInteger(row.rating)).toBe(true);
+    }
+  });
+
+  it("keeps a percent between nothing and all of it", () => {
+    const Survey = defineResource({ name: "Survey", fields: { completion: field.float({ format: "percent" }) } });
+    for (const row of seedRows(Survey, 100, { seed: 4 })) {
+      expect(row.completion as number).toBeGreaterThanOrEqual(0);
+      expect(row.completion as number).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it("still honours an explicit min and max over the format", () => {
+    const Scored = defineResource({ name: "Scored", fields: { rating: field.int({ format: "rating", min: 3, max: 4 }) } });
+    for (const row of seedRows(Scored, 50, { seed: 5 })) {
+      expect(row.rating).toBeGreaterThanOrEqual(3);
+      expect(row.rating).toBeLessThanOrEqual(4);
+    }
+  });
+
+  it("does not need the name to spot money", () => {
+    // `format: money` wins whatever the column is called.
+    const Line = defineResource({ name: "Line", fields: { charge: field.float({ format: "money" }) } });
+    const rows = [...seedRows(Line, 30, { seed: 6 })];
+    // Money is stored in whole minor units, so every value is an integer.
+    for (const row of rows) expect(Number.isInteger(row.charge)).toBe(true);
+  });
+});
+
+describe("a seeded foreign key is a foreign key", () => {
+  const Comment = defineResource({
+    name: "Comment",
+    fields: { body: field.text(), postId: field.belongsTo("Post") },
+  });
+
+  it("is an id the parent table actually has", () => {
+    const ids = parentIds(5);
+    for (const row of seedRows(Comment, 40, { seed: 7, parentIds: new Map([["Post", ids]]) })) {
+      expect(ids).toContain(row.post_id);
+    }
+  });
+
+  it("is not rewritten to make it unique", () => {
+    // A unique belongsTo used to go through uniquify, which appends " 1" to anything
+    // that is not an email or a slug — producing "01ABC… 1", an id belonging to nothing,
+    // and a foreign key violation that named neither the field nor the cause.
+    const Profile = defineResource({
+      name: "Profile",
+      fields: { bio: field.text({ required: false }), memberId: field.belongsTo("Member", { unique: true }) },
+    });
+    const ids = parentIds(10, "m");
+    for (const row of seedRows(Profile, 10, { seed: 8, parentIds: new Map([["Member", ids]]) })) {
+      expect(ids).toContain(row.member_id);
+      expect(String(row.member_id)).not.toMatch(/[ -]\d+$/);
+    }
+  });
+
+  it("gives each row a different parent when the relation is unique", () => {
+    const Profile = defineResource({
+      name: "Profile",
+      fields: { memberId: field.belongsTo("Member", { unique: true }) },
+    });
+    const ids = parentIds(8, "m");
+    const used = [...seedRows(Profile, 8, { seed: 9, parentIds: new Map([["Member", ids]]) })].map((r) => r.member_id);
+    expect(new Set(used).size).toBe(8);
+  });
+
+  it("says so when there are not enough parents to go round", () => {
+    const Profile = defineResource({
+      name: "Profile",
+      fields: { memberId: field.belongsTo("Member", { unique: true }) },
+    });
+    const take = () => [...seedRows(Profile, 5, { seed: 10, parentIds: new Map([["Member", parentIds(3, "m")]]) })];
+    expect(take).toThrow(/at most one Profile per Member/);
+  });
+
+  it("still repeats parents freely when the relation is not unique", () => {
+    const ids = parentIds(3);
+    const used = [...seedRows(Comment, 30, { seed: 11, parentIds: new Map([["Post", ids]]) })].map((r) => r.post_id);
+    expect(new Set(used).size).toBeLessThanOrEqual(3);
+    expect(used).toHaveLength(30);
+  });
+});

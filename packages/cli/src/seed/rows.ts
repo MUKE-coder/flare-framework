@@ -74,11 +74,18 @@ function stringValue(key: string, def: Extract<StoredField, { kind: "string" }>,
 
 function numberValue(key: string, def: Extract<StoredField, { kind: "int" | "float" }>, fake: Fake): number {
   const name = key.toLowerCase();
-  const money = has(name, "price", "amount", "total", "cost", "fee", "revenue", "salary", "balance");
+  // The declared format beats the guess from the name, because it is not a guess. A
+  // `rating` seeded from the name rules came out anywhere up to 1000, and five stars
+  // cannot show 702 of them.
+  const money = def.format === "money" || (!def.format && has(name, "price", "amount", "total", "cost", "fee", "revenue", "salary", "balance"));
   let min = def.min;
   let max = def.max;
   if (min === undefined || max === undefined) {
-    const [low, high] = money
+    const [low, high] = def.format === "rating"
+      ? [1, 5]
+      : def.format === "percent"
+      ? [0, 100]
+      : money
       ? [5, 5000]
       : has(name, "age")
         ? [18, 78]
@@ -144,6 +151,19 @@ function fieldValue(key: string, def: StoredField, fake: Fake, resource: Resourc
         }
         return null;
       }
+      // A unique belongsTo is a one-to-one — one review per deal — so each row has to
+      // take a different parent. Picking at random would repeat one and fail the batch
+      // on the unique index, which is a confusing way to be told you asked for more
+      // rows than there are parents.
+      if (def.unique) {
+        if (index >= ids.length) {
+          throw new Error(
+            `${resource.name}.${key} is a unique ${def.target}, so there can be at most one ${resource.name} per ${def.target}. ` +
+              `There are ${ids.length} — seed more ${def.target}, or ask for fewer rows.`,
+          );
+        }
+        return ids[index]!;
+      }
       return fake.pick(ids);
     }
   }
@@ -200,7 +220,12 @@ export function* seedRows(resource: Resource, count: number, options: RowSourceO
     const row: Row = { id: fake.id() };
     for (const [key, def] of fields) {
       let value = fieldValue(key, def, fake, resource, parentIds, number);
-      if (typeof value === "string" && "unique" in def && def.unique) value = uniquify(value, number + 1);
+      // Never for a belongsTo: its value is a row's id, and appending a row number to it
+      // produces an id that belongs to nothing. A unique belongsTo — a one-to-one — is
+      // kept unique by picking parents without repeating instead; see fieldValue.
+      if (typeof value === "string" && def.kind !== "belongsTo" && "unique" in def && def.unique) {
+        value = uniquify(value, number + 1);
+      }
       row[columnName(key)] = value;
     }
     // Spread over the past year so lists, charts and "newest first" look real.
