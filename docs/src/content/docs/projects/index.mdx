@@ -53,10 +53,39 @@ command that fails.
     href="/projects/clinic/"
     description="Confidential records, stock with expiry dates, and the one place the field grammar says no."
   />
+  <LinkCard
+    title="Hostel booking"
+    href="/projects/hostel/"
+    description="Hostel to room to bed, and why allocating beds rather than rooms makes the whole system work."
+  />
+  <LinkCard
+    title="Online examination platform"
+    href="/projects/exams/"
+    description="Questions reused across exams, and one answer table holding two shapes of answer."
+  />
+  <LinkCard
+    title="Course registration"
+    href="/projects/course-registration/"
+    description="The deepest schema here: a four-level academic tree, and prerequisites relating courses to courses."
+  />
 </CardGrid>
 
-More are being added; this page lists the ones that are finished and
-verified rather than the ones that are planned.
+## What each one teaches
+
+They are ordered so that each adds one thing:
+
+| | Project | New in it |
+| --- | --- | --- |
+| 1 | Lost and found | Uploads, two relations to one table, a conditional field |
+| 2 | Library | Many-to-many as a resource, title versus copy, money |
+| 3 | Marketplace | A table pointing at itself, several files per record, ratings |
+| 4 | Complaints | Anonymity that removes the name, an append-only trail |
+| 5 | Event ticketing | Why an order is not a ticket; a code scanned once |
+| 6 | Fees | Money as an integer, idempotent webhooks, a Student table |
+| 7 | Clinic | Confidentiality per role, stock batches, enum limits |
+| 8 | Hostel | A four-level hierarchy, and allocating the smallest unit |
+| 9 | Exams | Reused questions, one table for two answer shapes |
+| 10 | Course registration | A deep tree, and a junction from a table to itself |
 
 ## What these pages assume
 

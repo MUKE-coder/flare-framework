@@ -1,0 +1,195 @@
+---
+title: Course registration
+description: Faculties to departments to programmes to courses, prerequisites that point at courses, and registration windows. The most-attempted project, and the one with the deepest schema.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Students register for courses each semester inside a window, subject to
+prerequisites, credit limits and capacity. Lecturers get class lists;
+administrators open and close the window.
+
+The most-attempted final-year project, and the hardest schema here: nine
+resources, a four-level academic hierarchy, and a table that relates
+courses **to other courses**.
+
+| Resource | What it holds |
+| --- | --- |
+| `Faculty` → `Department` → `Programme` | The academic tree |
+| `Course` | Code, title, credit units |
+| `Prerequisite` | Course X requires course Y |
+| `Semester` | And the registration window |
+| `Student`, `Lecturer` | The people |
+| `Offering` | A course, taught this semester, with a capacity |
+| `Registration` | A student on an offering |
+
+## The two ideas
+
+**A course is not an offering.** *CS301 Operating Systems* exists in the
+catalogue permanently. *CS301, taught by Dr Okello in Semester 1 2026/27,
+capacity 120* is a different thing that happens once. Register students
+against the offering and class lists, capacity and timetables all work.
+Register against the course and you cannot tell this year's class from
+last year's.
+
+**A prerequisite relates a course to a course.** Not a column — a course
+can require three others. It is a many-to-many from a table to itself,
+which sounds exotic and is just a junction with two `belongsTo` pointing
+the same way:
+
+```bash
+npx flare gen resource Prerequisite --fields 'course:belongsTo(Course), requires:belongsTo(Course)'
+```
+
+Both point at `Course`. Flare writes two foreign keys, two indexes, two
+separate pickers in the form, and the relation names Prisma needs to tell
+them apart. Read a row as a sentence: *this course requires that one*.
+
+## 1. The app
+
+<Tabs syncKey="stack">
+<TabItem label="Next.js">
+
+```bash
+pnpm create flare-framework registration
+cd registration
+docker compose up -d
+```
+
+</TabItem>
+<TabItem label="Cloudflare">
+
+```bash
+pnpm create flare-framework registration --stack cloudflare
+cd registration
+```
+
+</TabItem>
+</Tabs>
+
+## 2. The academic tree
+
+```bash
+npx flare gen resource Faculty --icon landmark --group Structure \
+  --fields 'name:string!'
+
+npx flare gen resource Department --icon building --group Structure \
+  --fields 'name:string!, faculty:belongsTo(Faculty)'
+
+npx flare gen resource Programme --icon graduation-cap --group Structure \
+  --fields 'name:string!, durationYears:int, department:belongsTo(Department)'
+
+npx flare gen resource Course --icon book-open --group Structure \
+  --fields 'code:string!, title:string, creditUnits:int, department:belongsTo(Department)'
+```
+
+Generate them in this order. Each `belongsTo` needs its target to exist,
+so the tree is built from the root down — and if you get it wrong the error
+names the missing resource.
+
+## 3. Prerequisites
+
+```bash
+npx flare gen resource Prerequisite --icon git-branch --group Structure \
+  --fields 'course:belongsTo(Course), requires:belongsTo(Course)'
+```
+
+Nothing stops you entering a cycle — CS301 requires CS302 requires CS301 —
+and nothing in a schema can. That check is a graph walk at the point of
+entry, and it is yours to write. It is also a good thing to be asked about.
+
+## 4. The window
+
+```bash
+npx flare gen resource Semester --icon calendar-range --group Structure \
+  --fields 'name:string, academicYear:string, regOpensAt:datetime, regClosesAt:datetime, current:boolean'
+```
+
+The window is two timestamps on the semester, not a flag somebody
+remembers to toggle. "Is registration open" is then a comparison rather
+than a thing that can be left on all year.
+
+## 5. People and offerings
+
+```bash
+npx flare gen resource Student --icon user --group People \
+  --fields 'regNumber:string!, fullName:string, yearOfStudy:int, status:enum(active,suspended,graduated), userId:string?, programme:belongsTo(Programme)'
+
+npx flare gen resource Lecturer --icon user-pen --group People \
+  --fields 'staffNumber:string!, fullName:string, userId:string?, department:belongsTo(Department)'
+
+npx flare gen resource Offering --icon layers --group Registration \
+  --fields 'capacity:int, course:belongsTo(Course), semester:belongsTo(Semester), lecturer:belongsTo(Lecturer)?'
+```
+
+`lecturer` is optional because timetabling happens after the catalogue is
+set, and a required field would mean inventing an assignment to save a row.
+
+## 6. Registration
+
+```bash
+npx flare gen resource Registration --icon check-square --group Registration \
+  --fields 'status:enum(pending,approved,rejected,dropped), rejectedBecause:text if status == rejected, registeredAt:datetime, student:belongsTo(Student), offering:belongsTo(Offering)'
+```
+
+`dropped` is a status, not a deletion. A student who drops a course in week
+three has a record of having been on it, which matters when the fee has
+already been charged.
+
+## 7. Run it
+
+```bash
+npx flare migrate
+npx flare seed:resource Faculty 5
+npx flare seed:resource Department 15
+npx flare seed:resource Programme 20
+npx flare seed:resource Course 80
+npx flare seed:resource Prerequisite 40
+npx flare seed:resource Semester 4
+npx flare seed:resource Student 150
+npx flare seed:resource Offering 60
+npx flare seed:resource Registration 200
+npx flare dev
+```
+
+Nine resources, root of the tree first. Sixty-six migrations applied and a
+registration system with real data in it — before you have written a line.
+
+## What you still owe
+
+Every rule, and the rules *are* the project. The schema cannot express a
+single one of these:
+
+- **Prerequisites met.** Before approving, walk the student's completed
+  courses against the prerequisites of the one they want. This needs a
+  `Result` or `Transcript` resource the brief leaves implicit — model it.
+- **The credit cap.** Sum the credit units of a student's approved
+  registrations this semester and refuse above the limit, which usually
+  varies by programme and year.
+- **Capacity.** Count approved registrations against `Offering.capacity`.
+  And because two students can pass that check in the same instant, back it
+  with a unique constraint on `(studentId, offeringId)` and a transaction —
+  a check-then-insert is a race, always.
+- **The window.** Refuse outside `regOpensAt`–`regClosesAt`, on the server.
+  A disabled button is a courtesy, not a rule.
+- **Timetable clashes**, which need the timetable the brief does not model.
+- **The registration slip** as a PDF, and class lists exported for
+  lecturers.
+
+## Make it yours
+
+- **Students see only their own registrations.** The owner is on
+  `Student`, not the registration, so this is a hook — the same shape as
+  [fees](/projects/fees/) and [the clinic](/projects/clinic/).
+- **Lock the catalogue.**
+  `npx flare gen policy Course --roles admin` and the same for `Programme`
+  and `Prerequisite`. Students read the offerings, never the structure.
+- **Soft delete offerings**, so cancelling a class does not take its
+  registrations with it.
+
+---
+
+That is the last of the ten. If you build one properly — schema from the
+brief, rules in hooks, the honest section at the bottom written up as your
+contribution — you have a final-year project, and you spent your time on
+the part that is actually yours.

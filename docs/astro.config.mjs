@@ -144,6 +144,9 @@ export default defineConfig({
             { label: "5 · Event ticketing", slug: "projects/events" },
             { label: "6 · Fees and payments", slug: "projects/fees" },
             { label: "7 · Campus clinic", slug: "projects/clinic" },
+            { label: "8 · Hostel booking", slug: "projects/hostel" },
+            { label: "9 · Online exams", slug: "projects/exams" },
+            { label: "10 · Course registration", slug: "projects/course-registration" },
           ],
         },
         {

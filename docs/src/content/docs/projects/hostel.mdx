@@ -1,0 +1,168 @@
+---
+title: Hostel booking
+description: Hostel to room to bed, applications and allocation, deposits and maintenance. A four-level hierarchy, and why you allocate beds rather than rooms.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Students browse hostels, apply for a bed, pay a deposit; wardens approve
+allocations and log maintenance.
+
+New here: a **four-level hierarchy** — hostel, room, bed, booking — and the
+decision that makes the whole system work or not.
+
+| Resource | What it holds |
+| --- | --- |
+| `Semester` | The period a booking is for |
+| `Student` | Including gender, which allocation depends on |
+| `Hostel` | On-campus or private, with a gender policy |
+| `HostelPhoto` | The gallery |
+| `Room` | Number, floor, price, capacity |
+| `Bed` | One sleeping place, with a status |
+| `Booking` | A student in a bed for a semester |
+| `Deposit` | What they paid to hold it |
+| `MaintenanceRequest` | Something broken in a room |
+
+## Allocate beds, not rooms
+
+The decision that matters. A triple room has three students in it, who
+arrive separately, leave separately, and are not a group. Book the *room*
+and you need a `occupants` count, a rule that stops it exceeding capacity,
+and no way to say which bed is free — and "two of three beds taken" is the
+single most common question the system is asked.
+
+Book the **bed** and all of that disappears. Availability is
+`status = free`. Capacity is enforced by there being three `Bed` rows.
+Nobody double-books because a bed is one row with one booking.
+
+The cost is one more table. It is the cheapest table you will ever add.
+
+## 1. The app
+
+<Tabs syncKey="stack">
+<TabItem label="Next.js">
+
+```bash
+pnpm create flare-framework hostel
+cd hostel
+docker compose up -d
+```
+
+</TabItem>
+<TabItem label="Cloudflare">
+
+```bash
+pnpm create flare-framework hostel --stack cloudflare
+cd hostel
+```
+
+</TabItem>
+</Tabs>
+
+## 2. Setup and people
+
+```bash
+npx flare gen resource Semester --icon calendar-range --group Setup \
+  --fields 'name:string!, startsOn:date, endsOn:date, current:boolean'
+
+npx flare gen resource Student --icon user --group People \
+  --fields 'regNumber:string!, fullName:string, gender:enum(female,male,other), userId:string?'
+```
+
+`gender` is on the student because allocation depends on it, and a hostel
+has a policy about it. That is the only reason it is here — a field nobody
+uses is a field nobody should be asked for.
+
+## 3. The hierarchy
+
+```bash
+npx flare gen resource Hostel --icon building-2 --group Housing \
+  --fields 'name:string!, kind:enum(onCampus,private), genderPolicy:enum(female,male,mixed), address:string?, latitude:float?, longitude:float?, approved:boolean, ownerId:string?'
+
+npx flare gen resource HostelPhoto --icon image --group Housing \
+  --fields 'image:file:[image]:5mb, hostel:belongsTo(Hostel)'
+
+npx flare gen resource Room --icon door-open --group Housing \
+  --fields 'number:string, floor:int, kind:enum(single,double,triple,dormitory), pricePerSemester:money, capacity:int, hostel:belongsTo(Hostel)'
+
+npx flare gen resource Bed --icon bed --group Housing \
+  --fields 'label:string, status:enum(free,booked,occupied,outOfService), room:belongsTo(Room)'
+```
+
+`approved:boolean` on the hostel is the landlord workflow in one field: a
+private hostel is listed but invisible until an admin ticks it.
+
+`outOfService` as a bed status is worth having from the start. A broken bed
+is not free and is not occupied, and without a third state somebody will
+book it.
+
+`pricePerSemester:money` is on the room rather than the bed, because that
+is how it is advertised — and if you ever price beds differently within a
+room, moving it is one field.
+
+## 4. Booking
+
+```bash
+npx flare gen resource Booking --icon key --group Housing \
+  --fields 'status:enum(applied,approved,rejected,cancelled,checkedIn), rejectedBecause:text if status == rejected, bookedAt:datetime, student:belongsTo(Student), bed:belongsTo(Bed), semester:belongsTo(Semester)'
+
+npx flare gen resource Deposit --icon banknote --group Housing \
+  --fields 'amount:money, method:enum(cash,bank,mobileMoney,card), transactionRef:string!, status:enum(pending,paid,refunded), paidAt:datetime?, booking:belongsTo(Booking)'
+```
+
+A booking is a student, a bed and a semester. The semester is what makes it
+history rather than state: last year's bookings stay, and the same bed is
+free again in September without deleting anything.
+
+`transactionRef:string!` unique — the same idempotency trick as
+[the fees project](/projects/fees/#5-money-and-why-it-is-an-integer). A
+mobile-money provider that retries its callback cannot credit twice.
+
+## 5. Maintenance
+
+```bash
+npx flare gen resource MaintenanceRequest --icon wrench --group Housing \
+  --fields 'description:text, status:enum(open,inProgress,done,rejected), reportedById:string, resolvedAt:datetime?, room:belongsTo(Room)'
+```
+
+Against the room, not the bed: a leaking roof is not one student's problem.
+
+## 6. Run it
+
+```bash
+npx flare migrate
+npx flare seed:resource Semester 4
+npx flare seed:resource Student 100
+npx flare seed:resource Hostel 10
+npx flare seed:resource Room 60
+npx flare seed:resource Bed 180
+npx flare seed:resource Booking 120
+npx flare dev
+```
+
+## What you still owe
+
+- **The allocation rules.** A female student cannot be allocated a bed in a
+  male hostel; a bed must be free; one student gets one bed per semester.
+  None of that is in the schema and all of it is your validation — a hook
+  on `Booking` create. This is the core of the project.
+- **Bed status in step with bookings.** Approving a booking makes the bed
+  `booked`; checking in makes it `occupied`; cancelling frees it. Two
+  places holding related state is the classic bug here, so write it once,
+  in a hook, and never set `Bed.status` from a screen.
+- **Double-booking under load.** Two students applying for the last bed in
+  the same second both pass a "is it free" check. The fix is a unique
+  constraint on `(bedId, semesterId)` so the database refuses the second —
+  add it as a migration by hand, which is the right instinct whenever
+  correctness depends on a race.
+- **Mobile money**, a **map view** from the latitude and longitude, and the
+  **real-time availability** display.
+
+## Make it yours
+
+- **Students see their own bookings.** The owner is on `Student`, so this
+  is a hook, like [the clinic](/projects/clinic/).
+- **Landlords manage their own hostels.**
+  `npx flare gen policy Hostel --roles '*' --own ownerId --own-except warden,admin`
+- **Soft delete bookings**, so a cancelled allocation is still visible when
+  somebody asks who had that bed in March.

@@ -1,0 +1,178 @@
+---
+title: Online examination platform
+description: Question banks, timed exams, attempts and auto-marking. Reusable questions, an optional foreign key, and why an answer stores both a choice and a text.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Lecturers build question banks and schedule timed exams. Students sit them
+in a browser with a countdown. Multiple choice marks itself; essays go to a
+human.
+
+New here: questions that are **reused** across exams, and a single `Answer`
+table that has to hold two completely different shapes of answer.
+
+| Resource | What it holds |
+| --- | --- |
+| `Course` | What the exam is for |
+| `Bank` | A pool of questions |
+| `Question` | MCQ, true/false or essay, with marks and difficulty |
+| `Option` | A choice, and whether it is correct |
+| `Exam` | Scheduled, timed, worth so many marks |
+| `ExamQuestion` | Which questions are on it, in what order |
+| `Attempt` | One student sitting one exam |
+| `Answer` | What they put |
+| `ProctorEvent` | Tab switches and the like |
+
+## 1. The app
+
+<Tabs syncKey="stack">
+<TabItem label="Next.js">
+
+```bash
+pnpm create flare-framework exams
+cd exams
+docker compose up -d
+```
+
+</TabItem>
+<TabItem label="Cloudflare">
+
+```bash
+pnpm create flare-framework exams --stack cloudflare
+cd exams
+```
+
+</TabItem>
+</Tabs>
+
+## 2. The question bank
+
+```bash
+npx flare gen resource Course --icon book-open --group Setup \
+  --fields 'code:string!, title:string'
+
+npx flare gen resource Bank --icon layers --group Questions \
+  --fields 'name:string!, createdById:string, course:belongsTo(Course)'
+
+npx flare gen resource Question --icon help-circle --group Questions \
+  --fields 'kind:enum(mcq,trueFalse,essay), text:markdown, marks:int, difficulty:enum(easy,medium,hard), bank:belongsTo(Bank)'
+
+npx flare gen resource Option --icon list-checks --group Questions \
+  --fields 'text:string, correct:boolean, question:belongsTo(Question)'
+```
+
+`text:markdown` on a question, because exam questions have code blocks,
+lists and the occasional formula, and a plain textarea makes a mess of all
+three.
+
+An essay question simply has no `Option` rows. That is cleaner than a
+nullable column or a second table, and it means the marking code asks "are
+there options?" rather than reading a type flag it has to keep in step.
+
+## 3. Reusing questions
+
+```bash
+npx flare gen resource Exam --icon file-check --group Exams \
+  --fields 'title:string, startsAt:datetime, endsAt:datetime, durationMin:int, totalMarks:int, shuffle:boolean, status:enum(draft,published,closed), course:belongsTo(Course)'
+
+npx flare gen resource ExamQuestion --icon list-ordered --group Exams \
+  --fields 'position:int, exam:belongsTo(Exam), question:belongsTo(Question)'
+```
+
+`ExamQuestion` is a junction, like the library's `BookAuthor` — but this
+one was always going to carry a column. `position` is the order on the
+paper, and it is per exam: the same question is third in January and
+eleventh in the resit. That is exactly why Flare makes you write the
+junction rather than offering a many-to-many field that cannot hold it.
+
+`durationMin` and the start/end window are different things. The window is
+when the exam is *available*; the duration is how long you get once you
+start. A student opening it at 10:50 for an 11:00 close gets ten minutes,
+and your timer has to take the earlier of the two.
+
+## 4. Attempts and answers
+
+```bash
+npx flare gen resource Attempt --icon timer --group Exams \
+  --fields 'startedAt:datetime, submittedAt:datetime?, score:int?, status:enum(inProgress,submitted,marked,abandoned), studentId:string, exam:belongsTo(Exam)'
+
+npx flare gen resource Answer --icon pencil --group Exams \
+  --fields 'answerText:text?, marksAwarded:int?, attempt:belongsTo(Attempt), question:belongsTo(Question), chosenOption:belongsTo(Option)?'
+```
+
+`chosenOption:belongsTo(Option)?` — **optional**, and that is the
+interesting part. One `Answer` table serves both kinds of question:
+
+- multiple choice fills `chosenOption` and leaves `answerText` null
+- an essay fills `answerText` and leaves `chosenOption` null
+
+Two nullable columns, one of which is always set. You could model it as two
+tables, and some people do; one table means marking, auto-save and "what
+did they answer for question 7" are each one query instead of a union.
+
+`marksAwarded:int?` null means *not yet marked*, which distinguishes it
+from a genuine zero. An essay scoring 0 and an essay nobody has read are
+not the same thing, and a non-nullable column cannot tell you which you
+have.
+
+`score:int?` on the attempt is the same idea at the other level.
+
+## 5. Proctoring
+
+```bash
+npx flare gen resource ProctorEvent --icon eye --group Exams \
+  --fields 'kind:enum(tabSwitch,blur,paste,fullscreenExit), occurredAt:datetime, attempt:belongsTo(Attempt)'
+```
+
+Append-only. The browser reports; the server records; nobody edits. Whether
+three tab switches is cheating is a human judgement, and the table's job is
+to make that judgement possible rather than to make it.
+
+## 6. Run it
+
+```bash
+npx flare migrate
+npx flare seed:resource Course 8
+npx flare seed:resource Bank 12
+npx flare seed:resource Question 60
+npx flare seed:resource Option 200
+npx flare seed:resource Exam 15
+npx flare seed:resource Attempt 80
+npx flare seed:resource Answer 300
+npx flare dev
+```
+
+## What you still owe
+
+This project has the largest "yours" section of any on this site, because
+almost all of its interesting behaviour is timing and trust.
+
+- **The timer.** Client-side countdown, server-side truth. Never trust a
+  submission's timestamp from the browser; compare `startedAt` plus the
+  duration against the server clock, and reject late answers there.
+- **Auto-submit and auto-save.** Saving every answer as it changes is what
+  makes a dropped connection survivable, and it is the feature students
+  notice.
+- **Shuffling.** `shuffle:boolean` is the flag; deriving a stable per-
+  attempt order from it is the work — stable, so a refresh does not
+  reorder the paper mid-exam.
+- **Auto-marking.** For each answer, is `chosenOption.correct` true. A
+  dozen lines, and the satisfying part.
+- **One attempt per student per exam.** Not in the schema: add a unique
+  constraint on `(examId, studentId)` in a hand-written migration. Two
+  browser tabs will otherwise start two attempts.
+- **Analytics:** pass rate, mean score, and which question everybody got
+  wrong — which is the one lecturers actually use.
+
+## Make it yours
+
+- **Students never read the question bank.**
+  `npx flare gen policy Question --roles lecturer,admin` and
+  `npx flare gen policy Option --roles lecturer,admin`. The sidebar hides
+  what they may not read, and so does the API. Serving a paper to a student
+  is your own endpoint, which returns questions **without** `correct`.
+- **Students see only their own attempts.**
+  `npx flare gen policy Attempt --roles '*' --own studentId --own-except lecturer,admin`
+- **Soft delete exams**, so a withdrawn paper and its attempts survive an
+  appeal.
