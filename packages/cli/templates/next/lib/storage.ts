@@ -1,81 +1,98 @@
-import { AwsClient } from "aws4fetch";
-import { createObjectKey, createStorage } from "@flaredev/core";
+import { createObjectKey, createStorage, type StorageBucket } from "@flaredev/core";
+import { cloudinaryBucket } from "./storage/cloudinary";
+import { diskBucket } from "./storage/disk";
+import { r2Bucket } from "./storage/r2";
+import { uploadThingBucket } from "./storage/uploadthing";
 
 /**
- * File storage on R2, over its S3-compatible API.
+ * Where uploaded files go.
  *
- * R2 rather than Vercel Blob for one reason: R2 charges nothing to serve what it
- * stores. On a file-heavy app that is the difference between a small bill and a large
- * one, and it costs nothing to use from outside Cloudflare — see the cost guide.
+ * One of four drivers, chosen by `STORAGE_DRIVER`. Everything above this line is the
+ * same whichever you pick — the `file` field, the upload widget, `createUploadUrl` and
+ * `createReadUrl` — because a driver only has to answer three questions: store these
+ * bytes, give them back, throw them away.
  *
- * `aws4fetch` signs the requests; it is a few kilobytes and works in any runtime, unlike
- * the AWS SDK. Everything above this — the upload widget, the signed-URL helpers, the
- * file field — is the same code the Cloudflare stack runs.
+ *   r2           S3-compatible: R2, MinIO, B2, S3. The default, and what
+ *                `docker compose up` gives you locally.
+ *   disk         The local filesystem, like Laravel's `local` disk. No account,
+ *                no network. One machine only.
+ *   cloudinary   A CDN with an image pipeline. Serves from res.cloudinary.com.
+ *   uploadthing  A CDN with an uploader. Serves from <app>.ufs.sh.
+ *
+ * The drivers are in `lib/storage/`, in your repository, and are ordinary files you can
+ * read and change. Adding a fifth means writing `get`, `put` and `delete` — see
+ * `lib/storage/disk.ts`, which is the shortest of them.
+ *
+ * ## Private by default, and what breaks that
+ *
+ * With `r2` or `disk`, a read URL is a short-lived signed token redeemed by
+ * `app/api/storage/route.ts`, so whoever issued it decided the viewer was allowed it.
+ *
+ * `cloudinary` and `uploadthing` are content delivery networks, and serving through
+ * this app would throw away the thing you are paying them for. So they hand back their
+ * own URL, which **anyone with the link can read, forever**. That is the normal way to
+ * use them and the wrong way to store a medical record. Set `STORAGE_PUBLIC=false` to
+ * keep every read signed and proxied, and they become ordinary private storage.
+ *
+ *   const { url } = await storage.createUploadUrl({
+ *     key: createObjectKey(file.name, `users/${user.id}`),
+ *     contentTypes: ["image/*", "application/pdf"],
+ *     maxBytes: 10 * 1024 * 1024,
+ *   });
+ *   // browser: fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } })
+ *
+ *   const src = await storage.createReadUrl({ key });
  */
-const client = new AwsClient({
-  accessKeyId: process.env.R2_ACCESS_KEY_ID ?? "",
-  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
-  service: "s3",
-  region: "auto",
-});
 
-const endpoint = `${process.env.R2_ENDPOINT ?? ""}/${process.env.R2_BUCKET ?? ""}`;
+type StorageDriver = "r2" | "disk" | "cloudinary" | "uploadthing";
 
-/**
- * A key as a URL path.
- *
- * Each segment is escaped on its own, so the slashes in "products/2026/09/a.png" stay
- * slashes. Escaping the whole key would turn them into %2F, which is a different object
- * name to S3 even where a particular server is forgiving about it.
- */
-const path = (key: string) => key.split("/").map(encodeURIComponent).join("/");
+const DRIVERS: StorageDriver[] = ["r2", "disk", "cloudinary", "uploadthing"];
 
-/** Raise a bucket error rather than letting a failed write look like a successful one. */
-async function ok(response: Response, doing: string, key: string): Promise<Response> {
-  if (response.ok) return response;
-  const detail = await response.text().catch(() => "");
-  throw new Error(`Storage ${doing} failed for "${key}": ${response.status} ${detail.slice(0, 300)}`);
+/** Required environment, named in the error rather than left as `undefined`. */
+function required(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`STORAGE_DRIVER is "${driver}" and needs ${name}, which is not set.`);
+  return value;
 }
 
-/** The bucket, shaped the way @flaredev/core expects, over plain HTTP calls. */
-const bucket = {
-  async get(key: string) {
-    const response = await client.fetch(`${endpoint}/${path(key)}`);
-    if (!response.ok || !response.body) return null;
-    return {
-      body: response.body,
-      httpMetadata: { contentType: response.headers.get("content-type") ?? undefined },
-      size: Number(response.headers.get("content-length") ?? 0),
-      // R2 returns the object's ETag quoted, which is what the header wants back.
-      httpEtag: response.headers.get("etag") ?? "",
-    };
-  },
-  async put(key: string, value: ReadableStream | ArrayBuffer | string | null, options?: { httpMetadata?: { contentType?: string } }) {
-    // S3 needs a Content-Length, and a stream has no length to send — it answers
-    // "411 MissingContentLength" and stores nothing. Uploads are capped by the field's
-    // own maxBytes long before they reach here, so reading one into memory is safe and
-    // is what makes the length known.
-    //
-    // The length is set by hand rather than left to fetch. Next patches the global
-    // fetch, and in that runtime it does not derive content-length even from a buffered
-    // body — so S3 still answers 411 and stores nothing. Buffering everything through
-    // Response keeps one path for streams, buffers and strings alike.
-    const body = value === null ? new ArrayBuffer(0) : await new Response(value as BodyInit).arrayBuffer();
-    const headers: Record<string, string> = { "content-length": String(body.byteLength) };
-    if (options?.httpMetadata?.contentType) headers["content-type"] = options.httpMetadata.contentType;
-    await ok(await client.fetch(`${endpoint}/${path(key)}`, { method: "PUT", body, headers }), "upload", key);
-  },
-  async delete(keys: string | string[]) {
-    for (const key of [keys].flat()) {
-      const response = await client.fetch(`${endpoint}/${path(key)}`, { method: "DELETE" });
-      // S3 answers 204 for a key that was never there, which is the outcome we wanted.
-      if (response.status !== 404) await ok(response, "delete", key);
-    }
-  },
-};
+const configured = (process.env.STORAGE_DRIVER ?? "r2").trim().toLowerCase();
+if (!DRIVERS.includes(configured as StorageDriver)) {
+  throw new Error(`Unknown STORAGE_DRIVER "${configured}". One of: ${DRIVERS.join(", ")}.`);
+}
+const driver = configured as StorageDriver;
+
+/** Public delivery is the point of a CDN, so it is on unless it is turned off. */
+const publicDelivery = process.env.STORAGE_PUBLIC !== "false";
+
+function selectBucket(): StorageBucket {
+  switch (driver) {
+    case "disk":
+      return diskBucket({ dir: process.env.STORAGE_DIR });
+    case "cloudinary":
+      return cloudinaryBucket({
+        cloudName: required("CLOUDINARY_CLOUD_NAME"),
+        apiKey: required("CLOUDINARY_API_KEY"),
+        apiSecret: required("CLOUDINARY_API_SECRET"),
+        publicDelivery,
+      });
+    case "uploadthing":
+      return uploadThingBucket({
+        token: required("UPLOADTHING_TOKEN"),
+        appId: required("UPLOADTHING_APP_ID"),
+        publicDelivery,
+      });
+    case "r2":
+      return r2Bucket({
+        endpoint: required("R2_ENDPOINT"),
+        bucket: required("R2_BUCKET"),
+        accessKeyId: required("R2_ACCESS_KEY_ID"),
+        secretAccessKey: required("R2_SECRET_ACCESS_KEY"),
+      });
+  }
+}
 
 export const storage = createStorage({
-  bucket,
+  bucket: selectBucket(),
   // Signing keys are derived from the auth secret with a storage-specific label.
   secret: process.env.BETTER_AUTH_SECRET ?? "",
 });

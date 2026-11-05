@@ -17,6 +17,9 @@ export {
   matchesContentType,
   type Storage,
   type StorageBucket,
+  // A driver in lib/storage/ returns one of these from `get`, so it has to be nameable
+  // from outside: writing a bucket is the supported way to add a provider.
+  type StorageObjectBody,
   type StorageOptions,
   type UploadUrlOptions,
   type ReadUrlOptions,

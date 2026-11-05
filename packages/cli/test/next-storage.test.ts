@@ -3,12 +3,13 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * The Next.js stack's R2 adapter.
+ * The Next.js stack's R2 driver, which moved to lib/storage/r2.ts when the other
+ * drivers arrived beside it.
  *
  * Every one of these pins a failure that actually happened, all in the same bug: an
  * image upload reported success and stored nothing.
  */
-const storage = readFileSync(fileURLToPath(new URL("../templates/next/lib/storage.ts", import.meta.url)), "utf8");
+const storage = readFileSync(fileURLToPath(new URL("../templates/next/lib/storage/r2.ts", import.meta.url)), "utf8");
 
 describe("the R2 adapter", () => {
   it("sends a content-length", () => {

@@ -33,6 +33,19 @@ export interface StorageBucket {
     truncated: boolean;
     cursor?: string;
   }>;
+  /**
+   * A URL that serves this object directly, for a provider that is already a CDN.
+   *
+   * Returning one makes `createReadUrl` hand it back instead of a signed, expiring URL
+   * through this app — which is the point of Cloudinary or UploadThing, and the reason
+   * to pay for them. It also means the file is readable by anyone who has the link, for
+   * as long as it exists: there is no token to expire and no policy consulted on the way
+   * in. Buckets that hold anything private leave this undefined, and R2 and disk do.
+   *
+   * Return `undefined` for a key this bucket cannot address publicly, and the signed
+   * path is used for it instead.
+   */
+  publicUrl?(key: string): string | undefined;
 }
 
 export interface StorageObjectBody {
@@ -264,9 +277,19 @@ export function createStorage(options: StorageOptions) {
       return { url: urlFor(token), method: "PUT", key: upload.key, expiresAt: new Date(exp * 1000) };
     },
 
-    /** A temporary URL that serves the object. */
+    /**
+     * A temporary URL that serves the object.
+     *
+     * On a bucket that is its own CDN, this is that provider's URL and is neither
+     * temporary nor private — see {@link StorageBucket.publicUrl}. `downloadAs` still
+     * takes the signed path, because forcing a filename is this app's header to set.
+     */
     async createReadUrl(read: ReadUrlOptions): Promise<string> {
       if (!isValidKey(read.key)) throw new Error(`Invalid object key: ${read.key}`);
+      if (!read.downloadAs) {
+        const direct = options.bucket.publicUrl?.(read.key);
+        if (direct) return direct;
+      }
       const payload: ReadToken = { op: "get", key: read.key, exp: expiry(read.expiresIn) };
       if (read.downloadAs) payload.name = read.downloadAs;
       return urlFor(await signToken(await signingKey(), payload));

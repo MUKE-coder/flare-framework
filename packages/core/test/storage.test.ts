@@ -194,3 +194,42 @@ describe("storage", () => {
     expect(res.status).toBe(405);
   });
 });
+
+describe("a bucket that is its own CDN", () => {
+  /** Cloudinary and UploadThing: reads come from them, not from this app. */
+  function cdnBucket(publicUrl: (key: string) => string | undefined) {
+    const { bucket } = memoryBucket();
+    return createStorage({ bucket: { ...bucket, publicUrl }, secret: SECRET });
+  }
+
+  it("hands back the provider's URL instead of a signed one", async () => {
+    const storage = cdnBucket((key) => `https://cdn.test/${key}`);
+    expect(await storage.createReadUrl({ key: "uploads/a.png" })).toBe("https://cdn.test/uploads/a.png");
+  });
+
+  it("still signs a key the provider cannot address", async () => {
+    // Returning undefined for one key falls back rather than failing.
+    const storage = cdnBucket((key) => (key.startsWith("public/") ? `https://cdn.test/${key}` : undefined));
+    expect(await storage.createReadUrl({ key: "private/a.png" })).toContain("/api/storage?token=");
+  });
+
+  it("signs when a filename is forced, because that is this app's header to set", async () => {
+    // A CDN URL cannot carry our Content-Disposition, so downloadAs takes the long way.
+    const storage = cdnBucket((key) => `https://cdn.test/${key}`);
+    const url = await storage.createReadUrl({ key: "uploads/a.png", downloadAs: "report.png" });
+    expect(url).toContain("/api/storage?token=");
+  });
+
+  it("changes nothing about uploads, which are still signed and capped", async () => {
+    const storage = cdnBucket((key) => `https://cdn.test/${key}`);
+    const { url } = await storage.createUploadUrl({ key: "uploads/a.png", contentTypes: ["image/png"], maxBytes: 100 });
+    expect(url).toContain("/api/storage?token=");
+    expect((await storage.handleRequest(put(url, PNG(), "image/png"))).status).toBe(201);
+  });
+
+  it("leaves a bucket without one entirely alone", async () => {
+    // R2 and disk: private by default, and this is the test that keeps them that way.
+    const { storage } = setup();
+    expect(await storage.createReadUrl({ key: "uploads/a.png" })).toContain("/api/storage?token=");
+  });
+});

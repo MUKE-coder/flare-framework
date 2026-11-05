@@ -15,7 +15,8 @@ or on the command line:
 --fields 'image:file:[image]:5mb?'
 ```
 
-The form gets a drop zone. The bytes go to R2. The column holds a key.
+The form gets a drop zone. The bytes go to your storage driver. The column
+holds a key.
 
 ## What a file field stores
 
@@ -26,7 +27,8 @@ products/image/2026/09/d0b8f166-add4-4fd6-9a55-b031135a4020-red-square.png
 └─ table  └─ field  └─ date    └─ uuid                     └─ the name given
 ```
 
-The bytes live in an R2 bucket. Objects are private, so there is no URL to put
+The bytes live in whichever store you configured. Objects are private by
+default, so there is no URL to put
 in an `<img>` — one is signed on demand and expires. That is why a thumbnail
 does a short round trip instead of rendering straight from the column.
 
@@ -161,41 +163,114 @@ allows.
 An image shows a preview immediately — from the local file while uploading,
 then from a signed URL.
 
-## Setting up storage
+## Where the bytes go
 
-Four variables, in `.env` or `.dev.vars`:
+On the **Cloudflare** stack, an R2 bucket binding is created for you and there
+is nothing to configure.
+
+On the **Next.js** stack, pick a driver with `STORAGE_DRIVER`:
+
+| `STORAGE_DRIVER` | What it is | Needs |
+| --- | --- | --- |
+| `r2` *(default)* | Anything S3-compatible: R2, MinIO, Backblaze B2, S3 | four `R2_*` variables |
+| `disk` | The local filesystem, like Laravel's `local` disk | nothing |
+| `cloudinary` | A CDN with an image pipeline | three `CLOUDINARY_*` variables |
+| `uploadthing` | A CDN with an uploader | a token, an app id, and `pnpm add uploadthing` |
+
+Each one is an ordinary file in `lib/storage/` in your repository. A driver
+answers three questions — store these bytes, give them back, throw them away —
+and everything above it is identical whichever you pick: the `file` field, the
+drop zone, the size cap, the type check, `createUploadUrl` and
+`createReadUrl`.
+
+:::danger[Two of them make files public]
+With `r2` and `disk`, a read URL is a short-lived signed token redeemed by
+`app/api/storage/route.ts`, so whoever issued it decided the viewer was
+allowed it.
+
+`cloudinary` and `uploadthing` are content delivery networks. Serving through
+your app would throw away the thing you are paying them for, so they hand back
+**their own URL, which anyone with the link can read, and which does not
+expire**. That is the normal way to use them, and the wrong way to store a
+passport scan.
+
+Set `STORAGE_PUBLIC=false` to keep every read signed and proxied, and they
+become ordinary private storage with a good pipeline attached.
+:::
+
+### r2 — S3-compatible
 
 ```ini
+STORAGE_DRIVER=r2
 R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 R2_BUCKET=myapp
 R2_ACCESS_KEY_ID=…
 R2_SECRET_ACCESS_KEY=…
 ```
 
-On the Cloudflare stack a bucket binding is created for you and these are only
-needed if you reach R2 from outside a Worker.
+Locally, `docker compose up -d` in a new app gives you MinIO on
+`127.0.0.1:9000` already pointed at by `.env`, and its console on `:9001`
+shows what was uploaded. MinIO speaks S3, so this is the same code path you
+deploy.
 
-Without them the field still renders and the upload fails — which is the
-correct order of events, but worth knowing before you wonder why.
+### disk — no account, no network
 
-### Locally, without an R2 account
+```ini
+STORAGE_DRIVER=disk
+# STORAGE_DIR=storage/app      # the default
+```
 
-R2 speaks S3, and so does MinIO, so a container is enough to develop against:
+Files land under `storage/app/objects/`, with the content type recorded
+beside them in `storage/app/meta/` — so a file called `IMG_0421` with no
+extension still comes back as an image rather than a download.
+
+Good for developing without Docker, and for a single server where a volume is
+simpler than a bucket. Not for anything that scales horizontally: two
+instances do not share a filesystem, and the second one serves 404s for
+everything the first one wrote. Add `storage/` to `.gitignore`.
+
+### cloudinary
+
+```ini
+STORAGE_DRIVER=cloudinary
+CLOUDINARY_CLOUD_NAME=…
+CLOUDINARY_API_KEY=…
+CLOUDINARY_API_SECRET=…
+```
+
+No SDK — the driver signs the upload itself, which is a sorted query string
+and a SHA-1, and posts the file. Cloudinary files an asset under `image`,
+`video` or `raw`, and the key's extension decides which, in both directions,
+so an upload and the read that follows it always agree.
+
+Re-uploading the same key replaces the asset and invalidates the CDN copy,
+rather than leaving the old bytes cached at the edge under a URL you have
+already handed out.
+
+### uploadthing
 
 ```bash
-docker run -d --name minio -p 9010:9000 -p 9011:9001 \
-  -e MINIO_ROOT_USER=flare -e MINIO_ROOT_PASSWORD=flare-secret-123 \
-  minio/minio server /data --console-address ":9001"
+pnpm add uploadthing
 ```
 
 ```ini
-R2_ENDPOINT=http://127.0.0.1:9010
-R2_BUCKET=myapp
-R2_ACCESS_KEY_ID=flare
-R2_SECRET_ACCESS_KEY=flare-secret-123
+STORAGE_DRIVER=uploadthing
+UPLOADTHING_TOKEN=…
+UPLOADTHING_APP_ID=…
 ```
 
-Create the bucket, and the console on `:9011` shows what was uploaded.
+UploadThing mints its own file key on upload, and a driver is asked to store
+bytes under a key it was *given*. The two are reconciled with `customId`,
+which UploadThing accepts at upload, addresses in a delivery URL, and filters
+by on delete — so your key stays your key and nothing has to be stored to map
+between them.
+
+### Writing another one
+
+A driver is a `StorageBucket`: `get`, `put`, `delete`, and optionally
+`publicUrl`. `lib/storage/disk.ts` is the shortest of the four and the one to
+copy. Add it to the `switch` in `lib/storage.ts`, which is the only place that
+knows which driver is in use.
 
 ## Reading a file back in your own code
 

@@ -1,11 +1,16 @@
 ---
-title: File storage (R2)
-description: Signed uploads and reads, content sniffing, and per-field scoping.
+title: File storage
+description: Signed uploads and reads, content sniffing, per-field scoping, and the four storage drivers.
 ---
 
-Every app gets a `STORAGE` R2 binding (`bucket_name: <app>-storage`).
-`lib/storage.ts` wraps `createStorage()` from `@flaredev/core`, and
-`app/api/storage/route.ts` redeems the signed URLs it issues.
+On Cloudflare, every app gets a `STORAGE` R2 binding
+(`bucket_name: <app>-storage`). On Next.js, `STORAGE_DRIVER` picks between
+R2, the local disk, Cloudinary and UploadThing — see
+[file uploads](/guides/file-uploads/) for setting each one up.
+
+Either way `lib/storage.ts` wraps `createStorage()` from `@flaredev/core`,
+and `app/api/storage/route.ts` redeems the signed URLs it issues. This page
+is about that machinery, which is the same whichever driver is underneath.
 
 ## Flare-signed, not S3-presigned
 
