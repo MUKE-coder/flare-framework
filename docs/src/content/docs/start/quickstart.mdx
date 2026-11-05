@@ -1,0 +1,263 @@
+---
+title: Quickstart
+description: A scaffolded app, a generated resource with a REST API and admin UI, and a live deploy — on either stack, in about five minutes.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+From nothing to a deployed CRUD app: a scaffolded project, a resource with a
+working REST API and admin screens, and a live URL. No file in this loop is
+hand-written.
+
+Pick a stack below and the whole page follows it — including the deploy
+section at the end.
+
+:::tip[Which one?]
+**Next.js** is the default: Next.js 16, Postgres, Prisma, deployed to Vercel.
+Pick it if you want real Postgres or an npm package that assumes Node.
+
+**Cloudflare** is the shortest path to something deployed: Workers, D1 and
+Drizzle, nothing to install, no accounts, one command to ship.
+
+[Choosing a stack](/start/stacks/) compares them properly. Your descriptors,
+hooks, policies and components move between the two.
+:::
+
+## 1. Scaffold and run it
+
+<Tabs syncKey="stack">
+<TabItem label="Next.js">
+
+Postgres, S3 and Redis are real services on this stack, so they have to come
+from somewhere. That is the only decision here.
+
+<Tabs syncKey="services">
+<TabItem label="Without Docker">
+
+Three accounts, all on free tiers. Create them first:
+
+1. **Postgres** — a project on [Neon](https://neon.tech). Copy the *pooled*
+   connection string.
+2. **Files** — an [R2](https://developers.cloudflare.com/r2/) bucket and an API
+   token. Only needed for uploads; skip it until you add a `file` field.
+3. **Redis** — optional. Rate limits fall back to in-memory without it, which
+   is fine on one machine. For the real thing, an
+   [Upstash](https://upstash.com) database.
+
+```bash
+pnpm create flare-framework myapp
+cd myapp
+
+# paste DATABASE_URL into .env, plus the R2_* keys if you want uploads
+npx flare gen resource Contact --fields 'name:string, email:email!, status:enum(lead,customer)'
+npx flare migrate
+npx flare dev
+```
+
+`flare create` already wrote the `.env` with a fresh `BETTER_AUTH_SECRET`, so
+`DATABASE_URL` is the only line you have to fill in before `migrate`.
+
+:::caution
+Uploads are the one thing with no local fallback: `lib/storage.ts` signs URLs
+against whatever `R2_ENDPOINT` points at. Without it, a `file` field will fail
+at upload rather than degrade.
+:::
+
+</TabItem>
+<TabItem label="With Docker">
+
+Docker Desktop running, and nothing else to arrange — Postgres, MinIO and
+Redis all come up from the `docker-compose.yml` in your new app.
+
+```bash
+pnpm create flare-framework myapp
+cd myapp
+docker compose up -d        # Postgres, MinIO and Redis
+
+npx flare gen resource Contact --fields 'name:string, email:email!, status:enum(lead,customer)'
+npx flare migrate
+npx flare dev
+```
+
+That is the whole setup. `flare create` wrote a `.env` holding a fresh
+`BETTER_AUTH_SECRET` and the addresses these three listen on, so there is
+nothing to edit first.
+
+| Service | What it stands in for | Where |
+| --- | --- | --- |
+| `postgres` | Neon, or any Postgres | `127.0.0.1:5432` |
+| `minio` | Cloudflare R2 — it speaks S3, so the same code works | `127.0.0.1:9000`, console on `:9001` |
+| `redis` + `redis-http` | Upstash — the proxy speaks Upstash's REST protocol | `127.0.0.1:8079` |
+
+`docker compose down` stops them; add `-v` to throw the data away too.
+
+</TabItem>
+</Tabs>
+
+</TabItem>
+<TabItem label="Cloudflare">
+
+**Nothing to install, and no accounts.** Wrangler simulates the whole platform
+on your machine: D1 is a local SQLite file, R2 is a local directory, KV and
+Durable Objects run in the same process. There is no database to provision and
+no bucket to create.
+
+```bash
+pnpm create flare-framework myapp --stack cloudflare
+cd myapp
+
+npx flare gen resource Contact --fields 'name:string, email:email!, status:enum(lead,customer)'
+npx flare migrate
+npx flare dev
+```
+
+</TabItem>
+</Tabs>
+
+You now have this running on `http://localhost:3000`:
+
+| Where | What |
+| --- | --- |
+| `/` | the app |
+| `/dashboard` | the admin, with a **Contacts** screen that sorts, filters, pages and exports |
+| `/api/contacts` | the REST API — `GET`, `POST`, and `GET`/`PATCH`/`PUT`/`DELETE` on `/api/contacts/[id]` |
+| `/api/openapi.json` | an OpenAPI 3.1 document, generated from the same descriptor |
+
+Sign up at `/dashboard`. **The first account to sign up becomes the admin**, so
+the Contacts screen is there immediately — a new resource is admin-only until
+you widen its policy.
+
+## 2. What those three commands did
+
+**`flare create`** scaffolded a working app before any resource existed:
+sign-in and sign-up screens, a session, a database, an admin shell, and the
+bindings. Add `--auth-providers google,github` to scaffold OAuth buttons too;
+they only render once you set the matching client ID and secret.
+
+**`flare gen resource`** read one
+[resource descriptor](/concepts/resource-descriptor/) and emitted everything
+it implies — about nineteen files, all into your repository:
+
+- the schema and a migration — Prisma and Postgres, or Drizzle and SQLite
+- Zod validators, strict, so there is no mass assignment
+- the REST API, with auth and the policy already on it
+- a typed fetch client (`resources/contact.client.ts`)
+- list, create, edit and detail screens, with loading skeletons shaped like
+  each one
+- an **admin-only policy** beside the descriptor
+
+See [what `gen resource` emits](/concepts/generated-files/) for the full list,
+and [the field grammar](/concepts/field-grammar/) for every type you can put
+in `--fields`.
+
+**`flare migrate`** applied that migration. The SQL is a file in your repo and
+reads like one you wrote.
+
+:::note[Want data to look at?]
+`npx flare seed:resource Contact 1000` fills the table with plausible rows
+built from the descriptor — real names, real-looking emails, a spread of
+statuses and dates. It works on both stacks.
+:::
+
+## 3. Deploy
+
+<Tabs syncKey="stack">
+<TabItem label="Next.js">
+
+Vercel owns the build and the environment, so `flare deploy` is the Vercel CLI
+and migrations stay a separate, deliberate step:
+
+```bash
+# once: point DATABASE_URL at the production database and migrate it
+DATABASE_URL="<your production connection string>" npx flare migrate
+
+npx flare deploy
+```
+
+Set the same environment variables in the Vercel project — `DATABASE_URL`,
+`BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and the `R2_*` keys if you use
+uploads. Vercel builds do not run migrations, which is why the first command
+is there: a deploy onto an empty database is a 500 on your first sign-up.
+
+:::caution
+`BETTER_AUTH_URL` must have no trailing slash. An `Origin` header never
+carries one, so `https://example.com/` matches nothing and every sign-in comes
+back 403 with nothing in the log explaining why.
+:::
+
+[The Vercel guide](/guides/vercel-deployment/) covers preview databases and
+the shadow-database error `prisma migrate dev` gives on serverless Postgres.
+
+</TabItem>
+<TabItem label="Cloudflare">
+
+One command, and it does the whole sequence:
+
+```bash
+npx flare deploy
+```
+
+1. Applies remote D1 migrations **before** the new code goes live. A failed
+   migration aborts the deploy; a first deploy lets Wrangler provision the
+   database, then migrates it.
+2. Builds and deploys the Worker.
+3. Generates and uploads `BETTER_AUTH_SECRET` if production hasn't got one —
+   never reusing your local dev secret — and lists any optional secrets you
+   have not set, such as OAuth credentials or `RESEND_API_KEY`.
+
+You need `wrangler login` once, the first time you deploy anything. Nothing to
+click on a dashboard.
+
+</TabItem>
+</Tabs>
+
+## 4. Roles, when you need them
+
+The first account is already an admin. To grant a second person a role:
+
+<Tabs syncKey="stack">
+<TabItem label="Next.js">
+
+```bash
+npx flare user:role them@example.com admin
+```
+
+It writes to whichever database `DATABASE_URL` points at, so set it to
+production when you mean production.
+
+</TabItem>
+<TabItem label="Cloudflare">
+
+```bash
+npx flare user:role them@example.com admin --remote
+```
+
+Without `--remote` it writes to the local D1 file.
+
+</TabItem>
+</Tabs>
+
+Every generated resource arrives admin-only. Widen one with
+`flare gen policy Contact --roles admin,staff`, or open it to everybody with
+`--roles '*'`. See [roles and policies](/guides/roles-and-policies/).
+
+## What you just got
+
+- email/password auth end to end, with sessions
+- a `Contact` resource with a real REST API, validation and an OpenAPI document
+- an admin dashboard that sorts, filters, pages and exports
+- a cache invalidated automatically on every write
+- a live URL
+
+No file in this loop was hand-written, and none of it is hidden: the engine
+was [copied into your app](/concepts/no-magic/), not imported from a package
+you cannot read. Edit the descriptor and re-run `gen resource` whenever you
+like — [the codegen overwrite contract](/concepts/codegen-contract/) says
+exactly what survives a re-run, and `flare diff` shows what you have changed.
+
+## Next
+
+- [The Next.js tutorial](/tutorials/next-shop/) — a shop, end to end
+- [Relationships](/guides/relationships/) — `belongsTo`, `hasMany`, and the pickers they generate
+- [File uploads](/guides/file-uploads/) — the `file` field, signed URLs and size caps
+- [Building with AI](/guides/build-with-ai/) — the agent skill, so a coding agent knows all of this
