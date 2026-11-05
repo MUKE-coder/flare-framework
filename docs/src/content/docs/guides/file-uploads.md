@@ -236,10 +236,15 @@ Files land under `storage/app/objects/`, with the content type recorded
 beside them in `storage/app/meta/` — so a file called `IMG_0421` with no
 extension still comes back as an image rather than a download.
 
-Good for developing without Docker, and for a single server where a volume is
-simpler than a bucket. Not for anything that scales horizontally: two
+Good for developing without Docker, and for a single server you own where a
+volume is simpler than a bucket. Add `storage/` to `.gitignore`.
+
+Two places it does not belong. Anything that scales horizontally: two
 instances do not share a filesystem, and the second one serves 404s for
-everything the first one wrote. Add `storage/` to `.gitignore`.
+everything the first one wrote. And anything serverless — Vercel, Lambda,
+Workers — where the filesystem is read-only and whatever you do write does
+not outlive the request. Deployed to Vercel this driver raises an error
+saying so, rather than failing an upload for no stated reason.
 
 ### cloudinary
 

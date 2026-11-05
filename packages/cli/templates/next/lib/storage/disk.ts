@@ -57,8 +57,23 @@ export function diskBucket(options: DiskOptions = {}): StorageBucket {
   };
 
   const write = async (file: string, data: Buffer | string) => {
-    await mkdir(dirname(file), { recursive: true });
-    await writeFile(file, data);
+    try {
+      await mkdir(dirname(file), { recursive: true });
+      await writeFile(file, data);
+    } catch (error) {
+      // The one failure worth explaining. A serverless host gives you a read-only
+      // filesystem, so this driver cannot work there at all — and `EROFS` on a path
+      // nobody chose is a puzzling way to find that out, usually in production.
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === "EROFS" || code === "EACCES" || code === "EPERM") {
+        throw new Error(
+          `The disk driver cannot write to ${root} (${code}). A serverless host — Vercel, Lambda, Workers — ` +
+            "has no writable filesystem that survives a request, so set STORAGE_DRIVER to r2, cloudinary or " +
+            "uploadthing for anything deployed there. Disk is for local development and for a server you own.",
+        );
+      }
+      throw error;
+    }
   };
 
   return {
