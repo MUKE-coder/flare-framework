@@ -139,6 +139,9 @@ export default defineConfig({
             { label: "All projects", slug: "projects" },
             { label: "1 · Lost and found", slug: "projects/lost-and-found" },
             { label: "2 · Library", slug: "projects/library" },
+            { label: "3 · Marketplace", slug: "projects/marketplace" },
+            { label: "4 · Complaints", slug: "projects/complaints" },
+            { label: "5 · Event ticketing", slug: "projects/events" },
           ],
         },
         {

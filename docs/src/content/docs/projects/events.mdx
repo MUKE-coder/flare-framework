@@ -1,0 +1,149 @@
+---
+title: Event ticketing
+description: Clubs run events, sell tickets, scan people in at the gate. Money, a unique code per ticket, and the order-versus-ticket split.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+A club creates an event, offers a free tier and a VIP tier, sells tickets,
+and scans a QR code at the door.
+
+New here: **an order is not a ticket**. One payment can buy six tickets,
+each of which is scanned separately. Collapse them and you cannot sell more
+than one at a time.
+
+| Resource | What it holds |
+| --- | --- |
+| `Organiser` | The club, department or faculty running it |
+| `Venue` | Where, and how many fit |
+| `Event` | Title, poster, start and end |
+| `TicketType` | A tier: name, price, how many exist |
+| `Order` | One payment |
+| `Ticket` | One scannable code, belonging to an order |
+
+## 1. The app
+
+<Tabs syncKey="stack">
+<TabItem label="Next.js">
+
+```bash
+pnpm create flare-framework events
+cd events
+docker compose up -d
+```
+
+</TabItem>
+<TabItem label="Cloudflare">
+
+```bash
+pnpm create flare-framework events --stack cloudflare
+cd events
+```
+
+</TabItem>
+</Tabs>
+
+## 2. Who and where
+
+```bash
+npx flare gen resource Organiser --icon users --group Setup \
+  --fields 'name:string!, kind:enum(club,department,faculty), ownerId:string'
+
+npx flare gen resource Venue --icon map-pin --group Setup \
+  --fields 'name:string!, capacity:int, address:string?'
+```
+
+## 3. The event
+
+```bash
+npx flare gen resource Event --icon calendar --group Events \
+  --fields 'title:string, description:markdown?, poster:file:[image]:5mb?, startsAt:datetime, endsAt:datetime, status:enum(draft,published,cancelled,done), cancelledBecause:text if status == cancelled, organiser:belongsTo(Organiser), venue:belongsTo(Venue)'
+```
+
+`startsAt:datetime` and not `date`: an event is at seven in the evening,
+and the time is the thing people need. Stored as an instant in UTC, which
+is what makes "starts in two hours" calculable rather than guessed.
+
+`cancelledBecause:text if status == cancelled` — the reason appears when
+you cancel, is required then, and is cleared if the event is reinstated. An
+event that is live again while still carrying "venue flooded" is a support
+ticket waiting to happen.
+
+## 4. Tiers
+
+```bash
+npx flare gen resource TicketType --icon ticket --group Events \
+  --fields 'name:string, price:money, quantity:int, salesStart:datetime?, salesEnd:datetime?, event:belongsTo(Event)'
+```
+
+A tier belongs to an event, so "Early bird, 5,000, 100 available, until
+Friday" is a row rather than a special case. Free is `price: 0` — not a
+separate code path, which is the usual way free tickets end up unticketed.
+
+`quantity` is how many exist. How many are *left* is `quantity` minus the
+tickets sold, which is a count, not a column — a stock column and a ticket
+table will disagree eventually, and then you have to decide which is lying.
+
+## 5. Orders and tickets
+
+```bash
+npx flare gen resource Order --icon receipt --group Sales \
+  --fields 'reference:string!, total:money, status:enum(pending,paid,refunded,failed), paymentRef:string?, buyerId:string'
+
+npx flare gen resource Ticket --icon qr-code --group Sales \
+  --fields 'code:string!, checkedInAt:datetime?, order:belongsTo(Order), ticketType:belongsTo(TicketType)'
+```
+
+This is the split worth sitting with.
+
+**`Order`** is the money: one payment, one status, one reference from the
+provider. It is what you refund.
+
+**`Ticket`** is the thing a person holds: one code, scanned once. Six
+tickets on one order means six rows, six codes, six separate check-ins.
+
+`code:string!` is unique, which is what makes a scan a lookup and a
+duplicate impossible. `checkedInAt:datetime?` being null *is* "not yet
+used" — resist a `checkedIn:boolean` beside it, because two columns that
+must agree are two columns that will not.
+
+## 6. Run it
+
+```bash
+npx flare migrate
+npx flare seed:resource Organiser 8
+npx flare seed:resource Venue 10
+npx flare seed:resource Event 25
+npx flare seed:resource TicketType 50
+npx flare seed:resource Order 100
+npx flare seed:resource Ticket 200
+npx flare dev
+```
+
+## What you still owe
+
+- **Payment.** Flare generates a Stripe integration with
+  `npx flare gen billing --provider stripe`, which gives you checkout and
+  the webhook. Mobile money — MTN, Airtel — is a provider you write, and in
+  Uganda it is the one that matters.
+- **The QR code.** `code` is the payload; rendering it is a library, and
+  scanning it is a camera and a lookup. Keep the code unguessable: a ULID
+  is sequential enough to iterate, so sign it or use a random value.
+- **Check-in**, which is one update and three rules: does the code exist,
+  is its order paid, has it been scanned already. The third is the one
+  people forget, and it is the whole point of `checkedInAt`.
+- **Capacity.** The venue holds 300 and the tiers add up to 400. Nothing
+  stops that yet; it is a validation hook on `TicketType`.
+- **Reminders and the calendar view.**
+
+## Make it yours
+
+- **Organisers manage only their own events.**
+  `npx flare gen policy Event --roles '*' --own organiserId --own-except admin`
+  — though note the owner here is the organisation, not the person, so you
+  probably want the rule in a hook instead.
+- **Gate staff.** A `EventStaff` resource with `eventId` and a
+  `userId:string`, and a policy that lets them update `checkedInAt` and
+  nothing else.
+- **RSVPs for free events**, as their own resource, so interest is
+  measurable before tickets exist.

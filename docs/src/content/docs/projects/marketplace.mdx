@@ -1,0 +1,179 @@
+---
+title: Campus marketplace
+description: Student-to-student buying and selling — nested categories, several photos per listing, ratings, and a moderation queue.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Students sell textbooks, phones and tutoring to each other. Listings have
+photos and a price, buyers and sellers agree a deal, and moderators remove
+what should not be there.
+
+New here: a table that points at **itself**, a resource whose whole job is
+to hold *several* of something, and ratings.
+
+Read [lost and found](/projects/lost-and-found/) first for the conventions
+these pages share.
+
+| Resource | What it holds |
+| --- | --- |
+| `Category` | Nested: Electronics → Phones → Accessories |
+| `Listing` | One thing for sale, with a price and a condition |
+| `ListingPhoto` | One image; a listing has many |
+| `Deal` | A buyer and a seller agreeing a price |
+| `Review` | A rating left after a deal — one per deal |
+| `Report` | Somebody flagging a listing |
+
+## 1. The app
+
+<Tabs syncKey="stack">
+<TabItem label="Next.js">
+
+```bash
+pnpm create flare-framework marketplace
+cd marketplace
+docker compose up -d
+```
+
+</TabItem>
+<TabItem label="Cloudflare">
+
+```bash
+pnpm create flare-framework marketplace --stack cloudflare
+cd marketplace
+```
+
+</TabItem>
+</Tabs>
+
+## 2. Categories that nest
+
+```bash
+npx flare gen resource Category --icon tags --group Catalogue \
+  --fields 'name:string!, parent:belongsTo(Category)?'
+```
+
+A `belongsTo` pointing at its own resource. Optional, because the top of the
+tree has no parent — a required self-reference is a table in which no row
+can ever be the first.
+
+What it writes is worth looking at:
+
+```ts
+parentId: text("parent_id").references((): AnySQLiteColumn => categories.id, { onDelete: "set null" }),
+```
+
+The `onDelete: "set null"` is the useful part. Delete *Electronics* and its
+children are promoted to the top rather than deleted with it or blocking
+the delete. The lazy type annotation is what TypeScript needs for a table
+that refers to itself while it is still being defined.
+
+The admin gives you a category picker on the category form, which is
+exactly right: that is how you say Phones sits under Electronics.
+
+## 3. Listings
+
+```bash
+npx flare gen resource Listing --icon store --group Market \
+  --fields 'title:string, description:markdown?, price:money, condition:enum(new,likeNew,good,fair), status:enum(draft,live,sold,removed), sellerId:string, category:belongsTo(Category)'
+```
+
+`status:enum(draft,live,sold,removed)` is a workflow in one field, and the
+database refuses a fifth value — so a typo in a script you write next year
+fails loudly instead of quietly adding a status nothing handles.
+
+`price:money` is stored in whole minor units. See
+[the library](/projects/library/#5-fines-and-the-thing-to-get-right-about-money)
+for why that matters more than it sounds.
+
+## 4. Several photos
+
+A `file` field holds **one** file. A listing wants five. So the photos are
+their own resource:
+
+```bash
+npx flare gen resource ListingPhoto --icon image --group Market \
+  --fields 'image:file:[image]:5mb, primary:boolean, listing:belongsTo(Listing)'
+```
+
+This is the shape to reach for whenever "many of X" has anything else to
+say about each one — which photo is the cover, what order they go in, who
+uploaded it. A column holding a list of URLs cannot answer any of that and
+has to be migrated the day you ask.
+
+## 5. Deals and reviews
+
+```bash
+npx flare gen resource Deal --icon handshake --group Market \
+  --fields 'agreedPrice:money, status:enum(pending,completed,cancelled), completedAt:datetime?, buyerId:string, listing:belongsTo(Listing)'
+
+npx flare gen resource Review --icon star --group Market \
+  --fields 'rating:rating, comment:text?, reviewerId:string, deal:belongsTo(Deal)!'
+```
+
+Two things:
+
+**`rating:rating`** is an integer 1–5 that renders as stars you click,
+rather than a number box you type 7 into.
+
+**`deal:belongsTo(Deal)!`** — the `!` makes it unique, which is the whole
+of "one review per deal". Without it the same transaction can be reviewed
+five times by the same person, and a rating average stops meaning anything.
+A unique `belongsTo` is how you write one-to-one.
+
+:::note[Found while writing this page]
+Seeding this resource used to fail. A unique `belongsTo` went through the
+same "make it unique" step as an email address, which appended a row number
+to the parent's id — so the foreign key pointed at nothing. And `rating`
+seeded values up to 1000. Both are fixed; the page is here because building
+the project is what found them.
+:::
+
+## 6. Moderation
+
+```bash
+npx flare gen resource Report --icon flag --group Moderation \
+  --fields 'reason:enum(spam,counterfeit,prohibited,other), detail:text if reason == other, status:enum(open,upheld,dismissed), reportedById:string, handledById:string?, listing:belongsTo(Listing)'
+```
+
+`detail:text if reason == other` — the box appears only when the reason is
+"other", is required only then, and is cleared if the reason changes to one
+of the named ones. A stale "other" explanation sitting on a report
+reclassified as spam is the kind of thing nobody notices until an audit.
+
+## 7. Run it
+
+```bash
+npx flare migrate
+npx flare seed:resource Category 12
+npx flare seed:resource Listing 60
+npx flare seed:resource Deal 25
+npx flare seed:resource Review 20
+npx flare dev
+```
+
+## What you still owe
+
+- **Chat between buyer and seller.** The brief asks for real-time. On
+  Cloudflare that is Durable Objects and the realtime support Flare already
+  has; on Next.js, polling or a third-party socket service. Model it as
+  `Conversation` and `Message` resources and put the transport on top.
+- **Search with filters.** The generated table filters and sorts out of the
+  box. Searching descriptions properly needs a real index.
+- **Favourites.** A junction: `Favourite` with `listingId` and a
+  `userId:string`. Make the pair unique so one person cannot favourite the
+  same listing twice.
+- **The seller's rating.** An average over their reviews — a computed field
+  or a maintained column, and the difference between the two is a good
+  thing to write about.
+- **Price negotiation**, which is really a small offer workflow.
+
+## Make it yours
+
+- **Sellers edit only their own listings.**
+  `npx flare gen policy Listing --roles '*' --own sellerId --own-except moderator,admin`
+- **Soft delete for removed listings**, so moderation is reversible:
+  pass `--soft-delete` when generating `Listing`.
+- **Hide the photo rows from the sidebar** with an admin-only policy on
+  `ListingPhoto`, the same way [the library](/projects/library/) hides its
+  junction.

@@ -1,0 +1,175 @@
+---
+title: Student complaint system
+description: Tickets with anonymity, SLA routing, an audit trail and a resolution. The project where conditional fields earn their keep.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Students raise complaints — missing marks, facilities, a lecturer — which
+route to the right office, carry a deadline, and close with a documented
+resolution. Optionally without saying who they are.
+
+This is the one where conditional fields stop being a neat trick: "who
+submitted this" must be absent, not hidden, when a complaint is anonymous.
+
+| Resource | What it holds |
+| --- | --- |
+| `Department` | The office that answers |
+| `Topic` | A category, its department, and its SLA in hours |
+| `Complaint` | The ticket |
+| `Attachment` | Evidence; a complaint has many |
+| `Comment` | The thread, some of it internal |
+| `StatusChange` | Every move, who made it and why |
+| `Resolution` | How it ended — one per complaint |
+
+## 1. The app
+
+<Tabs syncKey="stack">
+<TabItem label="Next.js">
+
+```bash
+pnpm create flare-framework complaints
+cd complaints
+docker compose up -d
+```
+
+</TabItem>
+<TabItem label="Cloudflare">
+
+```bash
+pnpm create flare-framework complaints --stack cloudflare
+cd complaints
+```
+
+</TabItem>
+</Tabs>
+
+## 2. Routing
+
+```bash
+npx flare gen resource Department --icon building --group Setup \
+  --fields 'name:string!, headId:string?'
+
+npx flare gen resource Topic --icon tags --group Setup \
+  --fields 'name:string!, slaHours:int, department:belongsTo(Department)'
+```
+
+The SLA lives on the topic, not in code. "Harassment: 4 hours, facilities:
+72" is a policy decision that changes without a deploy, and putting it in a
+table is what makes that true.
+
+## 3. The ticket, and anonymity done properly
+
+```bash
+npx flare gen resource Complaint --icon message-square-warning --group Tickets \
+  --fields 'ticketNo:string!, subject:string, description:text, anonymous:boolean, submitterId:string if anonymous == false, priority:enum(low,normal,high,urgent), status:enum(open,assigned,escalated,resolved,closed), assigneeId:string?, topic:belongsTo(Topic)'
+```
+
+The clause to look at:
+
+```
+submitterId:string if anonymous == false
+```
+
+Tick "anonymous" and the submitter field disappears from the form, stops
+being required by the validator, and — the part that matters here — **the
+column is nulled**. Not hidden. Nulled.
+
+That distinction is the whole feature. A hidden input stops the browser
+*sending* a value; it does nothing about the value already in the row. So
+the obvious implementation — render the field conditionally in React —
+produces a system where a student fills in a complaint, has second
+thoughts, ticks anonymous, submits, and their id is still sitting in the
+database next to it. In this project that is not a bug, it is a broken
+promise.
+
+The column is nullable even though the field reads as required, because
+"required" here means *required when it applies*.
+
+:::caution[Anonymity is more than a column]
+Nulling `submitterId` is necessary and not sufficient. An anonymous
+complaint still has a `createdAt` precise to the millisecond, and if the
+cohort is small that is identifying on its own. Think about who can read
+the audit trail, and whether a department head seeing "submitted 14:03,
+Tuesday" can narrow it to one person. That thinking is your project; the
+column is the easy half.
+:::
+
+## 4. The thread and the trail
+
+```bash
+npx flare gen resource Attachment --icon paperclip --group Tickets \
+  --fields 'file:file:[image,pdf,document]:10mb, complaint:belongsTo(Complaint)'
+
+npx flare gen resource Comment --icon message-circle --group Tickets \
+  --fields 'body:text, internal:boolean, authorId:string, complaint:belongsTo(Complaint)'
+
+npx flare gen resource StatusChange --icon history --group Tickets \
+  --fields 'fromStatus:enum(open,assigned,escalated,resolved,closed)?, toStatus:enum(open,assigned,escalated,resolved,closed), reason:text?, changedById:string, complaint:belongsTo(Complaint)'
+```
+
+`file:[image,pdf,document]` accepts three kinds and refuses the rest, by
+checking the bytes rather than trusting the extension.
+
+`internal:boolean` on a comment is the difference between what the student
+sees and what the office says to itself. The field is one word; enforcing
+it is a policy and a filter in your read path, which is yours to write.
+
+`StatusChange` is an append-only log. Nothing updates it; rows are only
+added. That is what makes "who closed this, and when" answerable six months
+later — and it is why the status history is a table rather than a
+`previousStatus` column that only remembers one step.
+
+## 5. The resolution
+
+```bash
+npx flare gen resource Resolution --icon check --group Tickets \
+  --fields 'summary:text, resolvedById:string, rating:rating?, complaint:belongsTo(Complaint)!'
+```
+
+The `!` is one-to-one: a complaint resolves once. Enforced by a unique
+index, so two officers closing the same ticket at the same moment cannot
+both succeed — one gets a 409 naming the field, instead of both appearing
+to work.
+
+`rating:rating?` is the satisfaction score, 1–5, optional because most
+people do not answer.
+
+## 6. Run it
+
+```bash
+npx flare migrate
+npx flare seed:resource Department 6
+npx flare seed:resource Topic 12
+npx flare seed:resource Complaint 50
+npx flare seed:resource Comment 80
+npx flare seed:resource Resolution 20
+npx flare dev
+```
+
+## What you still owe
+
+- **The SLA timer and auto-escalation.** A scheduled job comparing
+  `createdAt + topic.slaHours` against now, moving the status and writing a
+  `StatusChange`. On Cloudflare that is a cron trigger; on Vercel, a cron
+  route. This is the headline feature of the project.
+- **The ticket number.** `ticketNo` is unique but nothing fills it in. A
+  `before create` hook, with a sequence or a date-plus-counter format.
+- **Routing.** "Category decides the department" is already modelled; the
+  assignment to a *person* within it is your rule.
+- **The analytics.** Mean resolution time per department, top topics,
+  trend over a term.
+- **Hiding internal comments** from the student's view of the thread.
+
+## Make it yours
+
+- **Students see only their own tickets.**
+  `npx flare gen policy Complaint --roles '*' --own submitterId --own-except staff,admin`
+  — note this only confines the non-anonymous ones, which is correct: an
+  anonymous complaint has no owner to confine it to, and needs a different
+  rule.
+- **Keep the trail immutable.**
+  `npx flare gen policy StatusChange --roles staff,admin --delete-roles admin`
+  and tighten update out of it by hand in the policy file.
+- **An escalation resource** if you want escalations tracked separately
+  rather than inferred from `StatusChange`.
