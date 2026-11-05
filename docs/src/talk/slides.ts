@@ -291,43 +291,9 @@ export const slides: Slide[] = [
       "Plus the parts MVC never named: a typed client, hooks, seeds, a policy file",
     ],
     caption: "Full MVC and then some, in **your** repository — and your edits are detected as drift, never lost. The same description deploys to Next.js **or** Cloudflare.",
-    notes: "This is the slide that explains what 'a resource' means, so do not rush it. Nineteen files per table. Then drift: flare diff shows your changes, flare update brings upstream fixes without trampling them. Last line closes the two-stacks loop.",
+    notes: "This is the slide that explains what 'a resource' means, so do not rush it. Twenty files per table — sixteen written, four updated. Then drift: flare diff shows your changes, flare update brings upstream fixes without trampling them. Last line closes the two-stacks loop.",
   },
 
-  // ─── The build: a Patient Management System ─────────────────────────────────
-  { id: "sec-build", kind: "section", part: "Prove it", title: "A Patient<br>Management System", note: "A real brief, built the Flare way, in front of you.", notes: "Energy up. From here to the end it is all building." },
-  {
-    id: "how-long",
-    kind: "statement",
-    eyebrow: "Before we start",
-    title: "How long would this take you?",
-    body: "Patients, doctors, appointments, visits, prescriptions, invoices, payments. Auth, admin, uploads, roles, deploy. Think of your real number — with meetings in it.",
-    notes: "Take two or three answers out loud. Most honest answers are in weeks. Anchor the room's number before showing yours — the contrast does the selling later.",
-  },
-  {
-    id: "the-insight",
-    kind: "statement",
-    eyebrow: "The Flare way",
-    title: "Understand three things: the tables, their fields, and how they relate.",
-    body: "That is the real work — and you were always going to do it. Flare's job is to translate that understanding **directly into code**.",
-    notes: "This is the method slide. Everything that follows is literally this: design tables, read them back as commands.",
-  },
-  {
-    id: "tables-all",
-    kind: "cards",
-    eyebrow: "The design: seven tables",
-    title: "The whole system",
-    cards: [
-      { num: "01", name: "patients", note: "The person, and their photo" },
-      { num: "02", name: "doctors", note: "Who sees them, and their licence" },
-      { num: "03", name: "appointments", note: "A booking, with a status", hangs: "patient · doctor" },
-      { num: "04", name: "visits", note: "What actually happened", hangs: "appointment" },
-      { num: "05", name: "prescriptions", note: "What was given, and how often", hangs: "visit" },
-      { num: "06", name: "invoices", note: "What it costs", hangs: "patient · visit" },
-      { num: "07", name: "payments", note: "What was paid, and how", hangs: "invoice" },
-    ],
-    notes: "Point along the chain: a patient is booked, the booking becomes a visit, the visit produces a prescription and an invoice, the invoice gets paid. Seven tables, one story.",
-  },
   {
     id: "install",
     kind: "code",
@@ -371,6 +337,70 @@ cd clinic`,
     caption: "Everything else — auth, the dashboard, your descriptors, hooks, components — is identical.",
     notes: "Do not read the whole table — point at three rows: the database, the bill, and the last one. Then the caption, which is the real claim: you are choosing a database, not a framework.",
   },
+  // ─── Warm-up: the smallest thing that is still a real app ──────────────────
+  { id: "sec-first", kind: "section", part: "Start small", title: "Two tables.<br>Two commands.", note: "Before the real brief, the smallest app that is still an app.", notes: "Deliberately anticlimactic. The room should be thinking 'is that it' — that is the right reaction and the next act trades on it." },
+  {
+    id: "first-brief",
+    kind: "statement",
+    eyebrow: "The brief",
+    title: "A contacts app.",
+    body: "Groups have a name. Contacts have a name, a phone and an email, and belong to a group. That is the entire specification.",
+    notes: "Say it in one breath. Everyone in the room has built this, probably more than once, and knows roughly what it costs them.",
+  },
+  {
+    id: "first-tables",
+    kind: "table",
+    eyebrow: "Design the tables — which is the only real thinking here",
+    head: ["Table", "Fields"],
+    rows: [
+      ["`groups`", "`name` — required, and no two the same"],
+      ["`contacts`", "`name`, `phone`, `email` — unique, and the group it belongs to"],
+    ],
+    caption: "Two tables. Read them aloud and you have already written the commands — that is the whole method, and the clinic later is the same thing seven times.",
+    notes: "Linger here for a beat. The point of this act is that the table design IS the work; everything after it is transcription.",
+  },
+  {
+    id: "first-commands",
+    kind: "code",
+    eyebrow: "Transcribe them",
+    lang: "bash",
+    code: `npx flare gen resource Group \\
+  --fields 'name:string!'
+
+npx flare gen resource Contact \\
+  --fields 'name:string, phone:tel?, email:email!, group:belongsTo(Group)?'`,
+    caption: "Groups first: a `belongsTo` needs something to point at. `!` is unique, `?` is optional, `tel` and `email` validate themselves.",
+    notes: "Read the second command as the sentence it is: a contact has a name, maybe a phone, a unique email, and maybe a group. Nobody has to be taught this syntax twice.",
+  },
+  {
+    id: "first-what",
+    kind: "statement",
+    eyebrow: "Those two commands wrote",
+    title: "Twenty files. None of them by hand.",
+    body: "Two tables and their migrations. Validators. Eight API routes. A typed client. Eight admin screens — list, create, edit, detail, each with a loading skeleton shaped like it. And a policy, admin-only until you open it.",
+    notes: "Twenty is the real number, counted. Sixteen new files and four updated — the registry, the schema index, the policy index. Do not oversell it; the next slide shows it running, which does the selling.",
+  },
+  {
+    id: "first-run",
+    kind: "code",
+    eyebrow: "Run it",
+    lang: "bash",
+    code: `npx flare migrate
+npx flare seed:resource Group 5
+npx flare seed:resource Contact 40
+npx flare dev`,
+    caption: "localhost:3000 — sign in, and there is a contacts app: a group picker, a working email field, tables that sort, filter, page and export.",
+    notes: "If demoing live, this is the sixty seconds that matters. Add a group, add a contact, show the picker. Then: that took four minutes, and it is the same four minutes whether the app has two tables or twenty.",
+  },
+  {
+    id: "first-point",
+    kind: "statement",
+    eyebrow: "So — the uncomfortable question",
+    title: "How long would those two tables have taken you?",
+    body: "Not the thinking. The typing: the schema, the migration, the validation, the routes, the forms, the list with its empty state. An afternoon, honestly, and you have built it before.",
+    notes: "Pause properly here. Let somebody answer. The clinic that follows is the same trick at seven times the size, and this is the slide that makes them believe the number.",
+  },
+
   {
     id: "cmd-anatomy",
     kind: "code",
@@ -559,6 +589,40 @@ cd clinic`,
     notes: "The race-condition point is worth saying: an application-level uniqueness check loses that race, a UNIQUE index does not. The if clause gets its own slide next; this is just the grammar.",
   },
 
+  // ─── The build: a Patient Management System ─────────────────────────────────
+  { id: "sec-build", kind: "section", part: "Prove it", title: "A Patient<br>Management System", note: "A real brief, built the Flare way, in front of you.", notes: "Energy up. From here to the end it is all building." },
+  {
+    id: "how-long",
+    kind: "statement",
+    eyebrow: "Same question, seven times the size",
+    title: "And how long would this one take?",
+    body: "Patients, doctors, appointments, visits, prescriptions, invoices, payments. Auth, admin, uploads, roles, deploy. Think of your real number — with meetings in it.",
+    notes: "The contacts app already had them say an afternoon. This is the same question with seven tables and relationships between them, and the honest answers are in weeks. Take two or three out loud and anchor the room's number before showing yours.",
+  },
+  {
+    id: "the-insight",
+    kind: "statement",
+    eyebrow: "The Flare way",
+    title: "Understand three things: the tables, their fields, and how they relate.",
+    body: "That is the real work — and you were always going to do it. You just did it for contacts in thirty seconds. Flare's job is to translate that understanding **directly into code**.",
+    notes: "This is the method slide, and the contacts app is the proof they already have. Everything that follows is literally the same move: design tables, read them back as commands.",
+  },
+  {
+    id: "tables-all",
+    kind: "cards",
+    eyebrow: "The design: seven tables",
+    title: "The whole system",
+    cards: [
+      { num: "01", name: "patients", note: "The person, and their photo" },
+      { num: "02", name: "doctors", note: "Who sees them, and their licence" },
+      { num: "03", name: "appointments", note: "A booking, with a status", hangs: "patient · doctor" },
+      { num: "04", name: "visits", note: "What actually happened", hangs: "appointment" },
+      { num: "05", name: "prescriptions", note: "What was given, and how often", hangs: "visit" },
+      { num: "06", name: "invoices", note: "What it costs", hangs: "patient · visit" },
+      { num: "07", name: "payments", note: "What was paid, and how", hangs: "invoice" },
+    ],
+    notes: "Point along the chain: a patient is booked, the booking becomes a visit, the visit produces a prescription and an invoice, the invoice gets paid. Seven tables, one story.",
+  },
   // ─── Table by table ─────────────────────────────────────────────────────────
   {
     id: "t-patient",
@@ -770,7 +834,7 @@ cd clinic`,
     kind: "statement",
     eyebrow: "And each of those seven commands wrote",
     title: "The schema. The migration. Validators. The API. A typed client. Four admin pages.",
-    body: "Nineteen files per table, into **your** repository — the whole vertical slice, with loading skeletons shaped like each screen. The CRUD hell, generated out of existence.",
+    body: "Twenty files per table, into **your** repository — the whole vertical slice, with loading skeletons shaped like each screen. The CRUD hell, generated out of existence.",
     notes: "Tick list one, item 01, out loud: the CRUD hell is gone — not sped up, gone. If demoing live, this is the moment to show the admin that now exists.",
   },
 
