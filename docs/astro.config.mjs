@@ -20,8 +20,8 @@ export default defineConfig({
       customCss: ["@fontsource-variable/geist", "@fontsource-variable/geist-mono", "/src/styles/flare-theme.css"],
       favicon: "/favicon.svg",
       // The site title carries the Flare version these docs describe.
-      // Shared links get the banner. Starlight sets the title and description
-      // tags itself; these are only the image ones it leaves alone.
+      // Starlight sets the title and description tags itself; these are only
+      // the image ones it leaves alone, for shared links.
       head: [
         { tag: "meta", attrs: { property: "og:image", content: "https://flare-docs.codetotech.com/banner-social.png" } },
         { tag: "meta", attrs: { property: "og:image:width", content: "1280" } },
@@ -34,8 +34,6 @@ export default defineConfig({
         // Puts the "Build with AI" strip on every docs page (the splash page opts out
         // and renders its own, larger one).
         Footer: "./src/components/Footer.astro",
-        // Reads the version from package.json, so it can't announce an old release.
-        Banner: "./src/components/Banner.astro",
       },
       logo: {
         src: "./src/assets/flare-mark.svg",
@@ -147,6 +145,12 @@ export default defineConfig({
             { label: "8 · Hostel booking", slug: "projects/hostel" },
             { label: "9 · Online exams", slug: "projects/exams" },
             { label: "10 · Course registration", slug: "projects/course-registration" },
+          ],
+        },
+        {
+          label: "The project",
+          items: [
+            { label: "Contributors", slug: "contributors" },
           ],
         },
         {

@@ -1,0 +1,27 @@
+{
+  "repo": "MUKE-coder/flare-framework",
+  "fetchedAt": "2026-11-05",
+  "contributors": [
+    {
+      "login": "MUKE-coder",
+      "name": "MUKE JOHNBAPTIST",
+      "commits": 160,
+      "avatar": "https://avatars.githubusercontent.com/u/64189841?v=4",
+      "url": "https://github.com/MUKE-coder"
+    },
+    {
+      "login": "PrinceBadru",
+      "name": "Badru Ndawula",
+      "commits": 6,
+      "avatar": "https://avatars.githubusercontent.com/u/100031675?v=4",
+      "url": "https://github.com/PrinceBadru"
+    },
+    {
+      "login": "BillWGong",
+      "name": "BillW Gong",
+      "commits": 1,
+      "avatar": "https://avatars.githubusercontent.com/u/226689574?v=4",
+      "url": "https://github.com/BillWGong"
+    }
+  ]
+}

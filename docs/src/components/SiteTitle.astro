@@ -1,11 +1,47 @@
 ---
+/**
+ * The site title, the version badge, and the top-level nav.
+ *
+ * The nav lives here rather than in a Header override because Starlight's header has no
+ * slot for it, and replacing the whole header would mean re-implementing search, the
+ * theme switch and the social links to gain three links.
+ *
+ * It is hidden below 50rem, where the header is already tight. Everything in it is also
+ * reachable from the sidebar, which is what the mobile menu shows — so nothing is only
+ * here.
+ */
 import Default from "@astrojs/starlight/components/SiteTitle.astro";
 import { FLARE_VERSION, RELEASE_URL } from "../version";
+
+const links = [
+  { label: "Docs", href: "/start/quickstart/" },
+  { label: "Projects", href: "/projects/" },
+  { label: "Talk", href: "/talk/" },
+  { label: "Contributors", href: "/contributors/" },
+];
+
+/** The current section, so the link to it reads as the page you are on. */
+const path = Astro.url.pathname;
+const isCurrent = (href: string) =>
+  href === "/projects/" || href === "/contributors/" || href === "/talk/"
+    ? path.startsWith(href)
+    : // "Docs" covers everything that is not one of the others.
+      !["/projects/", "/contributors/", "/talk/"].some((other) => path.startsWith(other)) && path !== "/";
 ---
 
 <div class="fl-title">
   <Default />
   <a class="fl-version" href={RELEASE_URL} title={`Docs for Flare ${FLARE_VERSION}: release notes`}>v{FLARE_VERSION}</a>
+
+  <nav class="fl-nav" aria-label="Main">
+    {
+      links.map((link) => (
+        <a href={link.href} aria-current={isCurrent(link.href) ? "page" : undefined}>
+          {link.label}
+        </a>
+      ))
+    }
+  </nav>
 </div>
 
 <style>
@@ -13,6 +49,7 @@ import { FLARE_VERSION, RELEASE_URL } from "../version";
     display: flex;
     align-items: center;
     gap: 0.625rem;
+    min-width: 0;
   }
 
   .fl-version {
@@ -31,5 +68,40 @@ import { FLARE_VERSION, RELEASE_URL } from "../version";
   .fl-version:hover {
     border-color: var(--fl-ember);
     color: var(--fl-ink);
+  }
+
+  .fl-nav {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-left: 1.5rem;
+  }
+
+  .fl-nav a {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--fl-muted);
+    text-decoration: none;
+    white-space: nowrap;
+    padding: 0.35rem 0;
+    /* Reserved so the underline on the current page does not shift its neighbours. */
+    border-bottom: 2px solid transparent;
+  }
+
+  .fl-nav a:hover {
+    color: var(--fl-ink);
+  }
+
+  .fl-nav a[aria-current="page"] {
+    color: var(--fl-ink);
+    border-bottom-color: var(--fl-ember);
+  }
+
+  /* The header runs out of room before this does; the sidebar carries the same links. */
+  @media (max-width: 50rem) {
+    .fl-nav {
+      display: none;
+    }
   }
 </style>

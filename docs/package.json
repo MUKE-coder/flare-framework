@@ -9,7 +9,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "deploy": "node scripts/clean.mjs && astro build && node scripts/check-dist.mjs && wrangler deploy",
-    "astro": "astro"
+    "astro": "astro",
+    "contributors": "node scripts/contributors.mjs"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.42.2",

@@ -1,0 +1,116 @@
+---
+/**
+ * The contributor grid on /contributors.
+ *
+ * Reads src/data/contributors.json, which `pnpm run contributors` writes from the
+ * GitHub API. Committed rather than fetched at build time: a build that calls an API is
+ * a build that fails on a rate limit, and two builds of one commit should produce the
+ * same bytes.
+ */
+import data from "../data/contributors.json";
+
+const { contributors, fetchedAt } = data;
+const plural = (n: number, word: string) => `${n.toLocaleString()} ${word}${n === 1 ? "" : "s"}`;
+---
+
+<ul class="fl-contributors">
+  {
+    contributors.map((person) => (
+      <li>
+        <a href={person.url} rel="noopener">
+          <img src={person.avatar} alt="" width="56" height="56" loading="lazy" decoding="async" />
+          <span class="fl-who">
+            <span class="fl-name">{person.name ?? person.login}</span>
+            <span class="fl-meta">
+              {person.name ? `@${person.login} · ` : ""}
+              {plural(person.commits, "commit")}
+            </span>
+          </span>
+          <svg class="fl-arrow" viewBox="0 0 16 16" aria-hidden="true" width="16" height="16">
+            <path d="M4 12 12 4M6 4h6v6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+      </li>
+    ))
+  }
+</ul>
+
+<p class="fl-asof">
+  From the GitHub API on {fetchedAt}. Refresh it with <code>pnpm run contributors</code>.
+</p>
+
+<style>
+  .fl-contributors {
+    list-style: none;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  }
+
+  .fl-contributors a {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--fl-rule, var(--sl-color-gray-5));
+    border-radius: 0.75rem;
+    text-decoration: none;
+    color: inherit;
+    background: var(--fl-card, transparent);
+    transition: border-color 150ms, transform 150ms;
+  }
+
+  .fl-contributors a:hover {
+    border-color: var(--fl-ember, var(--sl-color-accent));
+    transform: translateY(-1px);
+  }
+
+  .fl-contributors img {
+    border-radius: 50%;
+    flex: none;
+    background: var(--sl-color-gray-6);
+  }
+
+  .fl-who {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+
+  .fl-name {
+    /* Set, not inherited: Starlight colours links inside page content, and a card
+       whose every name is orange has no hierarchy left to spend on the hover. */
+    color: var(--fl-ink, var(--sl-color-white));
+    font-weight: 600;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .fl-meta {
+    font-size: 0.8125rem;
+    color: var(--fl-muted, var(--sl-color-gray-3));
+    line-height: 1.2;
+  }
+
+  .fl-arrow {
+    margin-left: auto;
+    flex: none;
+    color: var(--fl-muted, var(--sl-color-gray-3));
+  }
+
+  .fl-contributors a:hover .fl-arrow,
+  .fl-contributors a:hover .fl-name {
+    color: var(--fl-ember, var(--sl-color-accent));
+  }
+
+  .fl-asof {
+    margin-top: 1rem;
+    font-size: 0.8125rem;
+    color: var(--fl-muted, var(--sl-color-gray-3));
+  }
+</style>

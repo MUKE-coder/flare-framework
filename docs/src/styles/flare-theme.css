@@ -453,25 +453,6 @@ starlight-toc nav ul ul {
   border-radius: 0.625rem;
 }
 
-/* ---- Page banner (landing announcement) ---------------------------------- */
-
-.sl-banner {
-  background: var(--fl-ember-strong);
-  color: #fff;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  padding-block: 0.5rem;
-}
-
-:root:not([data-theme="light"]) .sl-banner {
-  background: #cc3d0b;
-}
-
-.sl-banner a {
-  color: #fff;
-  text-underline-offset: 0.2em;
-}
-
 /* Code frames: flat, hairline, a copy button that stays out of the way. */
 .expressive-code .frame {
   box-shadow: none;
