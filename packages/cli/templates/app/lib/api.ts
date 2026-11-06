@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { can, type Policy } from "@flaredev/core";
+import { PROBLEM_CODES, problemResponse } from "@flaredev/core";
 import type { Authorize } from "@/lib/resource/handlers";
 import { policies } from "@/policies";
 import { userFromApiKey } from "./api-keys";
@@ -53,10 +54,10 @@ export function policyFor(resourceName: string): Policy | undefined {
 export const authorize: Authorize = async ({ request, resource, action }) => {
   const session = await auth.api.getSession({ headers: request.headers });
   const viaKey = session ? null : await userFromApiKey(request.headers);
-  if (!session && !viaKey) return Response.json({ error: "Sign in required." }, { status: 401 });
+  if (!session && !viaKey) return problemResponse(401, "Sign in required.", PROBLEM_CODES.unauthenticated);
 
   const role = session ? ((session.user as { role?: string | null }).role ?? null) : viaKey!.role;
   if (!can(policyFor(resource.name), role, action)) {
-    return Response.json({ error: `Your role can't ${action} ${resource.pluralLabel.toLowerCase()}.` }, { status: 403 });
+    return problemResponse(403, `Your role can't ${action} ${resource.pluralLabel.toLowerCase()}.`, PROBLEM_CODES.forbidden);
   }
 };

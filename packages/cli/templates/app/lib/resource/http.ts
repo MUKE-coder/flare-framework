@@ -9,6 +9,11 @@
 // `flare update` applies the parts you choose. Neither runs unless you ask.
 
 import type { Resource } from "@flaredev/core";
+import { PROBLEM_CODES, problemResponse, type ProblemCode, type ProblemIssue } from "@flaredev/core";
+
+// Re-exported so a generated route reads every error code from `@/lib/resource` like
+// everything else it uses. The route never imports the framework directly.
+export { ISSUE_CODES, PROBLEM_CODES, type IssueCode, type ProblemCode, type ProblemIssue } from "@flaredev/core";
 import type { Failure, ResourceAction, Result } from "./store";
 
 export interface AuthorizeContext {
@@ -24,22 +29,26 @@ export type Authorize = (context: AuthorizeContext) => Response | void | Promise
 /** The context Next.js and vinext hand a route under `[id]`. */
 export type RouteContext = { params: Promise<{ id: string }> };
 
-/** A JSON error response. */
-export const problem = (status: number, error: string, extra: object = {}) => Response.json({ error, ...extra }, { status });
+/**
+ * A JSON error response, in the one shape the whole API uses:
+ *
+ *     { "error": "…", "code": "unique_violation", "issues": [{ "path": "…", "message": "…", "code": "unique" }] }
+ *
+ * `error` is the sentence a person reads and its wording may change; `code` is for a
+ * program and does not. `issues` is there whenever the answer is about fields. See
+ * PROBLEM_CODES for the codes, and the API reference for the contract.
+ */
+export const problem = (status: number, error: string, code: ProblemCode, issues?: ProblemIssue[]) =>
+  problemResponse(status, error, code, issues);
 
 /**
  * A store failure as HTTP.
  *
- * The status is decided in store.ts, where the reason is known: 422 with field issues
- * for validation, 409 with the column for a unique conflict, 404 for a missing row.
+ * The status and the code are decided in store.ts, where the reason is known: 422 with
+ * field issues for validation, 409 naming the column for a unique conflict, 404 for a
+ * missing row.
  */
-export function failureResponse(failure: Failure): Response {
-  if (failure.queryIssues) return problem(failure.status, failure.error, { issues: failure.queryIssues });
-  const extra: Record<string, unknown> = {};
-  if (failure.issues) extra.issues = failure.issues;
-  if (failure.field) extra.field = failure.field;
-  return problem(failure.status, failure.error, extra);
-}
+export const failureResponse = (failure: Failure): Response => problemResponse(failure.status, failure.error, failure.code, failure.issues);
 
 /** A store result as HTTP: the data, or the failure above. */
 export const respond = <T>(result: Result<T>, init?: ResponseInit) => (result.ok ? Response.json(result.data, init) : failureResponse(result));
@@ -80,11 +89,13 @@ export const crossOrigin = (request: Request) => {
  */
 export async function readJson(request: Request): Promise<{ body: unknown } | { response: Response }> {
   const type = request.headers.get("content-type") ?? "";
-  if (!/^application\/json\b/i.test(type)) return { response: problem(415, "Send JSON with Content-Type: application/json.") };
+  if (!/^application\/json\b/i.test(type)) {
+    return { response: problem(415, "Send JSON with Content-Type: application/json.", PROBLEM_CODES.unsupportedMediaType) };
+  }
   try {
     return { body: await request.json() };
   } catch {
-    return { response: problem(400, "Request body isn't valid JSON.") };
+    return { response: problem(400, "Request body isn't valid JSON.", PROBLEM_CODES.invalidJson) };
   }
 }
 

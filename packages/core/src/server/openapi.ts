@@ -11,6 +11,7 @@ import type { StoredField } from "../resource/fields.js";
 import { moneyExponent } from "../resource/money.js";
 import { can, type Policy, type PolicyAction } from "../resource/policy.js";
 import { isFilterable, isSearchable, isSortable } from "./query.js";
+import { ISSUE_CODES, PROBLEM_CODES } from "../problem.js";
 
 type Schema = Record<string, unknown>;
 
@@ -204,14 +205,32 @@ export function openApiDocument(options: OpenApiOptions): Schema {
 
   const paths: Record<string, Schema> = {};
   const schemas: Record<string, Schema> = {
+    // One shape for every error, whatever refused the request.
     Problem: {
       type: "object",
       properties: {
-        error: { type: "string", examples: ["Validation failed."] },
-        issues: { type: "array", items: { type: "object", properties: { path: { type: "string" }, message: { type: "string" } } } },
-        field: { type: "string", description: "The field a uniqueness conflict is about." },
+        error: { type: "string", description: "The sentence to show a person. Its wording can change; do not branch on it.", examples: ["Validation failed."] },
+        code: {
+          type: "string",
+          description: "Why, as a stable value to switch on.",
+          enum: Object.values(PROBLEM_CODES),
+          examples: ["validation_failed"],
+        },
+        issues: {
+          type: "array",
+          description: "Present whenever the answer is about fields — one per failed rule, per conflicting column, or per bad query parameter.",
+          items: {
+            type: "object",
+            properties: {
+              path: { type: "string", description: "Field key, dotted for a nested one, or the query parameter's name." },
+              message: { type: "string" },
+              code: { type: "string", enum: Object.values(ISSUE_CODES) },
+            },
+            required: ["path", "message"],
+          },
+        },
       },
-      required: ["error"],
+      required: ["error", "code"],
     },
     PageMeta: {
       type: "object",

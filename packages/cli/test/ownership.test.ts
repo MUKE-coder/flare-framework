@@ -212,7 +212,9 @@ describe("without a session", () => {
     signedInAs = null;
     const result = await store().list(new URLSearchParams());
     expect(result.ok).toBe(false);
-    expect(!result.ok && result.status).toBe(403);
+    // 401 rather than 403: there is no identity to refuse, which is what 401 means.
+    expect(!result.ok && result.status).toBe(401);
+    expect(!result.ok && result.code).toBe("unauthenticated");
   });
 });
 

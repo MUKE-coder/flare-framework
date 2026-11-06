@@ -1,6 +1,7 @@
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import type { Resource } from "../resource/define.js";
 import type { ResourceRows } from "./rows.js";
+import { PROBLEM_CODES, problemResponse } from "../problem.js";
 import {
   createResourceStore,
   type AnyDatabase,
@@ -39,15 +40,10 @@ export interface ResourceHandlerOptions {
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-const problem = (status: number, error: string, extra: object = {}) => Response.json({ error, ...extra }, { status });
+const problem = problemResponse;
 
-function failureResponse(failure: Failure): Response {
-  if (failure.queryIssues) return problem(failure.status, failure.error, { issues: failure.queryIssues });
-  const extra: Record<string, unknown> = {};
-  if (failure.issues) extra.issues = failure.issues;
-  if (failure.field) extra.field = failure.field;
-  return problem(failure.status, failure.error, extra);
-}
+/** A store failure as HTTP. One shape, whatever refused the request — see problem.ts. */
+const failureResponse = (failure: Failure): Response => problemResponse(failure.status, failure.error, failure.code, failure.issues);
 
 const respond = <T>(result: Result<T>, init?: ResponseInit) =>
   result.ok ? Response.json(result.data, init) : failureResponse(result);
@@ -64,13 +60,15 @@ export function createResourceHandlers(options: ResourceHandlerOptions) {
   };
 
   async function readBody(request: Request): Promise<{ body: unknown } | { response: Response }> {
-    if (crossOrigin(request)) return { response: problem(403, "Cross-origin request blocked.") };
+    if (crossOrigin(request)) return { response: problem(403, "Cross-origin request blocked.", PROBLEM_CODES.crossOriginBlocked) };
     const type = request.headers.get("content-type") ?? "";
-    if (!/^application\/json\b/i.test(type)) return { response: problem(415, "Send JSON with Content-Type: application/json.") };
+    if (!/^application\/json\b/i.test(type)) {
+        return { response: problem(415, "Send JSON with Content-Type: application/json.", PROBLEM_CODES.unsupportedMediaType) };
+      }
     try {
       return { body: await request.json() };
     } catch {
-      return { response: problem(400, "Request body isn't valid JSON.") };
+      return { response: problem(400, "Request body isn't valid JSON.", PROBLEM_CODES.invalidJson) };
     }
   }
 
@@ -133,7 +131,7 @@ export function createResourceHandlers(options: ResourceHandlerOptions) {
       item(request, context, "update", (id) => withBody(request, async (body) => respond(await store.replace(id, body)))),
     DELETE: (request: Request, context: RouteContext) =>
       item(request, context, "delete", async (id) => {
-        if (crossOrigin(request)) return problem(403, "Cross-origin request blocked.");
+        if (crossOrigin(request)) return problem(403, "Cross-origin request blocked.", PROBLEM_CODES.crossOriginBlocked);
         const result = await store.delete(id);
         return result.ok ? new Response(null, { status: 204 }) : failureResponse(result);
       }),

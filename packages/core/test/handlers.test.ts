@@ -113,7 +113,13 @@ describe("create (POST)", () => {
     await create({ name: "Ada", email: "ada@example.com" });
     const dup = await create({ name: "Ada 2", email: "ada@example.com" });
     expect(dup.res.status).toBe(409);
-    expect(dup.body).toEqual({ error: "Email is already taken.", field: "email" });
+    // One envelope: a code for a program, and the column as an issue rather than a
+    // `field` of its own (#29).
+    expect(dup.body).toEqual({
+      error: "Email is already taken.",
+      code: "unique_violation",
+      issues: [{ path: "email", message: "Email is already taken.", code: "unique" }],
+    });
 
     const orphan = await create({ name: "Bob", email: "bob@example.com", companyId: "missing" });
     expect(orphan.res.status).toBe(422);

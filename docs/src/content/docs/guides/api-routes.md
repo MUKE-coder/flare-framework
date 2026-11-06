@@ -102,27 +102,81 @@ the database walk 50,000 rows to discard them; a cursor compares
 | `200` | Read or update succeeded |
 | `201` | Created. `Location` points at it |
 | `204` | Deleted |
-| `400` | The query string was wrong — `{ issues: [{ param, message }] }` |
+| `400` | The query string was wrong, or the body was not JSON |
 | `401` | Not signed in |
 | `403` | Signed in, not allowed — or a cross-site write |
 | `404` | No such row |
-| `409` | A unique constraint — `{ error, field }`, so the form knows which input |
+| `409` | A unique constraint, or a row still referenced by others |
 | `415` | Not `Content-Type: application/json` |
-| `422` | Validation failed — `{ issues: [{ path, message }] }` |
+| `422` | Validation failed, or a relation naming a record that does not exist |
 
-Two worth dwelling on. A **409** names the column:
+## One error shape
 
-```json
-{ "error": "Sku is already taken.", "field": "sku" }
-```
-
-A **422** names the path, so a form can put each message under its input:
+Every error, from every guard, has the same body:
 
 ```json
-{ "error": "Validation failed.", "issues": [{ "path": "price", "message": "Enter a number" }] }
+{
+  "error": "Sku is already taken.",
+  "code": "unique_violation",
+  "issues": [{ "path": "sku", "message": "Sku is already taken.", "code": "unique" }]
+}
 ```
+
+`error` is the sentence to show a person. Its wording can change between
+releases, so do not branch on it.
+
+`code` is for your code. It is stable, so you can translate it, decide whether
+retrying is worth it, or switch on it:
+
+| `code` | Status | What happened |
+| --- | --- | --- |
+| `validation_failed` | 422 | The body broke a field's rules |
+| `unique_violation` | 409 | A unique column already holds this value |
+| `still_referenced` | 409 | Deleting this would orphan rows pointing at it |
+| `related_record_missing` | 422 | A relation names a record that does not exist |
+| `value_not_allowed` | 422 | A value outside what its column accepts |
+| `not_found` | 404 | No such record, or none this request may see |
+| `invalid_query` | 400 | A query parameter is wrong |
+| `invalid_json` | 400 | The body was not JSON |
+| `bad_request` | 400 | Wrong in a way none of the others describes |
+| `unsupported_media_type` | 415 | No `Content-Type: application/json` |
+| `length_required` | 411 | An upload with no `Content-Length` |
+| `payload_too_large` | 413 | An upload past the limit its URL allows |
+| `invalid_token` | 400/403 | A signed storage URL that is missing, bad or expired |
+| `cross_origin_blocked` | 403 | A write from another origin |
+| `unauthenticated` | 401 | No session and no API key |
+| `forbidden` | 403 | Signed in, but this role may not do this |
+| `access_denied` | 403 | Refused by the security layer before the app saw it |
+| `rate_limited` | 429 | Too many requests |
+
+`issues` is there whenever the answer is about fields, and always has the same
+shape — so a form reads one thing whether a value was refused by a rule or by
+the database:
+
+```json
+{
+  "error": "Validation failed.",
+  "code": "validation_failed",
+  "issues": [{ "path": "price", "message": "Enter a number", "code": "invalid" }]
+}
+```
+
+`path` is the field key, dotted for a nested one, or the parameter name for a
+`invalid_query`. An issue's own `code` is one of `invalid`, `unique`,
+`immutable` or `invalid_parameter`.
 
 A 422 never reaches the database. Validation runs first; nothing is written.
+
+:::note[This changed in 0.12]
+There used to be four shapes — `{ error }`, `{ error, field }`, `{ error, issues }`
+with a `path` in each issue, and another with a `param` instead — plus a
+plain-text refusal from the security layer. A client had to handle whichever one
+the guard that refused it happened to use. If you read `field`, read
+`issues[0].path` instead; if you read `issues[].param`, read `issues[].path`.
+The security layer still answers a browser navigation with a plain sentence,
+because a page of JSON is no use to somebody reading it, but an API request gets
+the envelope.
+:::
 
 ## CORS
 

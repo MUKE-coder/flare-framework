@@ -47,8 +47,9 @@ export const apiDocs = {
   colours).
 - **List parameters.** `page`, `perPage`, `sort` (only sortable fields), `q`
   and `filter[field]` (only filterable fields).
-- **Errors.** Every error shares one shape (`{ error, issues? }`), with 401,
-  403, 404, 409 and 422 listed where they can happen.
+- **Errors.** Every error shares one shape (`{ error, code, issues? }`), with
+  401, 403, 404, 409 and 422 listed where they can happen. `code` is the stable
+  part — see [one error shape](/guides/api-routes/#one-error-shape).
 - **Operation ids.** `listContacts`, `createContact`, `updateContact` and so
   on, for client generators.
 

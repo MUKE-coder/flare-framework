@@ -10,6 +10,7 @@
  *   adds a zone IP Access Rule.
  */
 import { DurableObject } from "cloudflare:workers";
+import { PROBLEM_CODES, problemResponse, wantsJson, type ProblemCode } from "../problem.js";
 import { clientIp, detectorMatches, recordHit, type Detector, type SecurityConfig, type Severity } from "./config.js";
 import type { ZoneClient } from "./zone.js";
 
@@ -98,6 +99,22 @@ export interface WaitUntil {
   waitUntil(promise: Promise<unknown>): void;
 }
 
+/**
+ * A refusal from the security layer, in the API's envelope or as plain text.
+ *
+ * This layer sits in front of pages as well as the API, which is why it is the one place
+ * that answers both ways: a browser navigation that renders a page of JSON is worse than
+ * one that renders a sentence, and an API client that gets a sentence where every other
+ * error is JSON has to special-case it — which is the complaint in issue #29.
+ *
+ * `cache-control: no-store` on both, because a cached refusal outlives the reason for it.
+ */
+function refuse(request: Request, status: number, message: string, code: ProblemCode, extraHeaders: Record<string, string> = {}): Response {
+  const headers = { "cache-control": "no-store", ...extraHeaders };
+  if (wantsJson(request)) return problemResponse(status, message, code, undefined, { headers });
+  return new Response(`${message}\n`, { status, headers: { "content-type": "text/plain; charset=utf-8", ...headers } });
+}
+
 export function createSecurity(options: GuardOptions) {
   const { config, bans } = options;
   const allowed = new Set(config.allow ?? []);
@@ -174,16 +191,13 @@ export function createSecurity(options: GuardOptions) {
     if (remembered !== undefined && remembered <= Date.now()) recentBans.delete(ip);
     if ((remembered !== undefined && remembered > Date.now()) || (await bans.get(`${BAN_PREFIX}${ip}`))) {
       ctx.waitUntil(monitor(ip).blocked());
-      return new Response("Access denied.", { status: 403, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
+      return refuse(request, 403, "Access denied.", PROBLEM_CODES.accessDenied);
     }
 
     if (options.rateLimiter && config.rateLimit?.paths.test(new URL(request.url).pathname)) {
       const { success } = await options.rateLimiter.limit({ key: ip });
       if (!success) {
-        return new Response("Too many requests. Slow down and try again shortly.", {
-          status: 429,
-          headers: { "content-type": "text/plain; charset=utf-8", "retry-after": "60", "cache-control": "no-store" },
-        });
+        return refuse(request, 429, "Too many requests. Slow down and try again shortly.", PROBLEM_CODES.rateLimited, { "retry-after": "60" });
       }
     }
 

@@ -150,7 +150,9 @@ export function ResourceForm({ resource, mode, id, record, relations = {}, listH
         router.refresh();
         return;
       }
-      const fieldErrors = result.issues ? issuesByField(result.issues) : result.field ? { [result.field]: result.error } : { _form: result.error };
+      // One shape to read: a unique conflict names its column in `issues` now, the same
+      // way a failed rule does, so there is no second path for it.
+      const fieldErrors = result.issues?.length ? issuesByField(result.issues) : { _form: result.error };
       setErrors(fieldErrors);
       const broken = steps.findIndex((entries) => entries.some(([key]) => fieldErrors[key]));
       if (broken >= 0 && broken !== step) setStep(broken);

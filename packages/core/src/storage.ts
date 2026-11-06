@@ -1,4 +1,5 @@
 import { importSigningKey, signToken, verifyToken } from "./signing.js";
+import { PROBLEM_CODES, problemResponse, type ProblemCode } from "./problem.js";
 import { SNIFF_BYTES, sniffMatches } from "./sniff.js";
 
 /**
@@ -187,8 +188,14 @@ function replay(chunks: Uint8Array[], reader: ReadableStreamDefaultReader<Uint8A
   return fixed.readable;
 }
 
-function error(status: number, message: string): Response {
-  return Response.json({ error: message }, { status });
+/**
+ * A storage failure in the API's one envelope (see problem.ts).
+ *
+ * `/api/storage` is part of the same API as every generated route, so it answers the same
+ * way: a sentence for a person in `error`, and a code a program can switch on.
+ */
+function error(status: number, message: string, code: ProblemCode): Response {
+  return problemResponse(status, message, code);
 }
 
 export function createStorage(options: StorageOptions) {
@@ -202,40 +209,40 @@ export function createStorage(options: StorageOptions) {
 
   async function handle(request: Request): Promise<Response> {
     const token = new URL(request.url).searchParams.get("token");
-    if (!token) return error(400, "Missing token.");
+    if (!token) return error(400, "Missing token.", PROBLEM_CODES.invalidToken);
     const payload = await verifyToken<UploadToken | ReadToken>(await signingKey(), token);
     if (!payload || typeof payload.exp !== "number" || !isValidKey(payload.key)) {
-      return error(403, "Invalid token.");
+      return error(403, "Invalid token.", PROBLEM_CODES.invalidToken);
     }
-    if (payload.exp < Date.now() / 1000) return error(403, "Token expired.");
+    if (payload.exp < Date.now() / 1000) return error(403, "Token expired.", PROBLEM_CODES.invalidToken);
 
     if (request.method === "PUT") {
-      if (payload.op !== "put") return error(403, "Token does not allow uploads.");
+      if (payload.op !== "put") return error(403, "Token does not allow uploads.", PROBLEM_CODES.invalidToken);
       const contentType = request.headers.get("content-type") ?? "";
       if (!matchesContentType(contentType, payload.types)) {
-        return error(415, `Content-Type must be one of: ${payload.types.join(", ")}.`);
+        return error(415, `Content-Type must be one of: ${payload.types.join(", ")}.`, PROBLEM_CODES.unsupportedMediaType);
       }
       const length = Number(request.headers.get("content-length"));
       if (!request.headers.has("content-length") || !Number.isInteger(length) || length < 0) {
-        return error(411, "Content-Length is required.");
+        return error(411, "Content-Length is required.", PROBLEM_CODES.lengthRequired);
       }
-      if (length > payload.max) return error(413, `File exceeds the ${payload.max}-byte limit.`);
-      if (!request.body) return error(400, "Missing request body.");
+      if (length > payload.max) return error(413, `File exceeds the ${payload.max}-byte limit.`, PROBLEM_CODES.payloadTooLarge);
+      if (!request.body) return error(400, "Missing request body.", PROBLEM_CODES.badRequest);
 
       // The Content-Type is whatever the sender chose; check the bytes agree with it.
       const { head, chunks, reader } = await readHead(request.body, SNIFF_BYTES);
       if (sniffMatches(contentType, head) === false) {
         await drain(reader);
-        return error(415, `The file's contents don't match its type (${contentType.split(";")[0]!.trim()}).`);
+        return error(415, `The file's contents don't match its type (${contentType.split(";")[0]!.trim()}).`, PROBLEM_CODES.unsupportedMediaType);
       }
       await options.bucket.put(payload.key, replay(chunks, reader, length), { httpMetadata: { contentType } });
       return Response.json({ key: payload.key }, { status: 201 });
     }
 
     if (request.method === "GET" || request.method === "HEAD") {
-      if (payload.op !== "get") return error(403, "Token does not allow reads.");
+      if (payload.op !== "get") return error(403, "Token does not allow reads.", PROBLEM_CODES.invalidToken);
       const object = await options.bucket.get(payload.key);
-      if (!object) return error(404, "Not found.");
+      if (!object) return error(404, "Not found.", PROBLEM_CODES.notFound);
       const headers = new Headers({
         "content-type": object.httpMetadata?.contentType ?? "application/octet-stream",
         "content-length": String(object.size),

@@ -149,7 +149,10 @@ describe("the store behaves the same over Prisma", () => {
     if (result.ok) return;
     expect(result.status).toBe(409);
     expect(result.error).toBe("Email is already taken.");
-    expect(result.field).toBe("email");
+    // The column arrives as an issue now, so a form reads one shape whether a rule or
+    // the database refused the value.
+    expect(result.code).toBe("unique_violation");
+    expect(result.issues).toEqual([{ path: "email", message: "Email is already taken.", code: "unique" }]);
   });
 
   it("reads a unique violation as a driver adapter reports it", async () => {
@@ -175,7 +178,7 @@ describe("the store behaves the same over Prisma", () => {
     });
     const result = await storeOver(delegate).create({ name: "Ada", email: "ada@example.com", status: "lead" });
     expect(!result.ok && result.error).toBe("Email is already taken.");
-    expect(!result.ok && result.field).toBe("email");
+    expect(!result.ok && result.issues?.[0]?.path).toBe("email");
   });
 
   it("reads a unique violation reported as a Postgres index name", async () => {
@@ -184,7 +187,7 @@ describe("the store behaves the same over Prisma", () => {
       throw Object.assign(new Error("Unique constraint failed"), { code: "P2002", meta: { target: "contacts_email_key" } });
     });
     const result = await storeOver(delegate).create({ name: "Ada", email: "ada@example.com", status: "lead" });
-    expect(!result.ok && result.field).toBe("email");
+    expect(!result.ok && result.issues?.[0]?.path).toBe("email");
   });
 
   it("answers 404 rather than throwing when an update or delete matches nothing", async () => {

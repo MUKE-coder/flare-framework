@@ -241,7 +241,9 @@ const routeHeader = (entry: LoadedResource, stack: Stack) => {
   const adapter = stack === "next" ? "prismaRows" : "drizzleRows";
 
   return (helpers: string[]) => [
-    `import { createResourceStore, ${[adapter, ...helpers].join(", ")} } from "@/lib/resource";`,
+    // PROBLEM_CODES rides along with the rest: a route takes everything from the app's
+    // own engine, never from the framework it was copied out of.
+    `import { createResourceStore, ${[adapter, ...(helpers.includes("problem") ? ["PROBLEM_CODES"] : []), ...helpers].join(", ")} } from "@/lib/resource";`,
     ...source.imports,
     `import { authorize, currentUser, policyFor } from "@/lib/api";`,
     `import { revalidateResource } from "@/lib/cache";`,
@@ -286,7 +288,7 @@ export function renderCollectionRoute(entry: LoadedResource, stack: Stack = "clo
     `  try {`,
     `    const denied = await authorize({ request, resource: ${local}, action: "create" });`,
     `    if (denied) return denied;`,
-    `    if (crossOrigin(request)) return problem(403, "Cross-origin request blocked.");`,
+    `    if (crossOrigin(request)) return problem(403, "Cross-origin request blocked.", PROBLEM_CODES.crossOriginBlocked);`,
     "",
     `    const read = await readJson(request);`,
     `    if ("response" in read) return read.response;`,
@@ -316,7 +318,7 @@ export function renderItemRoute(entry: LoadedResource, stack: Stack = "cloudflar
     `    const { id } = await context.params;`,
     `    const denied = await authorize({ request, resource: ${local}, action: "${action}", id });`,
     `    if (denied) return denied;`,
-    `    if (crossOrigin(request)) return problem(403, "Cross-origin request blocked.");`,
+    `    if (crossOrigin(request)) return problem(403, "Cross-origin request blocked.", PROBLEM_CODES.crossOriginBlocked);`,
     "",
     ...call.split("\n"),
     `  } finally {`,

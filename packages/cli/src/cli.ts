@@ -3,6 +3,7 @@ import pc from "picocolors";
 import * as prompts from "@clack/prompts";
 import { FLARE_VERSION } from "@flaredev/core";
 import { createApp, printNextSteps, toAppName } from "./commands/create.js";
+import { doctor } from "./commands/doctor.js";
 import { genApiKeys } from "./commands/gen-apikeys.js";
 import { genBilling } from "./commands/gen-billing.js";
 import { genSecurity } from "./commands/gen-security.js";
@@ -374,6 +375,14 @@ export function createCli() {
     .option("--force", "Overwrite generated blocks that were edited by hand")
     .action(async (options: { check?: boolean; force?: boolean }) => {
       process.exitCode = await syncTypes(options);
+    });
+
+  cli
+    .command("doctor", "Check the things that are usually wrong: versions, env, bindings, migrations, drift, policies")
+    .option("--offline", "Skip the checks that ask the database")
+    .example("flare doctor")
+    .action(async (options: { offline?: boolean }) => {
+      process.exitCode = await doctor(options);
     });
 
   cli

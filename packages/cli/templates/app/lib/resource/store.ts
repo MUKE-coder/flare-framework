@@ -9,6 +9,7 @@
 // `flare update` applies the parts you choose. Neither runs unless you ask.
 
 import { columnName, conditionHolds, fromMinorUnits, ownershipFilter, storedFields, toMinorUnits, type Policy, type Resource } from "@flaredev/core";
+import { ISSUE_CODES, PROBLEM_CODES, type ProblemCode, type ProblemIssue } from "@flaredev/core";
 import { createValidators } from "@flaredev/core";
 import { encodeCursor, isSearchable, parseListQuery, type QueryIssue } from "./query";
 import type { ResourceRows, Row } from "./rows";
@@ -24,14 +25,19 @@ export interface FieldIssue {
 
 export type Failure = {
   ok: false;
-  status: 400 | 403 | 404 | 409 | 422;
+  status: 400 | 401 | 403 | 404 | 409 | 422;
+  /** The sentence a person reads. Its wording is not part of the contract. */
   error: string;
-  /** Validation issues per field. */
-  issues?: FieldIssue[];
-  /** Invalid query parameters. */
-  queryIssues?: QueryIssue[];
-  /** Field that caused a conflict (e.g. a unique violation). */
-  field?: string;
+  /** Why, as a value a program can switch on. See PROBLEM_CODES. */
+  code: ProblemCode;
+  /**
+   * Which fields, whenever the answer is about fields at all: one issue for a unique
+   * conflict, one per failed rule for a validation error, one per bad parameter for a
+   * query. There used to be three ways of saying this — `issues` with a `path`, `issues`
+   * with a `param`, and a bare `field` — and a client had to handle whichever one the
+   * guard that refused it happened to use.
+   */
+  issues?: ProblemIssue[];
 };
 
 export type Result<T> = { ok: true; data: T } | Failure;
@@ -167,7 +173,13 @@ export function createResourceStore(options: ResourceStoreOptions) {
       ? Object.entries(columns).find(([, column]) => column.name === name)?.[0]
       : ["id", "createdAt", "updatedAt", ...fields.map(([key]) => key)].find((key) => columnName(key) === name || key === name);
 
-  const fail = (status: Failure["status"], error: string, extra: Partial<Failure> = {}): Failure => ({ ok: false, status, error, ...extra });
+  const fail = (status: Failure["status"], error: string, code: ProblemCode, issues?: ProblemIssue[]): Failure => ({
+    ok: false,
+    status,
+    error,
+    code,
+    ...(issues?.length ? { issues } : {}),
+  });
 
   /** The same wording whichever database refused the write. */
   function constraintFailure(error: unknown, action: ResourceAction): Failure | undefined {
@@ -176,14 +188,17 @@ export function createResourceStore(options: ResourceStoreOptions) {
     if (hit.kind === "unique") {
       const key = hit.column ? keyForColumn(hit.column) : undefined;
       const label = key ? (resource.fields[key]?.label ?? key) : "Value";
-      return fail(409, `${label} is already taken.`, key ? { field: key } : {});
+      const error = `${label} is already taken.`;
+      // The column goes in as an issue, so a form reads one shape whether a rule or the
+      // database refused the value.
+      return fail(409, error, PROBLEM_CODES.uniqueViolation, key ? [{ path: key, message: error, code: ISSUE_CODES.unique }] : undefined);
     }
     if (hit.kind === "foreignKey") {
       return action === "delete"
-        ? fail(409, `This ${resource.label.toLowerCase()} is still referenced by other records.`)
-        : fail(422, "A related record doesn't exist.");
+        ? fail(409, `This ${resource.label.toLowerCase()} is still referenced by other records.`, PROBLEM_CODES.stillReferenced)
+        : fail(422, "A related record doesn't exist.", PROBLEM_CODES.relatedRecordMissing);
     }
-    return fail(422, "A value is outside its allowed options.");
+    return fail(422, "A value is outside its allowed options.", PROBLEM_CODES.valueNotAllowed);
   }
 
   async function guarded<T>(action: ResourceAction, work: () => Promise<Result<T>>): Promise<Result<T>> {
@@ -217,9 +232,14 @@ export function createResourceStore(options: ResourceStoreOptions) {
   }
 
   const invalid = (issues: { path: PropertyKey[]; message: string }[]) =>
-    fail(422, "Validation failed.", { issues: issues.map((issue) => ({ path: issue.path.map(String).join("."), message: issue.message })) });
+    fail(
+      422,
+      "Validation failed.",
+      PROBLEM_CODES.validationFailed,
+      issues.map((issue) => ({ path: issue.path.map(String).join("."), message: issue.message, code: ISSUE_CODES.invalid })),
+    );
 
-  const notFound = () => fail(404, `${resource.label} not found.`);
+  const notFound = () => fail(404, `${resource.label} not found.`, PROBLEM_CODES.notFound);
 
   /**
    * Money fields, and the currency each one counts in.
@@ -336,7 +356,7 @@ export function createResourceStore(options: ResourceStoreOptions) {
     // insisted that a store without one has a `currentUser` to confine to.
     if (!ownership || options.system) return null;
     const user = await options.currentUser!();
-    if (!user) return fail(403, "Sign in required.");
+    if (!user) return fail(401, "Sign in required.", PROBLEM_CODES.unauthenticated);
     return ownershipFilter(options.policy, user);
   }
 
@@ -354,7 +374,16 @@ export function createResourceStore(options: ResourceStoreOptions) {
     /** `params`: page, perPage, sort, q, filter[field], cursor (as parsed by parseListQuery). */
     async list(params: URLSearchParams, options: { maxPerPage?: number } = {}): Promise<Result<ListResult>> {
       const parsed = parseListQuery(resource, params, options);
-      if ("issues" in parsed) return fail(400, "Invalid query.", { queryIssues: parsed.issues });
+      // A bad parameter is an issue like any other; it used to arrive under `param`
+      // rather than `path`, which was the fourth shape a client had to know about.
+      if ("issues" in parsed) {
+        return fail(
+          400,
+          "Invalid query.",
+          PROBLEM_CODES.invalidQuery,
+          parsed.issues.map((issue) => ({ path: issue.param, message: issue.message, code: ISSUE_CODES.invalidParameter })),
+        );
+      }
       const { page, perPage, sort, q, cursor } = parsed.query;
 
       const limit = await confine();
@@ -525,9 +554,9 @@ export function createResourceStore(options: ResourceStoreOptions) {
           const sent = (supplied as Record<string, unknown>)[limit.field];
           if (sent !== limit.value) {
             const label = resource.fields[limit.field]?.label ?? limit.field;
-            return fail(422, `You can't change which user this ${resource.label.toLowerCase()} belongs to.`, {
-              issues: [{ path: limit.field, message: `${label} can't be changed.` }],
-            });
+            return fail(422, `You can't change which user this ${resource.label.toLowerCase()} belongs to.`, PROBLEM_CODES.validationFailed, [
+              { path: limit.field, message: `${label} can't be changed.`, code: ISSUE_CODES.immutable },
+            ]);
           }
         }
 

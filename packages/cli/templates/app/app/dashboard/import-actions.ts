@@ -37,10 +37,10 @@ async function allowed(resourceName: string, action: PolicyAction): Promise<Acti
 /** A store failure as one line of text, attributed to a field when the issues name one. */
 function describe(failure: Failure): { error: string; field?: string } {
   const issues = failure.issues ?? [];
-  if (issues.length === 0) return { error: failure.error, field: failure.field };
+  if (issues.length === 0) return { error: failure.error };
   return {
     error: issues.map((issue) => (issue.path ? `${issue.path}: ${issue.message}` : issue.message)).join("; "),
-    field: issues[0]?.path.split(".")[0] || failure.field,
+    field: issues[0]?.path.split(".")[0],
   };
 }
 

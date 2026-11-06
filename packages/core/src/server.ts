@@ -18,6 +18,17 @@ export {
   type Result,
 } from "./server/store.js";
 export { parseListQuery, isFilterable, isSearchable, isSortable, type ListQuery, type QueryIssue } from "./server/query.js";
+// One error envelope for the whole API.
+export {
+  ISSUE_CODES,
+  PROBLEM_CODES,
+  problemResponse,
+  wantsJson,
+  type IssueCode,
+  type ProblemBody,
+  type ProblemCode,
+  type ProblemIssue,
+} from "./problem.js";
 // Where rows come from. Drizzle over SQLite on Cloudflare, Prisma over Postgres on
 // Next.js; the store on top of either is the same code.
 export type { ConstraintHit, ResourceRows, Row, RowsQuery } from "./server/rows.js";
