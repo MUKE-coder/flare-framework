@@ -23,6 +23,40 @@ pnpm add -D @flaredev/cli@latest    # upgrade it
 
 <Release version="0.12.0" date="6 November 2026">
 
+**One error envelope — change this if you read the API from your own code.**
+([#29](https://github.com/MUKE-coder/flare-framework/issues/29))
+
+There were four error shapes. `{ error }` from most guards, `{ error, field }`
+from a unique conflict, `{ error, issues }` with a `path` in each issue from
+validation, and `{ error, issues }` with a `param` instead from a bad query
+string — plus a plain-text refusal from the security layer. A client had to
+handle whichever one the guard that refused it happened to use.
+
+Every error is now the same:
+
+```json
+{
+  "error": "Number is already taken.",
+  "code": "unique_violation",
+  "issues": [{ "path": "number", "message": "Number is already taken.", "code": "unique" }]
+}
+```
+
+`error` is the sentence to show a person and its wording can change between
+releases. `code` is for your code: nineteen values, a closed set, stable.
+`issues` is present whenever the answer is about fields.
+
+**What to change.** If you read `field`, read `issues[0].path`. If you read
+`issues[].param`, read `issues[].path`. Nothing Flare generates needs changing —
+the forms and the import screen moved with it — so this only affects code you
+wrote against the API yourself. Full list of codes in
+[one error shape](/guides/api-routes/#one-error-shape).
+
+Two things fell out of it: a store with an ownership policy and nobody signed in
+answered `403` and now answers `401`, because there is no identity to refuse;
+and the security layer answers a browser navigation with a sentence and an API
+request with the envelope, rather than plain text to both.
+
 **`flare seed:resource` works on the Next.js stack.**
 ([#24](https://github.com/MUKE-coder/flare-framework/issues/24))
 
@@ -64,40 +98,6 @@ an audit hook and still needs every row. Nothing Flare generates changes —
 every route and the dashboard already passed `currentUser`, which is why this
 went unnoticed. The call sites it catches are hand-written ones, and the first
 one it caught was Flare's own CI script.
-
-**One error envelope — change this if you read the API from your own code.**
-([#29](https://github.com/MUKE-coder/flare-framework/issues/29))
-
-There were four error shapes. `{ error }` from most guards, `{ error, field }`
-from a unique conflict, `{ error, issues }` with a `path` in each issue from
-validation, and `{ error, issues }` with a `param` instead from a bad query
-string — plus a plain-text refusal from the security layer. A client had to
-handle whichever one the guard that refused it happened to use.
-
-Every error is now the same:
-
-```json
-{
-  "error": "Number is already taken.",
-  "code": "unique_violation",
-  "issues": [{ "path": "number", "message": "Number is already taken.", "code": "unique" }]
-}
-```
-
-`error` is the sentence to show a person and its wording can change between
-releases. `code` is for your code: nineteen values, a closed set, stable.
-`issues` is present whenever the answer is about fields.
-
-**What to change.** If you read `field`, read `issues[0].path`. If you read
-`issues[].param`, read `issues[].path`. Nothing Flare generates needs changing —
-the forms and the import screen moved with it — so this only affects code you
-wrote against the API yourself. Full list of codes in
-[one error shape](/guides/api-routes/#one-error-shape).
-
-Two things fell out of it: a store with an ownership policy and nobody signed in
-answered `403` and now answers `401`, because there is no identity to refuse;
-and the security layer answers a browser navigation with a sentence and an API
-request with the envelope, rather than plain text to both.
 
 **A renamed field keeps its data.**
 ([#56](https://github.com/MUKE-coder/flare-framework/issues/56),
