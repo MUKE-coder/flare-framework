@@ -11,7 +11,13 @@ export const COMPATIBILITY_DATE = "2026-09-15";
 
 /**
  * Dependency versions written into scaffolded apps. Pinned to a set verified to
- * build together (vinext is pre-1.0, so ranges are kept tight on purpose).
+ * build together, and exact rather than ranged where a mismatch breaks the build
+ * rather than merely ageing.
+ *
+ * vinext, @vinext/cloudflare, react, react-dom, react-server-dom-webpack and
+ * @vitejs/plugin-rsc move as one set: @vinext/cloudflare peer-depends on an exact
+ * vinext minor, and vinext peer-depends on react ^19.3.1 and plugin-rsc ^0.5.37.
+ * Bumping vinext alone leaves an app that will not install.
  */
 export const APP_DEPENDENCIES = {
   "@better-auth/drizzle-adapter": "1.7.17",
@@ -21,7 +27,7 @@ export const APP_DEPENDENCIES = {
   "@gritframework/upload": "0.2.1",
   // Server components import Slot from here rather than the "radix-ui" umbrella (see components/ui/button.tsx).
   "@radix-ui/react-slot": "1.3.3",
-  "@vinext/cloudflare": "1.0.0-beta.8",
+  "@vinext/cloudflare": "1.3.3",
   "better-auth": "1.7.17",
   // Admin UI (shadcn/ui primitives in components/ui).
   "class-variance-authority": "^0.7.1",
@@ -43,10 +49,10 @@ export const APP_DEPENDENCIES = {
   // QR codes for authenticator-app (2FA) setup.
   uqr: "0.1.3",
   "drizzle-orm": "^0.45.2",
-  react: "19.3.0",
-  "react-dom": "19.3.0",
-  "react-server-dom-webpack": "19.3.0",
-  vinext: "1.0.0-beta.10",
+  react: "19.3.1",
+  "react-dom": "19.3.1",
+  "react-server-dom-webpack": "19.3.1",
+  vinext: "1.4.3",
 } as const;
 
 /**
@@ -73,7 +79,7 @@ export const APP_DEV_DEPENDENCIES = {
   "@types/react": "^19.3.0",
   "@types/react-dom": "^19.3.0",
   "@vitejs/plugin-react": "^6.1.1",
-  "@vitejs/plugin-rsc": "^0.5.35",
+  "@vitejs/plugin-rsc": "^0.5.37",
   "drizzle-kit": "^0.31.10",
   tailwindcss: "^4.3.3",
   typescript: "^7.0.2",

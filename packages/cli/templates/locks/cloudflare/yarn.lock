@@ -137,10 +137,10 @@
   resolved "https://registry.yarnpkg.com/@cloudflare/workerd-windows-64/-/workerd-windows-64-1.20261104.1.tgz#dfa92014aa1bd1dc5767e25a2087858493d07e74"
   integrity sha512-b/fnEU1leVm8UrI2EHQ4MSrK2vmnWdR1jefRyEUDZe3ucpKY0PWi4bVxWh5niZdlL0MIc4C5tXNXTlAMZpKDdA==
 
-"@cloudflare/workers-response-store@0.1.0-beta.0":
-  version "0.1.0-beta.0"
-  resolved "https://registry.yarnpkg.com/@cloudflare/workers-response-store/-/workers-response-store-0.1.0-beta.0.tgz#150eca057542da0db7dfbcb337823a6c2f2108ed"
-  integrity sha512-n4KSHvgt877uDrCtno3En1KDU3DReSbUHKyBsAMHYIwZj1wWttvHuMygNu65rTSE5oKFQep0cjBlJLssHlSuxA==
+"@cloudflare/workers-response-store@1.1.5":
+  version "1.1.5"
+  resolved "https://registry.yarnpkg.com/@cloudflare/workers-response-store/-/workers-response-store-1.1.5.tgz#b2b7a04a06ff56323c7fed2e4932ff5b95b2a1b6"
+  integrity sha512-P9r65vSDPm/pcen45njmrcu9UMOQxycnoV9wTFCPgekRVdl2QRindxWe1GusN0rE/pqe4JtyniZJhtaqAhz2fg==
 
 "@cspotcode/source-map-support@0.8.1":
   version "0.8.1"
@@ -1717,10 +1717,10 @@
   resolved "https://registry.yarnpkg.com/@radix-ui/rect/-/rect-1.1.3.tgz#5a58fbae3deefb7f8cfe6ea314287d699eb694a9"
   integrity sha512-JtyZR+mqgBibTo8xea3B6ZRmzZiM/YeVBtUkas6zMuXjAlfIFIW2FgqeM9eLyvEaYX66vr6DJMK+4U6LV0KhNw==
 
-"@resvg/resvg-wasm@2.4.0":
-  version "2.4.0"
-  resolved "https://registry.yarnpkg.com/@resvg/resvg-wasm/-/resvg-wasm-2.4.0.tgz#e01164b9a267c822e1ff797daa2fb91b663ea6f0"
-  integrity sha512-C7c51Nn4yTxXFKvgh2txJFNweaVcfUPQxwEUFw4aWsCmfiBDJsTSwviIF8EcwjQ6k8bPyMWCl1vw4BdxE569Cg==
+"@resvg/resvg-wasm@2.4.1":
+  version "2.4.1"
+  resolved "https://registry.yarnpkg.com/@resvg/resvg-wasm/-/resvg-wasm-2.4.1.tgz#88f7a08107bf5ea691b016e55e6db955c85d845c"
+  integrity sha512-yi6R0HyHtsoWTRA06Col4WoDs7SvlXU3DLMNP2bdAgs7HK18dTEVl1weXgxRzi8gwLteGUbIg29zulxIB3GSdg==
 
 "@rolldown/binding-android-arm-eabi@1.2.16":
   version "1.2.16"
@@ -2098,22 +2098,24 @@
   dependencies:
     "@unpic/core" "^1.0.3"
 
-"@vercel/og@^0.8.6":
-  version "0.8.6"
-  resolved "https://registry.yarnpkg.com/@vercel/og/-/og-0.8.6.tgz#0415665e3e8aece9b5835823c3497f25c41a189b"
-  integrity sha512-hBcWIOppZV14bi+eAmCZj8Elj8hVSUZJTpf1lgGBhVD85pervzQ1poM/qYfFUlPraYSZYP+ASg6To5BwYmUSGQ==
+"@vercel/og@1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@vercel/og/-/og-1.0.3.tgz#cdc6061b14ca102794dab9df9c2c85dfc19f0067"
+  integrity sha512-/iYJ34PDu4lty1TXdL86qHEw8viveHTllG1PWLuJX8tSFfqKL7kyVJeUORJmQ250bHB0h+alcalXUlza3c/NSA==
   dependencies:
-    "@resvg/resvg-wasm" "2.4.0"
-    satori "0.16.0"
+    "@resvg/resvg-wasm" "2.4.1"
+    satori "0.33.5"
+  optionalDependencies:
+    sharp "^0.35.3"
 
-"@vinext/cloudflare@1.0.0-beta.8":
-  version "1.0.0-beta.8"
-  resolved "https://registry.yarnpkg.com/@vinext/cloudflare/-/cloudflare-1.0.0-beta.8.tgz#c188c887ed2921c7774c3a0a12eb5c134863659e"
-  integrity sha512-bsyIp10CqLP12eyZyJl32D/qcYZGMgf6NwKaOsVMFpPmQF1rBffcUPV0X2hZER4igjI9tsnccCVqHHBcYDBvOw==
+"@vinext/cloudflare@1.3.3":
+  version "1.3.3"
+  resolved "https://registry.yarnpkg.com/@vinext/cloudflare/-/cloudflare-1.3.3.tgz#1fe6881761bfbd09b12319e1211425c56c1e48b2"
+  integrity sha512-vU4oggDRDpaHvhu+ae31NQ8ueQPqJyTVNK/+fiN/hxLfTkys3VTjdcCsgIOmJa1+CToZLb0rP/gzNvuWje8Fog==
   dependencies:
-    "@cloudflare/workers-response-store" "0.1.0-beta.0"
+    "@cloudflare/workers-response-store" "1.1.5"
 
-"@vinext/types@^1.0.0-beta.2":
+"@vinext/types@^1.0.2":
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/@vinext/types/-/types-1.0.2.tgz#5f28d5b51c1aa622c60cf69d2d3f25d38754c2f3"
   integrity sha512-ORcuy4DNiT2EFsLsCh2FtZz1I7Q3HGf1PSu80ALqwlq+en7UJeLKQE7FmKgvW0cJL79GvZuZe4jddzGpqDMw/Q==
@@ -2125,7 +2127,7 @@
   dependencies:
     "@rolldown/pluginutils" "^1.0.1"
 
-"@vitejs/plugin-rsc@^0.5.35":
+"@vitejs/plugin-rsc@^0.5.37":
   version "0.5.39"
   resolved "https://registry.yarnpkg.com/@vitejs/plugin-rsc/-/plugin-rsc-0.5.39.tgz#c6e8ee011445d3006bec60fcc085a8451cea7d12"
   integrity sha512-hRa6CK119r1NkwgPWlPRiDP8e4rELCsIZwjGmQK0sOnayAkYPBkyJMip0GhYEt2ukBZaO0Uw3ICHHO9T692OFw==
@@ -2275,10 +2277,10 @@ css-color-keywords@^1.0.0:
   resolved "https://registry.yarnpkg.com/css-color-keywords/-/css-color-keywords-1.0.0.tgz#fea2616dc676b2962686b3af8dbdbe180b244e05"
   integrity sha512-FyyrDHZKEjXDpNJYvVsV960FiqQyXc/LlYmsxl2BcdMb2WPx0OGRVgTg55rPSyLSNMqP52R9r8geSp7apN3Ofg==
 
-css-gradient-parser@^0.0.16:
-  version "0.0.16"
-  resolved "https://registry.yarnpkg.com/css-gradient-parser/-/css-gradient-parser-0.0.16.tgz#5735da0822aef39da9b1960b314792ab542d9bb5"
-  integrity sha512-3O5QdqgFRUbXvK1x5INf1YkBz1UKSWqrd63vWsum8MNHDBYD5urm3QtxZbKU259OrEXNM26lP/MPY3d1IGkBgA==
+css-gradient-parser@^0.0.17:
+  version "0.0.17"
+  resolved "https://registry.yarnpkg.com/css-gradient-parser/-/css-gradient-parser-0.0.17.tgz#9a523419f328ad2777ae790c296a6932d470aa9a"
+  integrity sha512-w2Xy9UMMwlKtou0vlRnXvWglPAceXCTtcmVSo8ZBUvqCV5aXEFP/PC6d+I464810I9FT++UACwTD5511bmGPUg==
 
 css-to-react-native@^3.0.0:
   version "3.2.0"
@@ -2484,6 +2486,11 @@ fdir@^6.5.0:
   resolved "https://registry.yarnpkg.com/fdir/-/fdir-6.5.0.tgz#ed2ab967a331ade62f18d077dae192684d50d350"
   integrity sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==
 
+fflate@0.7.3:
+  version "0.7.3"
+  resolved "https://registry.yarnpkg.com/fflate/-/fflate-0.7.3.tgz#288b034ff0e9c380eaa2feff48c787b8371b7fa5"
+  integrity sha512-0Zz1jOzJWERhyhsimS54VTqOteCNwRtIlh8isdL0AXLo0g7xNTfTL7oWrkmCnPhZGocKIkWHBistBrrpoNH3aw==
+
 fflate@^0.7.3:
   version "0.7.5"
   resolved "https://registry.yarnpkg.com/fflate/-/fflate-0.7.5.tgz#1dfcb7189bc104d599da0436eace14ed26de879f"
@@ -2524,6 +2531,11 @@ graceful-fs@^4.2.4:
   version "4.2.11"
   resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.2.11.tgz#4183e4e8bf08bb6e05bbb2f7d2e0c8f712ca40e3"
   integrity sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==
+
+harfbuzzjs@0.10.0:
+  version "0.10.0"
+  resolved "https://registry.yarnpkg.com/harfbuzzjs/-/harfbuzzjs-0.10.0.tgz#7d447d8a122fdc58bcb8b5156799bb8a19e9a20d"
+  integrity sha512-SN8LVwCOzvTq3OPNd0+EAghgXugItz56wst567D1vs7LnnKGWprhi3EG58aVOBwhN8HEbQxL4I9NDWkcXUutRw==
 
 hex-rgb@^4.1.0:
   version "4.3.0"
@@ -2873,10 +2885,10 @@ react-day-picker@^10.0.1:
     "@date-fns/tz" "^1.4.1"
     date-fns "^4.1.0"
 
-react-dom@19.3.0:
-  version "19.3.0"
-  resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-19.3.0.tgz#a0ff19161d7f4e9be5469a07278b0c06e00f9001"
-  integrity sha512-JDk8dgif51OjFoDE70+OT9ICyYr+69HlmihNwp1+Nsfbna3t5sIiCa9ZJktDmQ4/1b/rn26hIAR2uYXDMr5r0Q==
+react-dom@19.3.1:
+  version "19.3.1"
+  resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-19.3.1.tgz#b384c53cfcbe9c2a5d09d863b98455de9d68afe2"
+  integrity sha512-Y0bARz53lhEC1NMCASs0/j+faB/zqt3R8hpvg1e8+61ZVJ4UL0UdC4cBbXfZMcIuhrfgeILTLe+ZeBCavQPtKQ==
   dependencies:
     scheduler "^0.28.0"
 
@@ -2899,10 +2911,10 @@ react-remove-scroll@^2.7.2:
     use-callback-ref "^1.3.3"
     use-sidecar "^1.1.3"
 
-react-server-dom-webpack@19.3.0:
-  version "19.3.0"
-  resolved "https://registry.yarnpkg.com/react-server-dom-webpack/-/react-server-dom-webpack-19.3.0.tgz#f30eaac50578db6f9aa5a38ece7c28d17de05271"
-  integrity sha512-ymt9RkvWtW4OpIhWf1wj4u5CxnBaVbDCkz/bw3/QFmOE7+/wg8C30uiJ/QqkEdWn/UqT5c7/rOUW/eWYMwceCg==
+react-server-dom-webpack@19.3.1:
+  version "19.3.1"
+  resolved "https://registry.yarnpkg.com/react-server-dom-webpack/-/react-server-dom-webpack-19.3.1.tgz#c611e30c1d0831192cc4fd9b86f1356d7cca46ea"
+  integrity sha512-I1Smf6Yc+389rFWPwyYjvCQVK1XFWpb2M9gvgYgfpbZ+LPqkZtb0tT9Fwdk0K+wknK2E+ns82lC0DCYLnXCVGA==
   dependencies:
     acorn-loose "^8.3.0"
     neo-async "^2.6.1"
@@ -2916,10 +2928,10 @@ react-style-singleton@^2.2.2, react-style-singleton@^2.2.3:
     get-nonce "^1.0.0"
     tslib "^2.0.0"
 
-react@19.3.0:
-  version "19.3.0"
-  resolved "https://registry.yarnpkg.com/react/-/react-19.3.0.tgz#e20aa3a14687075ce863351b5878b0608c3fbfb2"
-  integrity sha512-E8LUcbtBWt20bbl2YoHfx4ZDBdxVTfOKtCZn9cDSJ4l6/nuoApcpIBcj47t2wZoVX8g2ZHuMHbiShgCR1T5Sog==
+react@19.3.1:
+  version "19.3.1"
+  resolved "https://registry.yarnpkg.com/react/-/react-19.3.1.tgz#26e9523fc36ea06be5050ebb780249a133260ad7"
+  integrity sha512-QNhWdt7nrgVWWQG58QuGsAR3jv3Hbe4mb4vz7w2csnHavciZJgda1CPNaldF6eVxv90ud3jUXpKlHL69gO38yw==
 
 reflect-metadata@^0.2.2:
   version "0.2.2"
@@ -2972,18 +2984,20 @@ run-parallel@^1.1.9:
   dependencies:
     queue-microtask "^1.2.2"
 
-satori@0.16.0:
-  version "0.16.0"
-  resolved "https://registry.yarnpkg.com/satori/-/satori-0.16.0.tgz#12ab299b912ecfbf77218f417b8223875f79de07"
-  integrity sha512-ZvHN3ygzZ8FuxjSNB+mKBiF/NIoqHzlBGbD0MJiT+MvSsFOvotnWOhdTjxKzhHRT2wPC1QbhLzx2q/Y83VhfYQ==
+satori@0.33.5:
+  version "0.33.5"
+  resolved "https://registry.yarnpkg.com/satori/-/satori-0.33.5.tgz#408dae33d3af0e2b4e309335c9f866445af4bd2f"
+  integrity sha512-PNW6ktrQ8SM6kk7u4aOuTkkUewkzyTOrj+QeEzXSsnNMAdff4ire9CAqIz8+4C3rCiBtK8QTELv52AZEd1PbRw==
   dependencies:
     "@shuding/opentype.js" "1.4.0-beta.0"
     css-background-parser "^0.1.0"
     css-box-shadow "1.0.0-3"
-    css-gradient-parser "^0.0.16"
+    css-gradient-parser "^0.0.17"
     css-to-react-native "^3.0.0"
     emoji-regex-xs "^2.0.1"
     escape-html "^1.0.3"
+    fflate "0.7.3"
+    harfbuzzjs "0.10.0"
     linebreak "^1.1.0"
     parse-css-color "^0.2.1"
     postcss-value-parser "^4.2.0"
@@ -3004,7 +3018,7 @@ set-cookie-parser@^3.1.2:
   resolved "https://registry.yarnpkg.com/set-cookie-parser/-/set-cookie-parser-3.2.2.tgz#e1aded19f953adcc2a7bc2904837c32067df46a8"
   integrity sha512-df017qMeYuXo4emL09nlyMpi2i2MtEIKS/6jtXH3vmjFgIRsOi852/5RmhJ4EkvN3ZF8jXadM/EkTPXgc8yPIw==
 
-sharp@0.35.5:
+sharp@0.35.5, sharp@^0.35.3:
   version "0.35.5"
   resolved "https://registry.yarnpkg.com/sharp/-/sharp-0.35.5.tgz#43fb539872ec5f53cc7162eb850dbf6514692fbf"
   integrity sha512-Ywn4OnzGukp7CDMrp08RQ50YKmuwG47brZgIVPTvBaaAfQlRlygrRqSrxdCiL9M+LlzLBiJ68IR1QqvzHyjC7g==
@@ -3231,14 +3245,14 @@ use-sidecar@^1.1.3:
     detect-node-es "^1.1.0"
     tslib "^2.0.0"
 
-vinext@1.0.0-beta.10:
-  version "1.0.0-beta.10"
-  resolved "https://registry.yarnpkg.com/vinext/-/vinext-1.0.0-beta.10.tgz#e10e20cee73f920265a496494e88c936fc9f72ef"
-  integrity sha512-FsMlcoA23D69EVDYfJSRUVJ8hjRbgzOo5KBy1/ImCWtTWch+OjJlIaEzrontyEnkAo5ntnwl+wm476rOQyHhrQ==
+vinext@1.4.3:
+  version "1.4.3"
+  resolved "https://registry.yarnpkg.com/vinext/-/vinext-1.4.3.tgz#f88b60c5d64268f8f380bd5a0e077ef95f9f9887"
+  integrity sha512-GwfUmYEsDCYigMOE3Z4Bt26JXbRRMAJVVeHDU0RMg6UVRilt8UJdQjQnpZD64HUgwjLp9QaRitvN4WoZnbM9Qg==
   dependencies:
     "@unpic/react" "^1.0.2"
-    "@vercel/og" "^0.8.6"
-    "@vinext/types" "^1.0.0-beta.2"
+    "@vercel/og" "1.0.3"
+    "@vinext/types" "^1.0.2"
     ipaddr.js "^2.1.0"
     magic-string "^0.30.21"
     vite-plugin-commonjs "^0.10.4"
