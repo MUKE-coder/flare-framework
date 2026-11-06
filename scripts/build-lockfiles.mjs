@@ -72,7 +72,10 @@ for (const stack of stacks) {
 
     console.log(`\n── ${stack} ──────────────────────────────────────────`);
     console.log(`Resolving dependencies for Flare ${FLARE_VERSION}…`);
-    run("npm", ["install", "--package-lock-only", "--no-audit", "--no-fund", "--loglevel=error"], app);
+    // --ignore-scripts: resolution writes no node_modules, but npm still runs the app's
+    // own postinstall — which is `prisma generate`, and prisma is one of the packages
+    // that was never installed. Resolution is all we want from this leg anyway.
+    run("npm", ["install", "--package-lock-only", "--ignore-scripts", "--no-audit", "--no-fund", "--loglevel=error"], app);
     cpSync(join(app, "package-lock.json"), join(locksDir, "package-lock.json"));
     console.log(`✔ templates/locks/${stack}/package-lock.json`);
 
@@ -96,7 +99,7 @@ for (const stack of stacks) {
     // so it picks the newest version that is actually old enough and the two can no
     // longer disagree. npx rather than corepack, because corepack would hand back the
     // pinned 11 inside this repo.
-    run("npx", ["--yes", "pnpm@12", "install", "--lockfile-only"], app);
+    run("npx", ["--yes", "pnpm@12", "install", "--lockfile-only", "--ignore-scripts"], app);
     cpSync(join(app, "pnpm-lock.yaml"), join(locksDir, "pnpm-lock.yaml"));
     console.log(`✔ templates/locks/${stack}/pnpm-lock.yaml`);
 

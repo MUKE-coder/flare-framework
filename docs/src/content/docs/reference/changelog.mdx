@@ -63,6 +63,11 @@ pnpm's undecided-build list, which is `ERR_PNPM_IGNORED_BUILDS` and a failed
 install, not a warning. It is refused, like `sharp` and `@prisma/engines`: it is
 an optional native accelerator that `msgpackr` falls back from on its own.
 
+**Smaller things.** The script that builds the shipped lockfiles no longer runs
+the scaffolded app's own `postinstall`: resolution writes no `node_modules`, so
+`prisma generate` ran against a Prisma that was never installed and took the
+release build down with it.
+
 </Release>
 
 <Release version="0.12.0" date="6 November 2026">
