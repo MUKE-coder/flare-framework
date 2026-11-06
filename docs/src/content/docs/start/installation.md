@@ -7,10 +7,15 @@ description: Prerequisites and every way to install the Flare CLI.
 
 - **Node.js 22+** and a package manager: npm, pnpm, yarn or bun. Flare detects
   the one you use to run it and scaffolds the app with that manager's lockfile.
-- **A Cloudflare account**, but not yet. You don't need one to create an app
-  or run it locally: `flare dev` and `flare start` simulate D1, R2 and KV
-  through Wrangler. You only need `wrangler login` when you're ready to run
-  `flare deploy`.
+- **A Postgres database**, on the Next.js stack — which is the default. Docker
+  Desktop is the easy answer: every new app ships a `docker-compose.yml` and a
+  `.env` already pointing at it. A [Neon](https://neon.tech) connection string
+  works just as well.
+- **Nothing**, on the Cloudflare stack. Wrangler simulates D1, R2 and KV
+  locally, so there is no database to provision and no account to make. You
+  need `wrangler login` only when you run `flare deploy`.
+
+Neither stack needs an account to create an app or run it.
 
 ## Create an app (no install)
 
@@ -47,26 +52,77 @@ either way: its shared store means your second Flare app installs in seconds.
 Every app lists `@flaredev/cli` as a dev dependency, so inside it you run
 `npx flare …` (or `pnpm flare …`) and each project keeps its own CLI version.
 
+## What it asks you
+
+In a terminal, `create` asks five questions. Each has a flag, and `--yes`
+takes the default for anything you don't answer.
+
+| It asks | Default | Flag |
+| --- | --- | --- |
+| Where will it run? | Next.js | `--stack next\|cloudflare` ([stacks](/start/stacks/)) |
+| Where do uploaded files go? | Cloudflare R2 | `--storage r2\|disk\|cloudinary\|uploadthing` ([storage](/storage/)) |
+| Pick a look | default | `--theme` ([themes](/guides/themes/)) |
+| How can people sign in? | all methods | `--auth` ([auth](/guides/auth/)) |
+| Social sign-in? | none | `--auth-providers` |
+
+Answering nothing is a reasonable app: Next.js, Postgres, R2 against local
+MinIO, email and password sign-in. The storage answer is the one worth a
+thought — it decides which variables land in your `.env`, and picking
+Cloudinary or UploadThing installs that provider's SDK with everything else.
+The full list of flags is in the [CLI reference](/reference/cli/#flare-create-dir).
+
+Nothing here is permanent except the stack, which is recorded in
+`package.json`. The theme, the sign-in methods and the storage driver are all
+one line to change afterwards.
+
 ## If it scaffolds an old version
 
-`pnpm create` and `npm create` cache the package they run. pnpm keeps it for
-**24 hours by default**, so the day after a Flare release, `pnpm create
-flare-framework` can still be running the version you used yesterday —
-quietly, without asking the registry. The banner it prints is the giveaway:
+The day a Flare version is released, `pnpm create flare-framework` keeps
+giving you the one before it. The banner says so:
 
 ```
-+ create-flare-framework 0.5.0
+Flare v0.12.0 · myapp        # when 0.12.1 is the latest
 ```
 
-Adding `@latest` does not help, because the cache is keyed before the version
-is resolved. Ask for the version you want by number:
+This is pnpm doing what it is designed to do. Since pnpm 11,
+**`minimumReleaseAge` defaults to 1440 minutes** — 24 hours — and pnpm refuses
+to resolve a tag to anything published more recently than that. It falls back,
+silently, to the newest version outside the window. It is a supply-chain
+measure: a package compromised and published at 3am is not one you install at
+4am.
+
+Two things that look like fixes and are not:
+
+- **`@latest` does not help.** `latest` is the tag pnpm is declining to follow.
+- **Clearing the cache does not help.** It is not a caching problem. Wiping
+  pnpm's `dlx` directory and its registry metadata changes nothing; the next
+  resolution reads a packument that correctly says `latest: 0.12.1` and still
+  picks `0.12.0`.
+
+Ask for the version by number, which bypasses the tag entirely:
 
 ```bash
-pnpm create flare-framework@0.6.0 myapp
+pnpm create flare-framework@0.12.1 myapp
 ```
 
-Or clear pnpm's cache of it, which lives in `dlx` inside pnpm's cache
-directory (`pnpm store path` points at the neighbouring store):
+Or use npm, which has no such policy:
+
+```bash
+npm create flare-framework@latest myapp
+```
+
+For an ordinary `pnpm add` you can also set the window to zero —
+`pnpm add some-package --config.minimumReleaseAge=0` — but prefer pinning the
+version. The setting exists for a reason, and turning it off applies to every
+package in the command, not just the one you were impatient about.
+
+Wait 24 hours and the plain command is right again, with no action from you.
+
+### A genuinely stale cache
+
+Separately, `pnpm create` and `npm create` do cache the package they run, which
+can keep an old copy around after the release-age window has passed. If the
+version is more than a day old and still wrong:
 
 ```bash
 # macOS / Linux
@@ -77,8 +133,9 @@ Remove-Item -Recurse -Force "$env:LOCALAPPDATA\pnpm-cache\dlx"
 
 npm's equivalent is `npm cache clean --force`.
 
-An app already created is unaffected — it pins its own `@flaredev/cli` in
-`devDependencies`, and `npx flare --version` inside it tells you which.
+An app already created is unaffected either way — it pins its own
+`@flaredev/cli` in `devDependencies`, and `npx flare --version` inside it tells
+you which.
 
 ## Install the `flare` command globally
 
@@ -128,14 +185,53 @@ flare create myapp
 
 ## Verify it worked
 
+On the **Next.js** stack (the default), a new app needs a database before it
+does anything. The `docker-compose.yml` in your app brings up Postgres, MinIO
+and Redis on the addresses the generated `.env` already points at, so there is
+nothing to edit:
+
 ```bash
 cd myapp
-npm run dev
+docker compose up -d        # Postgres, MinIO and Redis
+pnpm db:migrate             # create the tables
+pnpm db:seed                # an account to sign in with
+pnpm dev
 ```
 
-This starts `vinext dev`. Open the printed local URL. You should see the
-app's home page, with sign-up and sign-in already wired to Better Auth over a
-local D1 database, and no Cloudflare login or configuration needed.
+Open the printed URL. Sign in with **admin@example.com** / **Password** — that
+is what `db:seed` writes, with the `admin` role, so the dashboard is reachable
+straight away. It is a development convenience on a database you just created;
+replace it with [`flare user:add`](/reference/cli/#flare-useradd-email) before
+the app is anywhere but your machine. Running the seed again leaves an existing
+account alone.
+
+Without Docker, put a Postgres connection string in `DATABASE_URL` first — a
+free [Neon](https://neon.tech) project is enough — then run the same commands
+without the `docker compose` line.
+
+On the **Cloudflare** stack there is nothing to provision: Wrangler simulates
+D1, R2 and KV locally.
+
+```bash
+cd myapp
+npx flare migrate
+pnpm dev
+```
+
+Either way you should see the app's home page with sign-up and sign-in already
+wired to Better Auth.
+
+:::note[`prisma generate` runs on install]
+Prisma writes its client into `lib/generated/prisma`, which is git-ignored, so
+a fresh checkout does not have one. New apps run `prisma generate` from
+`postinstall`, which covers your first `pnpm install` and a teammate's first
+clone. On an app scaffolded before 0.12.1, add it:
+
+```bash
+npm pkg set scripts.postinstall="prisma generate"
+pnpm db:generate
+```
+:::
 
 ## Upgrading
 
