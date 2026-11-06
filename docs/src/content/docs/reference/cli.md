@@ -335,6 +335,55 @@ Regenerate every derived file from the descriptors and report drift — see
 | `--check` | Change nothing; exit `1` if anything is out of sync (CI) |
 | `--force` | Overwrite generated blocks that were edited by hand |
 
+## `flare doctor`
+
+The things that are usually wrong, before anything runs. The first thing to try
+when something does not work.
+
+```bash
+npx flare doctor
+```
+
+```
+✔ Node             v22.14.0
+✔ Package manager  pnpm 10.4.1 (pnpm-lock.yaml).
+✔ Stack            Cloudflare (vinext, D1, Drizzle).
+✔ Flare version    app and CLI are both 0.12.0.
+✔ Environment      .dev.vars has every key .dev.vars.example lists.
+✔ Bindings         D1 and R2 are both bound.
+✔ Descriptors      4 resources load cleanly.
+! Policies         Payment has no policy, so any signed-in user can read and write it.
+                     → flare gen policy <Name> --roles admin
+✖ Migrations       1 not applied locally: 0005_create_gadgets.sql.
+                     → flare migrate
+
+1 problem, 1 warning.
+```
+
+| What it checks | |
+| --- | --- |
+| Node | The major version, against the minimum Workers and Next 16 both need |
+| Package manager | Which lockfile the app has, and whether that manager is installed |
+| Stack | Cloudflare or Next.js, so the rest of the output makes sense |
+| Flare version | The app's `@flaredev/core` against this CLI |
+| Environment | Keys `.dev.vars.example` (or `.env.example`) lists that the real file lacks, and a required secret left empty |
+| Bindings | D1 and R2 on Cloudflare; `DATABASE_URL` on Next.js |
+| Descriptors | That every resource descriptor loads |
+| Generated files | Files out of date, and generated blocks edited by hand |
+| Policies | Resources with no policy, which any signed-in user can read and write |
+| Renames | A `rename` declared in a descriptor with no migration for it yet |
+| Migrations | Migration files on disk against the ones the local database has run |
+
+| Flag | |
+| --- | --- |
+| `--offline` | Skip the checks that ask the database |
+
+Three things worth knowing. It changes nothing, so it is safe on production
+config and safe when the app is already broken — the only time anybody runs it.
+A check that cannot run says so (`–`) rather than passing, because "cannot tell"
+and "fine" are different answers. And the exit code is `1` only for a `✖`, so
+CI can run it without failing on a warning you have decided to live with.
+
 ## `flare tunnel [port|url]`
 
 Share a local server on a public `https://*.trycloudflare.com` URL through a
