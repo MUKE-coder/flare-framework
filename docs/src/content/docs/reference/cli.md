@@ -335,6 +335,26 @@ Regenerate every derived file from the descriptors and report drift — see
 | `--check` | Change nothing; exit `1` if anything is out of sync (CI) |
 | `--force` | Overwrite generated blocks that were edited by hand |
 
+## `flare user:add <email>`
+
+Create an account from the command line — the way in when sign-up is `closed`.
+
+```bash
+npx flare user:add ada@example.com --role admin
+```
+
+| Flag | |
+| --- | --- |
+| `--role <role>` | Role to give them; checked against the registered roles |
+| `--password <password>` | Their password (generated and printed when omitted) |
+| `--name <name>` | Display name (default: the part before the `@`) |
+| `--remote` | Against the deployed database rather than the local one |
+| `--env <name>` | Wrangler environment |
+
+It writes the same two rows a sign-up writes, so the account behaves like any
+other. The generated password is printed once and stored only as a hash. See
+[who may sign up](/guides/auth/#who-may-sign-up).
+
 ## `flare doctor`
 
 The things that are usually wrong, before anything runs. The first thing to try

@@ -1,4 +1,6 @@
 import { after } from "next/server";
+import { cookies } from "next/headers";
+import { INVITE_COOKIE, invitationAllows, spendInvitation } from "./invitations";
 import { passkey } from "@better-auth/passkey";
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { betterAuth } from "better-auth";
@@ -108,6 +110,48 @@ async function guardPassword(path: string, body: Record<string, unknown> | undef
 }
 
 /**
+ * Whether this account may be created at all — `authConfig.signup`.
+ *
+ * Checked where the user row is written rather than on each sign-up route, because there
+ * are four ways to end up with a new account (a password sign-up, a magic link, an email
+ * code, a social callback) and gating them one by one is how one gets missed.
+ *
+ * **The first account is always allowed.** An app nobody can sign into cannot be set up,
+ * and in `invite` mode there would be nobody to issue the invitation. Everybody after
+ * them goes through this; the first account also becomes the admin (see below).
+ */
+async function assertSignUpAllowed(email: string): Promise<void> {
+  if (authConfig.signup === "open") return;
+  if ((await prisma.user.findFirst({ select: { id: true } })) === null) return;
+
+  if (authConfig.signup === "closed") {
+    throw new APIError("FORBIDDEN", { message: "This app is not accepting new accounts." });
+  }
+
+  // `invite`: the token was put in a cookie when the invitation link was opened.
+  const token = (await cookies()).get(INVITE_COOKIE)?.value;
+  if (!(await invitationAllows(token, email))) {
+    throw new APIError("FORBIDDEN", { message: "You need an invitation to create an account here." });
+  }
+}
+
+/**
+ * Spend the invitation this sign-up used, once the account exists.
+ *
+ * Separate from the check because the account does not exist yet when the check runs: an
+ * invitation has to survive a sign-up that fails validation, and only be used up by one
+ * that worked.
+ */
+async function spendUsedInvitation(): Promise<void> {
+  if (authConfig.signup !== "invite") return;
+  const jar = await cookies();
+  const token = jar.get(INVITE_COOKIE)?.value;
+  if (!token) return;
+  await spendInvitation(token);
+  jar.delete(INVITE_COOKIE);
+}
+
+/**
  * The first account to exist becomes the admin.
  *
  * Generated resources are admin-only, so without this a fresh app has a database, an API
@@ -183,6 +227,17 @@ export const auth = betterAuth({
     // verification email doesn't hold the sign-up request open.
     backgroundTasks: { handler: (promise: Promise<unknown>) => after(() => promise) },
   },
+  databaseHooks: {
+    user: {
+      create: {
+        // The one place every sign-up passes through, whichever route it came in on.
+        before: async (user: { email: string }) => {
+          await assertSignUpAllowed(user.email);
+          return { data: user };
+        },
+      },
+    },
+  },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
       if (disabledPath(ctx.path)) throw new APIError("NOT_FOUND", { message: "This sign-in method isn't enabled." });
@@ -192,12 +247,20 @@ export const auth = betterAuth({
     // link, a social callback — so this asks after all of them rather than guessing which.
     after: createAuthMiddleware(async () => {
       await promoteFirstUser();
+      await spendUsedInvitation();
     }),
   },
   plugins: [
     // Adds user.role (default "user") and admin APIs. The /admin area allows ADMIN_ROLES (lib/admin.ts).
     admin({ defaultRole: "user", adminRoles: ["admin"] }),
-    magicLink({ sendMagicLink: ({ email, url }) => sendMagicLink({ email, url }), expiresIn: 5 * 60, disableSignUp: false }),
+    // disableSignUp follows the mode: a magic link to an address with no account would
+    // otherwise create one, which is a sign-up through a side door. In `invite` mode the
+    // link is still how an invited person signs *in* — they have an account by then.
+    magicLink({
+      sendMagicLink: ({ email, url }) => sendMagicLink({ email, url }),
+      expiresIn: 5 * 60,
+      disableSignUp: authConfig.signup !== "open",
+    }),
     emailOTP({ sendVerificationOTP: (data) => sendEmailCode(data), otpLength: 6, expiresIn: 5 * 60, allowedAttempts: 5 }),
     twoFactor({
       issuer: "__APP_NAME__",

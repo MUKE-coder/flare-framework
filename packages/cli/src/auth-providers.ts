@@ -58,8 +58,17 @@ export function parseAuthMethods(input: string | undefined): AuthMethod[] {
   return parseList(value, Object.keys(AUTH_METHODS) as AuthMethod[], "sign-in method");
 }
 
-/** `lib/auth-config.ts` for the chosen methods and providers. */
-export function renderAuthConfig(methods: AuthMethod[], providers: AuthProvider[]): string {
+/** Who may create an account. Written into the app as `authConfig.signup`. */
+export type SignupMode = "open" | "invite" | "closed";
+
+/**
+ * `lib/auth-config.ts` for the chosen methods, providers and sign-up mode.
+ *
+ * Rendered rather than copied from the template, which is why `--signup` has to be
+ * threaded through here: this function's output is what the app actually gets, and the
+ * template's own copy of the file is only ever a reference.
+ */
+export function renderAuthConfig(methods: AuthMethod[], providers: AuthProvider[], signup: SignupMode = "open"): string {
   const on = (method: AuthMethod) => methods.includes(method);
   return `/**
  * How people sign in to this app. \`flare create\` wrote the choices you made; change
@@ -69,6 +78,22 @@ export function renderAuthConfig(methods: AuthMethod[], providers: AuthProvider[
  * Email and password sign-in is always available.
  */
 export const authConfig = {
+  /**
+   * Who may create an account.
+   *
+   * - \`open\` — anybody who finds the sign-up page. Right for a public product.
+   * - \`invite\` — only somebody holding an invitation link. An admin issues them from
+   *   /dashboard/invitations; see lib/invitations.ts.
+   * - \`closed\` — nobody. Accounts are made with \`flare user:add <email>\`.
+   *
+   * The first account is always allowed, whatever this says: an app nobody can sign into
+   * cannot be set up, and in \`invite\` mode there would be nobody to issue the invitation.
+   * Every later sign-up goes through this.
+   *
+   * Enforced where the account is created rather than on each sign-up route, so it holds
+   * for a password sign-up, a magic link, an email code and a social callback alike.
+   */
+  signup: "${signup}" as SignupMode,
   /** A sign-in link by email. */
   magicLink: ${on("magic-link")},
   /** A 6-digit sign-in code by email. */
@@ -96,6 +121,12 @@ export const authConfig = {
 };
 
 export type SocialProvider = "google" | "github" | "apple" | "microsoft";
+
+/** Who may create an account. See \`authConfig.signup\`. */
+export type SignupMode = "open" | "invite" | "closed";
+
+/** Whether the sign-up page should be offered at all. */
+export const signupOffered = authConfig.signup !== "closed";
 
 /** Whether any second factor can be set up. */
 export const twoFactorAvailable = authConfig.twoFactor.authenticator || authConfig.twoFactor.email;

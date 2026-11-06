@@ -6,6 +6,22 @@
  * Email and password sign-in is always available.
  */
 export const authConfig = {
+  /**
+   * Who may create an account.
+   *
+   * - `open` — anybody who finds the sign-up page. Right for a public product.
+   * - `invite` — only somebody holding an invitation link. An admin issues them from
+   *   /dashboard/invitations; see lib/invitations.ts.
+   * - `closed` — nobody. Accounts are made with `flare user:add <email>`.
+   *
+   * The first account is always allowed, whatever this says: an app nobody can sign into
+   * cannot be set up, and in `invite` mode there would be nobody to issue the invitation.
+   * Every later sign-up goes through this.
+   *
+   * Enforced where the account is created rather than on each sign-up route, so it holds
+   * for a password sign-up, a magic link, an email code and a social callback alike.
+   */
+  signup: "__SIGNUP__" as SignupMode,
   /** A sign-in link by email. */
   magicLink: true,
   /** A 6-digit sign-in code by email. */
@@ -33,6 +49,12 @@ export const authConfig = {
 };
 
 export type SocialProvider = "google" | "github" | "apple" | "microsoft";
+
+/** Who may create an account. See `authConfig.signup`. */
+export type SignupMode = "open" | "invite" | "closed";
+
+/** Whether the sign-up page should be offered at all. */
+export const signupOffered = authConfig.signup !== "closed";
 
 /** Whether any second factor can be set up. */
 export const twoFactorAvailable = authConfig.twoFactor.authenticator || authConfig.twoFactor.email;

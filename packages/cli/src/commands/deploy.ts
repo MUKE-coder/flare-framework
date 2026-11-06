@@ -179,6 +179,43 @@ export async function warnAboutOpenResources(
   return open;
 }
 
+/**
+ * The sign-up mode an app is configured with, read out of lib/auth-config.ts.
+ *
+ * By pattern rather than by importing it: that file is TypeScript with app-relative
+ * imports, and loading it from here to read one string would mean standing up a loader.
+ * Returns undefined when it cannot tell, which is reported as "cannot tell" rather than
+ * guessed at.
+ */
+export function configuredSignup(authConfigSource: string): "open" | "invite" | "closed" | undefined {
+  const match = /\bsignup\s*:\s*"(open|invite|closed)"/.exec(authConfigSource);
+  return match ? (match[1] as "open" | "invite" | "closed") : undefined;
+}
+
+/**
+ * Mention an open sign-up before pushing.
+ *
+ * Not a warning — `open` is the default and right for most apps — but it is worth saying
+ * once, at the moment the app becomes reachable, that anybody who finds it can create an
+ * account. The alternative is finding out from the account list.
+ */
+export async function noteOpenSignup(appRoot: string, options: { log: (message: string) => void }): Promise<void> {
+  const path = join(appRoot, "lib", "auth-config.ts");
+  if (!existsSync(path)) return;
+  let mode: ReturnType<typeof configuredSignup>;
+  try {
+    mode = configuredSignup(readFileSync(path, "utf8"));
+  } catch {
+    return;
+  }
+  if (mode !== "open") return;
+  options.log(
+    `\n${pc.dim("Sign-up is open: anybody who finds the app can create an account.")}\n` +
+      `${pc.dim(`  A new resource is admin-only and the first account is the admin, so they reach nothing by default.`)}\n` +
+      `${pc.dim(`  To require an invitation instead, set ${pc.bold("signup")} in lib/auth-config.ts — see the auth guide.`)}`,
+  );
+}
+
 export async function runDeploy(args: string[], context: DeployContext): Promise<number> {
   const plan = parseDeployArgs(args);
   if (plan.passthroughOnly) return context.deploy(plan.forwarded);

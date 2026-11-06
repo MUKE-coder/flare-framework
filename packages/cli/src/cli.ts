@@ -4,6 +4,7 @@ import * as prompts from "@clack/prompts";
 import { FLARE_VERSION } from "@flaredev/core";
 import { createApp, printNextSteps, toAppName } from "./commands/create.js";
 import { doctor } from "./commands/doctor.js";
+import { addUser } from "./commands/user-add.js";
 import { genApiKeys } from "./commands/gen-apikeys.js";
 import { genBilling } from "./commands/gen-billing.js";
 import { genSecurity } from "./commands/gen-security.js";
@@ -67,6 +68,7 @@ export function createCli() {
     .command("create <dir>", "Scaffold a new Flare app")
     .option("--pm <manager>", "Package manager: pnpm, npm, yarn, or bun (default: detected)")
     .option("--stack <name>", "Where it runs: next (default) or cloudflare")
+    .option("--signup <mode>", "Who may create an account: open (default), invite or closed")
     .option("--theme <name>", "Look of the app: default, coral, amber, sky, mono or emerald")
     .option("--auth <list>", "Sign-in methods: magic-link, email-otp, passkeys, 2fa-app, 2fa-email, all or none (default: all)")
     .option("--auth-providers <list>", "Social sign-in, comma-separated: google, github, apple, microsoft")
@@ -78,12 +80,14 @@ export function createCli() {
     .action(
       async (
         dir: string,
-        options: { pm?: string; stack?: string; skipInstall?: boolean; authProviders?: string; auth?: string; theme?: string; yes?: boolean },
+        options: { pm?: string; stack?: string; signup?: string; skipInstall?: boolean; authProviders?: string; auth?: string; theme?: string; yes?: boolean },
       ) => {
       const wanted = !options.skipInstall;
       let answers: CreateAnswers = { stack: options.stack, theme: options.theme, auth: options.auth, authProviders: options.authProviders };
       if (canPrompt(options.yes)) answers = await askCreateQuestions(answers, toAppName(dir));
-      const result = createApp(dir, { pm: options.pm, install: false, ...answers, log: (message) => prompts.log.message(message) });
+      // Not asked for in the prompts: `open` is right for most apps and changing it is one
+      // line in lib/auth-config.ts, so it is a flag rather than another question.
+      const result = createApp(dir, { pm: options.pm, install: false, signup: options.signup, ...answers, log: (message) => prompts.log.message(message) });
 
       let installed = false;
       if (wanted) {
@@ -375,6 +379,18 @@ export function createCli() {
     .option("--force", "Overwrite generated blocks that were edited by hand")
     .action(async (options: { check?: boolean; force?: boolean }) => {
       process.exitCode = await syncTypes(options);
+    });
+
+  cli
+    .command("user:add <email>", "Create an account from the command line (the way in when signup is closed)")
+    .option("--role <role>", "Role to give them, e.g. admin")
+    .option("--password <password>", "Their password (generated and printed when omitted)")
+    .option("--name <name>", "Display name (default: the part before the @)")
+    .option("--remote", "Against the deployed database rather than the local one")
+    .option("--env <name>", "Wrangler environment")
+    .example("flare user:add ada@example.com --role admin")
+    .action(async (email: string, options: { role?: string; password?: string; name?: string; remote?: boolean; env?: string }) => {
+      process.exitCode = await addUser(email, options);
     });
 
   cli

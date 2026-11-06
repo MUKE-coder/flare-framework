@@ -46,6 +46,82 @@ Every method's tables exist whatever you choose, so switching one on or off
 needs no migration. A method that's off is refused by the API with
 `404 This sign-in method isn't enabled.`, not just hidden from the screens.
 
+## Who may sign up
+
+```bash
+npx flare create shop --signup=invite
+```
+
+or later, in `lib/auth-config.ts`:
+
+```ts
+signup: "open",   // "open" | "invite" | "closed"
+```
+
+| Mode | Who gets an account |
+| --- | --- |
+| `open` | Anybody who finds the sign-up page. The default. |
+| `invite` | Only somebody holding an invitation link, issued by an admin |
+| `closed` | Nobody. Accounts are made with `flare user:add` |
+
+**The first account is always allowed**, whatever the mode says. An app nobody
+can sign into cannot be set up, and in `invite` mode there would be nobody to
+issue the first invitation. That first account also becomes the admin.
+
+**Enforced where the account is created**, not on each sign-up route. There are
+four ways to end up with a new account — a password sign-up, a magic link, an
+email code, a social callback — and gating them one at a time is how one gets
+missed. Everything goes through one check in `lib/auth.ts`. Magic links and
+email codes also stop creating accounts of their own outside `open`, since a
+link to an address with no account would otherwise be a sign-up through a side
+door.
+
+The sign-up page says so rather than offering a form that will be refused, and
+`flare deploy` mentions an open sign-up among the things worth knowing before
+you push.
+
+### Invitations
+
+Issued from `/dashboard/invitations`, which appears in the sidebar when `signup`
+is `invite`. An invitation can name an address — only that person may use it —
+or be for anybody who has the link. Both expire; seven days by default.
+
+The link is `/invite/<token>`. Opening it puts the token in a short-lived cookie
+and sends the person to sign up, so the token stays out of the sign-up URL and
+therefore out of bookmarks, referrer headers and screenshots. It is spent once
+the account exists, so a link works exactly once — and an invitation survives a
+sign-up that fails validation, which is why it is not spent at the check.
+
+**Invitations live in the `verification` table**, which Better Auth already has
+and already uses for single-use tokens with an expiry. So switching an existing
+app to `invite` is one line in `lib/auth-config.ts` and no migration. Only the
+hash of each token is stored, for the same reason a password is: a copy of the
+database should not be a pile of working invitations — which is also why the
+link is shown once, on screen, to copy.
+
+`lib/invitations.ts` is in your app. Issue one from your own code with
+`createInvitation({ for: { email } })` and send it however you like.
+
+### Making an account from the command line
+
+```bash
+npx flare user:add ada@example.com --role admin
+npx flare user:add bob@example.com --password 'correct-horse-battery-staple'
+npx flare user:add ada@example.com --role admin --remote
+```
+
+The way in for a `closed` app, and a shortcut for any app. It writes the same
+two rows a sign-up writes — the user, and a `credential` account holding the
+password hash — so the account is indistinguishable from one made through the
+form.
+
+The password is generated and printed once unless you give one. Nothing stores
+it in plain text, here or anywhere, so there is no second chance to read it.
+
+`--role` is checked against the roles the app has registered (`flare role:add`),
+because a role nothing recognises gives you somebody who can sign in and reach
+nothing, which looks like a different bug entirely.
+
 ## Passwords
 
 The sign-up, reset and change-password forms check as you type: the rules

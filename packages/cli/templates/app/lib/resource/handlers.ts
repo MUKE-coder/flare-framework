@@ -13,6 +13,7 @@ import {
   crossOrigin,
   drain,
   failureResponse,
+  PROBLEM_CODES,
   problem,
   readJson,
   respond,
@@ -58,7 +59,7 @@ export function createResourceHandlers(options: ResourceHandlerOptions) {
 
   /** The cross-origin guard and the JSON read, in the order a write needs them. */
   const readBody = async (request: Request): Promise<{ body: unknown } | { response: Response }> =>
-    crossOrigin(request) ? { response: problem(403, "Cross-origin request blocked.") } : readJson(request);
+    crossOrigin(request) ? { response: problem(403, "Cross-origin request blocked.", PROBLEM_CODES.crossOriginBlocked) } : readJson(request);
 
   const guard = async (context: AuthorizeContext) => (await authorize(context)) ?? undefined;
 
@@ -105,7 +106,7 @@ export function createResourceHandlers(options: ResourceHandlerOptions) {
       item(request, context, "update", (id) => withBody(request, async (body) => respond(await store.replace(id, body)))),
     DELETE: (request: Request, context: RouteContext) =>
       item(request, context, "delete", async (id) => {
-        if (crossOrigin(request)) return problem(403, "Cross-origin request blocked.");
+        if (crossOrigin(request)) return problem(403, "Cross-origin request blocked.", PROBLEM_CODES.crossOriginBlocked);
         const result = await store.delete(id);
         return result.ok ? new Response(null, { status: 204 }) : failureResponse(result);
       }),

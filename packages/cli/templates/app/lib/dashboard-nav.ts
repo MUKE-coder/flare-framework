@@ -11,9 +11,14 @@ export interface DashboardLink {
 export const generatedDashboardLinks: DashboardLink[] = [];
 // generated:end
 
+import { authConfig } from "./auth-config";
+
 /** Links shown under "Platform" in the dashboard sidebar. */
 export const dashboardLinks: DashboardLink[] = [
   { label: "Costs", href: "/dashboard/costs", icon: "wallet" },
+  // Only where invitations are the way in; the page explains itself for the other two
+  // modes, but there is no reason to send anybody to it.
+  ...(authConfig.signup === "invite" ? [{ label: "Invitations", href: "/dashboard/invitations", icon: "mail" }] : []),
   ...generatedDashboardLinks,
   { label: "API reference", href: "/api/reference", icon: "book" },
 ];

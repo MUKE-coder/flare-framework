@@ -4,7 +4,7 @@ import { basename, dirname, isAbsolute, join, relative, resolve } from "node:pat
 import * as prompts from "@clack/prompts";
 import pc from "picocolors";
 import { FLARE_VERSION } from "@flaredev/core";
-import { devVarsEntries, devVarsExampleEntries, parseAuthMethods, parseAuthProviders, renderAuthConfig } from "../auth-providers.js";
+import { devVarsEntries, devVarsExampleEntries, parseAuthMethods, parseAuthProviders, renderAuthConfig, type SignupMode } from "../auth-providers.js";
 import { parseTheme } from "../themes.js";
 import {
   APP_DEPENDENCIES,
@@ -34,6 +34,8 @@ export interface CreateOptions {
   compatibilityDate?: string;
   /** Which stack to target: "next" (default) or "cloudflare". */
   stack?: string;
+  /** Who may create an account: "open" (default), "invite" or "closed". */
+  signup?: string;
 }
 
 /**
@@ -69,6 +71,24 @@ export function toAppName(dir: string): string {
     .replace(/^-+|-+$/g, "");
   if (!name) throw new Error(`Cannot derive an app name from "${dir}". Use letters, digits, and dashes.`);
   return name;
+}
+
+/**
+ * Who may create an account, from `--signup`.
+ *
+ * The default is `open`, deliberately. An external review suggested `invite`, and it is
+ * the safer setting — but a new resource is admin-only and the first account becomes the
+ * admin, so a stranger who signs up can already reach nothing. What `invite` buys over
+ * that is stopping them having an account at all, which is worth having and is one flag
+ * away; what it costs is a slower first run for everybody, including the many apps that
+ * are meant to be public. So the safer behaviour is the easy option rather than the
+ * imposed one, and `flare deploy` is where an open sign-up gets mentioned.
+ */
+export function parseSignup(value: string | undefined): SignupMode {
+  if (value === undefined) return "open";
+  const mode = value.trim().toLowerCase();
+  if (mode === "open" || mode === "invite" || mode === "closed") return mode;
+  throw new Error(`Unknown --signup "${value}". Use open, invite or closed.`);
 }
 
 /**
@@ -110,6 +130,7 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   const authProviders = parseAuthProviders(options.authProviders);
   const authMethods = parseAuthMethods(options.auth);
   const theme = parseTheme(options.theme);
+  const signup = parseSignup(options.signup);
 
   // When scaffolding inside an existing pnpm workspace (e.g. this repo's examples/),
   // the app joins that workspace instead of becoming its own root.
@@ -121,16 +142,17 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
     COMPAT_DATE: compatibilityDate,
     PM: packageManager,
     THEME: theme,
+    SIGNUP: signup,
   });
   if (stack === "next") {
     // The Next.js stack is the shared app plus a handful of replacements: where rows
     // come from, where files go, and how it is built. Everything else — the dashboard,
     // the auth screens, every component — is the same code.
-    copyTemplate(join(templatesDir, "next"), dir, { APP_NAME: name, PM: packageManager, THEME: theme });
+    copyTemplate(join(templatesDir, "next"), dir, { APP_NAME: name, PM: packageManager, THEME: theme, SIGNUP: signup });
     for (const path of CLOUDFLARE_ONLY) rmSync(join(dir, path), { recursive: true, force: true });
   }
 
-  writeFileSync(join(dir, "lib", "auth-config.ts"), renderAuthConfig(authMethods, authProviders));
+  writeFileSync(join(dir, "lib", "auth-config.ts"), renderAuthConfig(authMethods, authProviders, signup));
   // The committed example of the secrets file, which is a different file per stack —
   // and on Next.js .dev.vars.example was just removed, so appending would bring it back.
   appendFileSync(join(dir, stack === "next" ? ".env.example" : ".dev.vars.example"), devVarsExampleEntries(authProviders));

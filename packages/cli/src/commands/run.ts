@@ -4,7 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import pc from "picocolors";
 import { openTunnel, parseLocalUrl, tunnelBanner, type Tunnel } from "../tunnel.js";
 import { findUp } from "../utils/fs.js";
-import { runDeploy, warnAboutOpenResources } from "./deploy.js";
+import { noteOpenSignup, runDeploy, warnAboutOpenResources } from "./deploy.js";
 import { readStack } from "../stack.js";
 
 /**
@@ -205,7 +205,10 @@ export async function runDelegated(command: DelegatedCommand, forwarded: string[
     // Workers. --allow-open is ours, so it never reaches wrangler or vercel.
     const allowOpen = forwarded.includes("--allow-open");
     const deployArgs = forwarded.filter((arg) => arg !== "--allow-open");
-    if (!wantsHelp) await warnAboutOpenResources(appRoot, { log: (message) => console.log(message), allowOpen });
+    if (!wantsHelp) {
+      await warnAboutOpenResources(appRoot, { log: (message) => console.log(message), allowOpen });
+      await noteOpenSignup(appRoot, { log: (message) => console.log(message) });
+    }
 
     // The Cloudflare deploy migrates D1, pushes secrets and applies zone rules first.
     // On Vercel every one of those is the platform's, so this is just the CLI.

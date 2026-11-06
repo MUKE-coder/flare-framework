@@ -38,3 +38,15 @@ export async function userTitles(ids: string[]): Promise<Record<string, string>>
   const rows = await getDb().select({ id: user.id, name: user.name, email: user.email }).from(user).where(inArray(user.id, wanted));
   return Object.fromEntries(rows.map((row) => [row.id, row.name?.trim() || row.email]));
 }
+
+/**
+ * Whether anybody has an account yet.
+ *
+ * Asked by the sign-up page: the gate in lib/auth.ts always lets the *first* account
+ * through, whatever `authConfig.signup` says, because an app nobody can sign into cannot
+ * be set up. So "sign-up is closed" is only true once somebody exists.
+ */
+export async function anyAccountExists(): Promise<boolean> {
+  const [first] = await getDb().select({ id: user.id }).from(user).limit(1);
+  return first !== undefined;
+}
