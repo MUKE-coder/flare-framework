@@ -79,7 +79,10 @@ describe("storageVars", () => {
       "CLOUDINARY_API_KEY",
       "CLOUDINARY_API_SECRET",
     ]);
-    expect(storageVars("uploadthing", "next").map((variable) => variable.name)).toEqual(["UPLOADTHING_TOKEN", "UPLOADTHING_APP_ID"]);
+    // One variable, not two: the app id is inside the token, and asking for it
+    // separately invited a mismatch that only showed up as 404s on reads.
+    expect(storageVars("uploadthing", "next").map((variable) => variable.name)).toEqual(["UPLOADTHING_TOKEN"]);
+    expect(storageVars("uploadthing", "cloudflare").map((variable) => variable.name)).toEqual(["UPLOADTHING_TOKEN"]);
   });
 });
 
@@ -148,11 +151,15 @@ describe("storageEnvExample", () => {
 describe("storageSetupSteps", () => {
   it("says nothing for the default, which is the point of it being the default", () => {
     expect(storageSetupSteps("r2", "cloudflare")).toEqual([]);
-    expect(storageSetupSteps("disk", "next")).not.toContain("Install its SDK: uploadthing");
   });
 
-  it("names the package for the one provider that needs one", () => {
-    expect(storageSetupSteps("uploadthing", "next")[0]).toBe("Install its SDK: uploadthing");
+  it("never tells anyone to install an SDK, because create already did", () => {
+    // `uploadthing` goes into the app's dependencies at scaffold time. A printed
+    // "Install its SDK" line after an install has just run is a step people skip, and
+    // the error it saves them from only arrives at the first upload.
+    for (const stack of ["cloudflare", "next"] as const) {
+      expect(storageSetupSteps("uploadthing", stack).join("\n"), stack).not.toMatch(/Install its SDK/);
+    }
   });
 
   it("does not read as a to-do list when the local values already work", () => {

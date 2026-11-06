@@ -26,12 +26,11 @@ app that picked a different driver should not carry it.
    Google. The free tier is 2 GB; no card.
 2. **Create an app** in the dashboard. The name is yours; it becomes part of the
    delivery domain.
-3. **Your app → API Keys.** Both values are on that one page.
+3. **Your app → API Keys.** The token is the only value Flare needs.
 
 | Flare needs | Where it comes from | Secret? |
 | --- | --- | --- |
 | `UPLOADTHING_TOKEN` | Your app → API Keys | **Yes** |
-| `UPLOADTHING_APP_ID` | The same page (also in your delivery URLs) | No |
 
 [uploadthing.com/dashboard](https://uploadthing.com/dashboard) goes there.
 
@@ -49,8 +48,13 @@ Locally, in `.env` (Next.js) or `.dev.vars` (Cloudflare) — both git-ignored:
 ```ini
 STORAGE_DRIVER=uploadthing
 UPLOADTHING_TOKEN=…
-UPLOADTHING_APP_ID=a1b2c3d4e5
 ```
+
+There is no `UPLOADTHING_APP_ID`. The token is base64 JSON — `{ apiKey, appId,
+regions }` — so the app id your files are served from is already inside it, and
+`lib/storage/uploadthing.ts` reads it from there. Flare asked for it separately
+until 0.13.0; the two could disagree, and when they did every upload succeeded
+and every read 404'd from a subdomain belonging to a different app.
 
 For production on **Vercel**: Project → Settings → Environment Variables, then
 redeploy. On **Cloudflare**:

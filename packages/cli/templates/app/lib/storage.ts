@@ -74,8 +74,8 @@ function selectBucket(): StorageBucket {
       });
     case "uploadthing":
       return uploadThingBucket({
+        // The app id lives inside the token; the driver reads it from there.
         token: required("UPLOADTHING_TOKEN"),
-        appId: required("UPLOADTHING_APP_ID"),
         publicDelivery,
       });
     case "r2":

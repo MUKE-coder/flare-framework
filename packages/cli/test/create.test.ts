@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { createApp, flarePackageSpec, toAppName } from "../src/commands/create.js";
+import { createApp, flarePackageSpec, SEED_ADMIN, toAppName } from "../src/commands/create.js";
 
 const dirs: string[] = [];
 function tempDir() {
@@ -273,5 +273,52 @@ describe("createApp", () => {
     createApp(dir, { install: false, pm: "pnpm", stack: "cloudflare" });
     // Wrangler simulates D1, R2 and KV locally, so there is nothing for Docker to run.
     expect(existsSync(join(dir, "docker-compose.yml"))).toBe(false);
+  });
+});
+
+describe("what a new app can do before anyone edits it", () => {
+  const pkg = (dir: string) => JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
+
+  it("generates the Prisma client on install", () => {
+    // Prisma 7 writes its client into lib/generated/prisma, which is git-ignored and so
+    // missing from every fresh checkout — the one create just wrote included. Without
+    // this the first `dev` dies on "Can't resolve './generated/prisma/client'", and so
+    // does `flare user:add`, which imports lib/db.
+    const dir = join(tempDir(), "shop");
+    createApp(dir, { install: false, pm: "pnpm", stack: "next" });
+    expect(pkg(dir).scripts.postinstall).toBe("prisma generate");
+  });
+
+  it("has a seed that makes an account you can sign in with", () => {
+    const dir = join(tempDir(), "shop");
+    createApp(dir, { install: false, pm: "pnpm", stack: "next" });
+    const seed = pkg(dir).scripts["db:seed"];
+    expect(seed).toContain(SEED_ADMIN.email);
+    expect(seed).toContain(SEED_ADMIN.password);
+    expect(seed).toContain("--role admin");
+    // Run twice when somebody resets their database; the second run must not fail it.
+    expect(seed).toContain("--skip-existing");
+  });
+
+  it("installs the storage SDK rather than telling anyone to", () => {
+    const dir = join(tempDir(), "shop");
+    createApp(dir, { install: false, pm: "pnpm", stack: "next", storage: "uploadthing" });
+    expect(pkg(dir).dependencies.uploadthing).toMatch(/^\^7\./);
+  });
+
+  it("adds nothing for the providers that need no SDK", () => {
+    for (const storage of ["r2", "disk", "cloudinary"] as const) {
+      const dir = join(tempDir(), "shop");
+      createApp(dir, { install: false, pm: "pnpm", stack: "next", storage });
+      expect(pkg(dir).dependencies.uploadthing, storage).toBeUndefined();
+    }
+  });
+
+  it("asks for one UploadThing variable, not two", () => {
+    const dir = join(tempDir(), "shop");
+    createApp(dir, { install: false, pm: "pnpm", stack: "next", storage: "uploadthing" });
+    const env = readFileSync(join(dir, ".env"), "utf8");
+    expect(env).toContain("UPLOADTHING_TOKEN=");
+    expect(env).not.toContain("UPLOADTHING_APP_ID");
   });
 });

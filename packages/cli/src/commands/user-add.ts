@@ -31,12 +31,26 @@ export interface UserAddOptions {
   password?: string;
   /** Their display name. Default: the part of the email before the @. */
   name?: string;
+  /**
+   * An account that already exists is success, not failure.
+   *
+   * For seeds, which are run again every time somebody resets their database and must
+   * not fail the second time. Without it a re-run exits 1 and takes `pnpm db:seed`
+   * down with it.
+   */
+  skipExisting?: boolean;
   cwd?: string;
   log?: (message: string) => void;
 }
 
 const EMAIL = /^[^\s@'"\\]+@[^\s@'"\\]+\.[^\s@'"\\]+$/;
 const ROLE = /^[a-z][a-z0-9_-]{0,31}$/;
+
+/**
+ * "The account was already there and --skip-existing was given." Not an exit code: the
+ * command succeeds, but nothing was written and there is no password to print.
+ */
+const KEPT = -1;
 
 /**
  * A password worth printing: long enough that it does not need rotating straight away,
@@ -101,7 +115,11 @@ export async function addUser(email: string, options: UserAddOptions = {}): Prom
   const generated = options.password === undefined;
   const rows = await credentialUserRows({ email: address, password, name: options.name, role: options.role });
 
-  const code = readStack(appRoot) === "next" ? await addOnPrisma(appRoot, rows, log) : await addOnD1(appRoot, rows, options, log);
+  const code =
+    readStack(appRoot) === "next"
+      ? await addOnPrisma(appRoot, rows, log, options.skipExisting)
+      : await addOnD1(appRoot, rows, options, log);
+  if (code === KEPT) return 0;
   if (code !== 0) return code;
 
   log(pc.green(`✔ ${address} can now sign in${options.role ? ` as ${options.role}` : ""}.`));
@@ -144,6 +162,10 @@ async function addOnD1(
   if (existing.code !== 0) throw new Error(`Could not read the user table:\n${existing.output.trim()}`);
   const [found] = extractJson<{ results: { id: string }[] }[]>(existing.output);
   if ((found?.results ?? []).length > 0) {
+    if (options.skipExisting) {
+      log(pc.dim(`${rows.user.email} already has an account — left as it is.`));
+      return KEPT;
+    }
     log(pc.red(`${rows.user.email} already has an account.`));
     log(pc.dim("To change their role: flare user:role <email> <role>"));
     return 1;
@@ -165,6 +187,7 @@ async function addOnPrisma(
   appRoot: string,
   rows: Awaited<ReturnType<typeof credentialUserRows>>,
   log: (message: string) => void,
+  skipExisting = false,
 ): Promise<number> {
   const runner = join(appRoot, ".flare-user-add-runner.mts");
   const script = [
@@ -193,6 +216,10 @@ async function addOnPrisma(
   try {
     const code = await runNode([resolveBin(appRoot, "tsx", "tsx"), runner], appRoot);
     if (code === 3) {
+      if (skipExisting) {
+        log(pc.dim(`${rows.user.email} already has an account — left as it is.`));
+        return KEPT;
+      }
       log(pc.red(`${rows.user.email} already has an account.`));
       log(pc.dim("To change their role: flare user:role <email> <role>"));
       return 1;

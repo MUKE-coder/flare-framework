@@ -21,6 +21,50 @@ npx flare --version                 # what this app is on
 pnpm add -D @flaredev/cli@latest    # upgrade it
 ```
 
+<Release version="0.12.1" date="6 November 2026">
+
+**A new Next.js app would not start.** `pnpm dev` failed on
+`Can't resolve './generated/prisma/client'` before serving a page, and so did
+`flare user:add`, which imports `lib/db`.
+
+Prisma 7 generates its client into `lib/generated/prisma`, which is git-ignored
+and therefore absent from every fresh checkout — including the one `create` had
+just written. `prisma generate` ran in `build` and nowhere else. New apps now
+run it from `postinstall`, so the first `dev` works and so does a teammate's
+first clone. Existing apps: add it yourself, or run `pnpm db:generate` once.
+
+**`pnpm db:seed` makes an account to sign in with.** A new app had tables and no
+users, and the dashboard was a wall. The seed writes
+**admin@example.com** / **Password** with the `admin` role, through the same
+`flare user:add` that makes any other account. It is safe to run again — the new
+`--skip-existing` flag makes a second run a no-op rather than an error, which is
+what a seed has to survive when somebody resets their database.
+
+The box printed after `create` now names the database steps as well, because the
+app genuinely does not work without them: `docker compose up -d`, `db:migrate`,
+`db:seed`, then `dev`.
+
+**UploadThing: one variable, and the SDK is installed for you.**
+
+`UPLOADTHING_APP_ID` is gone. A v7 token is base64 JSON — `{ apiKey, appId,
+regions }` — so the app id was always inside the token Flare already had, and
+asking for it separately asked for a value that could not disagree without
+being wrong. When it did disagree the failure was quiet: uploads succeeded and
+every read 404'd from a subdomain belonging to another app. The driver reads it
+from the token now. Existing apps can delete the variable; passing `appId`
+explicitly still works.
+
+Choosing UploadThing at `create` also puts `uploadthing` in the app's
+dependencies rather than printing "Install its SDK" after the install has
+already finished — a step people skip, whose error arrives at the first upload.
+
+**A new app's first install could stop and ask.** `msgpackr-extract` reached
+pnpm's undecided-build list, which is `ERR_PNPM_IGNORED_BUILDS` and a failed
+install, not a warning. It is refused, like `sharp` and `@prisma/engines`: it is
+an optional native accelerator that `msgpackr` falls back from on its own.
+
+</Release>
+
 <Release version="0.12.0" date="6 November 2026">
 
 **One error envelope — change this if you read the API from your own code.**

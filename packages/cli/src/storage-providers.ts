@@ -37,7 +37,11 @@ export interface StorageProvider {
   console?: string;
   /** The section of Flare's own docs that explains this driver. */
   docs: string;
-  /** A package to install, for the one provider that needs an SDK. */
+  /**
+   * The SDK this provider needs, for the one that needs one. `flare create` adds it to
+   * the app's dependencies (see STORAGE_DEPENDENCIES), so it is not something to tell
+   * anyone to install.
+   */
   install?: string;
   /** Said after `create`, when there is something to do before uploads work. */
   caveat?: string;
@@ -109,10 +113,12 @@ const PROVIDERS = {
     hint: { both: "a CDN with an uploader" },
     stacks: ["cloudflare", "next"],
     vars: {
-      cloudflare: [{ name: "UPLOADTHING_TOKEN" }, { name: "UPLOADTHING_APP_ID", example: "a1b2c3d4e5" }],
-      next: [{ name: "UPLOADTHING_TOKEN" }, { name: "UPLOADTHING_APP_ID", example: "a1b2c3d4e5" }],
+      // One variable, not two. The token is base64 JSON carrying the app id, so the
+      // driver reads the id out of it rather than asking for it a second time.
+      cloudflare: [{ name: "UPLOADTHING_TOKEN" }],
+      next: [{ name: "UPLOADTHING_TOKEN" }],
     },
-    where: "UploadThing dashboard → your app → API Keys (the app id is in the same place)",
+    where: "UploadThing dashboard → your app → API Keys",
     console: "https://uploadthing.com/dashboard",
     docs: `${DOCS}/uploadthing/`,
     install: "uploadthing",
@@ -229,7 +235,6 @@ export function storageSetupSteps(name: StorageProviderName, stack: Stack, optio
   const provider = STORAGE_PROVIDERS[name];
   const vars = storageVars(name, stack);
   const steps: string[] = [];
-  if (provider.install) steps.push(`Install its SDK: ${provider.install}`);
 
   // Whether the env file was written with values that already work. For the default on
   // Next.js that is every variable — docker compose brings up MinIO and .env points at

@@ -51,6 +51,7 @@ cd myapp
 # paste DATABASE_URL into .env, plus the R2_* keys if you want uploads
 npx flare gen resource Contact --fields 'name:string, email:email!, status:enum(lead,customer)'
 npx flare migrate
+pnpm db:seed                # an admin account to sign in with
 npx flare dev
 ```
 
@@ -76,6 +77,7 @@ docker compose up -d        # Postgres, MinIO and Redis
 
 npx flare gen resource Contact --fields 'name:string, email:email!, status:enum(lead,customer)'
 npx flare migrate
+pnpm db:seed                # an admin account to sign in with
 npx flare dev
 ```
 
@@ -113,6 +115,14 @@ npx flare dev
 
 </TabItem>
 </Tabs>
+
+:::note[Signing in]
+`pnpm db:seed` makes one account — **admin@example.com** / **Password** — with
+the `admin` role, so the dashboard is reachable the moment the tables exist. It
+is a development convenience on a database you just created; change it with
+[`flare user:add`](/reference/cli/#user-add) before the app is anywhere but your
+machine. Running the seed again leaves an existing account alone.
+:::
 
 You now have this running on `http://localhost:3000`:
 

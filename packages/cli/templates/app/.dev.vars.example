@@ -19,9 +19,8 @@ MAIL_FROM=
 # CLOUDINARY_API_KEY=
 # CLOUDINARY_API_SECRET=
 
-# STORAGE_DRIVER=uploadthing   # needs: pnpm add uploadthing
-# UPLOADTHING_TOKEN=
-# UPLOADTHING_APP_ID=
+# STORAGE_DRIVER=uploadthing
+# UPLOADTHING_TOKEN=            # the app id is inside it; there is no second variable
 
 # Both serve files from their own CDN, so a read URL is public and does not expire.
 # Set this to keep every read signed and proxied by the app instead.

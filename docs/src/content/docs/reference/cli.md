@@ -353,9 +353,12 @@ npx flare user:add ada@example.com --role admin
 | `--name <name>` | Display name (default: the part before the `@`) |
 | `--remote` | Against the deployed database rather than the local one |
 | `--env <name>` | Wrangler environment |
+| `--skip-existing` | Succeed quietly if that account is already there |
 
 It writes the same two rows a sign-up writes, so the account behaves like any
-other. The generated password is printed once and stored only as a hash. See
+other. `--skip-existing` is what makes it safe in a seed: a new app's
+`pnpm db:seed` is this command, and it has to survive being run again after
+someone resets their database. The generated password is printed once and stored only as a hash. See
 [who may sign up](/guides/auth/#who-may-sign-up).
 
 ## `flare doctor`

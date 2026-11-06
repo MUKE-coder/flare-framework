@@ -124,6 +124,19 @@ export const NEXT_DEV_DEPENDENCIES = {
   typescript: "~5.9.3",
 } as const;
 
+/**
+ * The SDK a storage provider needs, for the providers that need one.
+ *
+ * Installed with everything else at `create` rather than left as a line of instructions
+ * afterwards. Telling somebody to run `pnpm add uploadthing` after an install has just
+ * finished is asking them to do by hand the one thing the scaffold is for, and the
+ * error when they don't is thrown at the first upload, long after they have forgotten
+ * reading it.
+ */
+export const STORAGE_DEPENDENCIES = {
+  uploadthing: "^7.7.4",
+} as const;
+
 /** Cloudflare-only files a Next.js app has no use for. */
 export const CLOUDFLARE_ONLY = [
   "wrangler.jsonc",

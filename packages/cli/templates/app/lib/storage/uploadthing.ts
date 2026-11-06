@@ -22,10 +22,13 @@ export interface UploadThingOptions {
   /** From the UploadThing dashboard. Defaults to `UPLOADTHING_TOKEN`. */
   token?: string;
   /**
-   * The app id, which is the subdomain files are served from. Defaults to
-   * `UPLOADTHING_APP_ID`.
+   * The app id, which is the subdomain files are served from.
+   *
+   * Almost never passed: it is already inside the token, and {@link appIdFromToken}
+   * reads it from there. Pass it only to serve from a different subdomain than the
+   * token names.
    */
-  appId: string;
+  appId?: string;
   /**
    * Serve reads from UploadThing's CDN. Default true, which is the reason to use it.
    * See {@link StorageBucket.publicUrl}: those files are readable by anyone with the
@@ -48,6 +51,38 @@ export interface UploadThingOptions {
  */
 export function customIdFor(key: string): string {
   return key.replace(/[^A-Za-z0-9.-]/g, (char) => `_${char.charCodeAt(0).toString(16).padStart(2, "0")}`);
+}
+
+/**
+ * The app id carried inside an UploadThing token.
+ *
+ * A v7 token is base64 JSON — `{ apiKey, appId, regions }` — so the id of the app it
+ * belongs to is already in your hands the moment you have the token. Asking for
+ * `UPLOADTHING_APP_ID` as well was asking for a value that cannot disagree with the
+ * token without being wrong, and the failure it produced was a quiet one: uploads
+ * succeeded and every read 404'd from a subdomain belonging to another app.
+ *
+ * Only the `appId` is read here. The apiKey stays in the token, which is what the SDK
+ * itself is given.
+ */
+export function appIdFromToken(token: string): string {
+  let decoded: string;
+  try {
+    decoded = typeof atob === "function" ? atob(token) : Buffer.from(token, "base64").toString("utf8");
+  } catch {
+    throw new Error("UPLOADTHING_TOKEN is not valid base64. Copy it again from https://uploadthing.com/dashboard.");
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(decoded);
+  } catch {
+    throw new Error("UPLOADTHING_TOKEN does not decode to JSON. Copy it again from https://uploadthing.com/dashboard.");
+  }
+  const appId = (parsed as { appId?: unknown } | null)?.appId;
+  if (typeof appId !== "string" || appId === "") {
+    throw new Error("UPLOADTHING_TOKEN has no appId in it. Copy it again from https://uploadthing.com/dashboard.");
+  }
+  return appId;
 }
 
 /**
@@ -82,7 +117,10 @@ async function api(token: string | undefined): Promise<UTApiLike> {
 
 export function uploadThingBucket(options: UploadThingOptions): StorageBucket {
   const publicDelivery = options.publicDelivery ?? true;
-  const deliveryUrl = (key: string) => `https://${options.appId}.ufs.sh/f/${customIdFor(key)}`;
+  // Read once rather than per request, so a malformed token is an error at startup
+  // instead of a 404 on somebody's first upload.
+  const appId = options.appId ?? appIdFromToken(options.token ?? process.env.UPLOADTHING_TOKEN ?? "");
+  const deliveryUrl = (key: string) => `https://${appId}.ufs.sh/f/${customIdFor(key)}`;
 
   return {
     async get(key: string): Promise<StorageObjectBody | null> {

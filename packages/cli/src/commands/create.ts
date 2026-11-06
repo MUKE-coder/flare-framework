@@ -20,10 +20,22 @@ import {
   COMPATIBILITY_DATE,
   NEXT_DEPENDENCIES,
   NEXT_DEV_DEPENDENCIES,
+  STORAGE_DEPENDENCIES,
 } from "../versions.js";
 import { isStack, STACKS, type Stack } from "../stack.js";
 import { copyTemplate, findUp, templatesDir, writeJson } from "../utils/fs.js";
 import { choosePackageManager, type PackageManager } from "../utils/pm.js";
+
+/**
+ * The account `pnpm db:seed` makes, and the one the "Next" box tells you to sign in
+ * with. Declared once so the script, the printed credentials and the docs cannot drift
+ * apart — the failure mode being a printed password that does not work.
+ *
+ * Deliberately a well-known pair: this is a development convenience on a database that
+ * has just been created locally, not a secret. `flare user:add` is how a real account
+ * is made, and the dashboard's own warning covers changing it before anything ships.
+ */
+export const SEED_ADMIN = { email: "admin@example.com", password: "Password", name: "Admin" } as const;
 
 export interface CreateOptions {
   /** Kept for callers that only want the files; installing is `installDependencies`. */
@@ -59,9 +71,18 @@ export interface CreateOptions {
  * this stack doesn't need them, because Prisma 7 talks to Postgres through a driver
  * adapter. Verified without it: `prisma generate`, `prisma validate`, `prisma migrate
  * diff` and `next build` all work. sharp is refused for the same reason and because
- * nothing generated uses it.
+ * nothing generated uses it. msgpackr-extract is refused because it is an optional
+ * native accelerator that msgpackr falls back from on its own — and an undecided entry
+ * is not a warning, it is ERR_PNPM_IGNORED_BUILDS and a failed first install.
  */
-const ALLOW_BUILDS = ["'@prisma/engines': false", "esbuild: true", "prisma: true", "sharp: false", "workerd: true"]
+const ALLOW_BUILDS = [
+  "'@prisma/engines': false",
+  "esbuild: true",
+  "msgpackr-extract: false",
+  "prisma: true",
+  "sharp: false",
+  "workerd: true",
+]
   .map((line) => `  ${line}`)
   .join("\n");
 
@@ -203,12 +224,22 @@ storage/
     scripts:
       stack === "next"
         ? {
+            // Prisma 7 generates its client into lib/generated/prisma, which is
+            // git-ignored and therefore absent from every fresh checkout — including
+            // the one `create` has just written. Without this the first `dev` fails on
+            // `Can't resolve './generated/prisma/client'` before serving a page, and
+            // so does `flare user:add`, which imports lib/db. postinstall rather than a
+            // step in `dev`, so a teammate cloning the repo is covered by the same line.
+            postinstall: "prisma generate",
             dev: "next dev",
             build: "prisma generate && next build",
             start: "next start",
             deploy: "vercel deploy --prod",
             "db:generate": "prisma generate",
             "db:migrate": "prisma migrate dev",
+            // An account to sign in with, so the app is reachable the moment the tables
+            // exist. Safe to run twice: --skip-existing makes a second run a no-op.
+            "db:seed": `flare user:add ${SEED_ADMIN.email} --password ${SEED_ADMIN.password} --name ${SEED_ADMIN.name} --role admin --skip-existing`,
             "db:studio": "prisma studio",
           }
         : {
@@ -223,6 +254,9 @@ storage/
     dependencies: {
       "@flaredev/core": flarePackageSpec("core", dir, packageManager),
       ...(stack === "next" ? { ...uiOnly, ...shared, ...NEXT_DEPENDENCIES } : APP_DEPENDENCIES),
+      // The chosen provider's SDK, where it has one, so the first upload works without
+      // a second install.
+      ...(storage in STORAGE_DEPENDENCIES ? { [storage]: STORAGE_DEPENDENCIES[storage as keyof typeof STORAGE_DEPENDENCIES] } : {}),
     },
     devDependencies: {
       "@flaredev/cli": flarePackageSpec("cli", dir, packageManager),
@@ -331,9 +365,22 @@ export function copyLockfile(packageManager: PackageManager, dir: string, stack:
 export function printNextSteps(result: CreateResult, installed: boolean) {
   const rel = relative(process.cwd(), result.dir) || ".";
   const pm = result.packageManager;
+  // The database steps come before `dev` because the app genuinely does not work
+  // without them: no tables means every page that touches one is a 500, and no account
+  // means the sign-in form is a wall. They used to be left to the quickstart page, and
+  // the first thing a new app did was fail.
+  const database: [string, string][] =
+    result.stack === "next"
+      ? [
+          ["docker compose up -d", "Postgres, on the address .env already has"],
+          [`${pm} run db:migrate`, "create the tables"],
+          [`${pm} run db:seed`, "an account to sign in with"],
+        ]
+      : [];
   const commands: [string, string][] = [
     [`cd ${rel}`, "your new app"],
     ...(installed ? [] : ([[`${pm} install`, "dependencies first"]] as [string, string][])),
+    ...database,
     [`${pm} run dev`, "http://localhost:3000"],
     ["npx flare gen resource Contact", "a table, API and admin screens"],
     ["npx flare seed:resource Contact 1000", "fill it with sample rows"],
@@ -349,6 +396,19 @@ export function printNextSteps(result: CreateResult, installed: boolean) {
   const storage = storageSetupSteps(result.storage, result.stack, { local: true });
   if (storage.length > 0) {
     prompts.note(storage.map((line) => (line.startsWith("http") ? pc.cyan(line) : line)).join("\n"), `Uploads · ${result.storage}`);
+  }
+
+  // Printed rather than left in the docs: a seeded password nobody is told is a
+  // password nobody can use, and the first thing it guards is the dashboard.
+  if (result.stack === "next") {
+    prompts.note(
+      [
+        `${pc.cyan(SEED_ADMIN.email)}  ${pc.dim("·")}  ${pc.cyan(SEED_ADMIN.password)}`,
+        "",
+        pc.dim(`Made by ${pm} run db:seed, as an admin. Change it before this app is anywhere but your machine.`),
+      ].join("\n"),
+      "Sign in with",
+    );
   }
 
   prompts.outro(`${pc.bold(result.name)} is ready ${pc.dim("·")} ${pc.cyan("https://flare-docs.codetotech.com/start/quickstart/")}`);

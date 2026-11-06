@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { resourceType, sign } from "../templates/app/lib/storage/cloudinary.js";
 import { diskBucket } from "../templates/next/lib/storage/disk.js";
-import { customIdFor } from "../templates/app/lib/storage/uploadthing.js";
+import { appIdFromToken, customIdFor } from "../templates/app/lib/storage/uploadthing.js";
 
 const text = async (body: ReadableStream) => new Response(body).text();
 
@@ -120,5 +120,28 @@ describe("an UploadThing customId", () => {
 
   it("keeps two different keys apart", () => {
     expect(customIdFor("a/b.png")).not.toBe(customIdFor("a__b.png"));
+  });
+});
+
+describe("the UploadThing app id", () => {
+  const token = (payload: unknown) => Buffer.from(JSON.stringify(payload)).toString("base64");
+
+  it("comes out of the token, so nobody has to supply it twice", () => {
+    // A v7 token is base64 JSON: { apiKey, appId, regions }. Asking for the app id as a
+    // second variable asked for something that cannot disagree with the token without
+    // being wrong.
+    const real = token({ apiKey: "sk_live_abc", appId: "a1b2c3d4e5", regions: ["sea1"] });
+    expect(appIdFromToken(real)).toBe("a1b2c3d4e5");
+  });
+
+  it("says which value is wrong rather than failing at the first upload", () => {
+    expect(() => appIdFromToken("not base64 at all !!")).toThrow(/UPLOADTHING_TOKEN/);
+    expect(() => appIdFromToken(Buffer.from("plain text").toString("base64"))).toThrow(/does not decode to JSON/);
+    expect(() => appIdFromToken(token({ apiKey: "sk_live_abc" }))).toThrow(/no appId/);
+    expect(() => appIdFromToken(token({ appId: "" }))).toThrow(/no appId/);
+  });
+
+  it("points at the page the value is on", () => {
+    expect(() => appIdFromToken("%%%")).toThrow(/uploadthing\.com\/dashboard/);
   });
 });

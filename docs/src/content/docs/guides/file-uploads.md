@@ -380,15 +380,14 @@ already handed out.
 
 [Full setup: UploadThing](/storage/uploadthing/)
 
-```bash
-pnpm add uploadthing
-```
-
 ```ini
 STORAGE_DRIVER=uploadthing
 UPLOADTHING_TOKEN=…
-UPLOADTHING_APP_ID=…
 ```
+
+One variable: the app id is inside the token. The `uploadthing` package is
+installed for you when you scaffold with `--storage uploadthing`; add it with
+`pnpm add uploadthing` if you are switching an existing app over.
 
 UploadThing mints its own file key on upload, and a driver is asked to store
 bytes under a key it was *given*. The two are reconciled with `customId`,

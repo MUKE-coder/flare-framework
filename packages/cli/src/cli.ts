@@ -406,10 +406,16 @@ export function createCli() {
     .option("--name <name>", "Display name (default: the part before the @)")
     .option("--remote", "Against the deployed database rather than the local one")
     .option("--env <name>", "Wrangler environment")
+    .option("--skip-existing", "Succeed quietly if the account is already there (for seeds)")
     .example("flare user:add ada@example.com --role admin")
-    .action(async (email: string, options: { role?: string; password?: string; name?: string; remote?: boolean; env?: string }) => {
-      process.exitCode = await addUser(email, options);
-    });
+    .action(
+      async (
+        email: string,
+        options: { role?: string; password?: string; name?: string; remote?: boolean; env?: string; skipExisting?: boolean },
+      ) => {
+        process.exitCode = await addUser(email, options);
+      },
+    );
 
   cli
     .command("doctor", "Check the things that are usually wrong: versions, env, bindings, migrations, drift, policies")
