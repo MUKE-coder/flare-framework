@@ -3,7 +3,7 @@ title: Every file in a Flare app
 description: What flare create writes, what each folder is for, which files are yours, which are generated, and which you can delete.
 ---
 
-A new app has around 170 files. Most of them you will never open. This page
+A new app has around 190 files. Most of them you will never open. This page
 says what each folder is for and, more usefully, **which files are yours**.
 
 ```
@@ -80,12 +80,15 @@ app/
 │  ├─ actions.ts            ← server actions the dashboard calls
 │  ├─ account/              ← profile, password, sessions, security
 │  ├─ costs/                ← what this app costs to run
+│  ├─ invitations/          ← issue and revoke invitation links
 │  └─ products/             ← generated per resource: list, new, [id], [id]/edit
 │                             plus a loading.tsx beside each
+├─ invite/[token]/          ← where an invitation link lands
 └─ api/
    ├─ products/route.ts     ← generated. GET list, POST create
    ├─ products/[id]/route.ts← generated. GET, PATCH, PUT, DELETE
    ├─ auth/[...all]/        ← Better Auth
+   ├─ users/                ← generated, for a belongsTo("User") picker
    ├─ storage/              ← signed upload and read URLs
    ├─ health/               ← a liveness check
    ├─ openapi.json/         ← your API, described
@@ -103,9 +106,12 @@ runtime.
 | `api.ts` | `authorize` and `currentUser`, which every generated route calls |
 | `auth.ts`, `auth-config.ts`, `auth-client.ts` | Better Auth, server and browser |
 | `session.ts` | `requireSession()` for server components |
+| `invitations.ts` | Invitation links, when `signup` is `invite` |
+| `user-titles.ts` | Names for the accounts a `belongsTo("User")` field points at |
 | `db.ts` (Next) / `db/index.ts` (Cloudflare) | The database client |
 | `storage.ts` | Signed upload and read URLs, over R2 |
 | `cache.ts` | `revalidateResource`, called after every write |
+| `rate-limit.ts` | Where a descriptor's `rateLimit` is counted — a Durable Object on Cloudflare, Redis on Next.js |
 | `mail.ts`, `auth-emails.ts` | Transactional email |
 | `dashboard.ts` | The store the dashboard's server actions use |
 | `dashboard-nav.ts` | What appears in the sidebar |
@@ -114,7 +120,7 @@ runtime.
 | `views.ts`, `audit.ts` | Saved views and the audit log |
 | `costs.ts`, `usage.ts` | The cost estimator |
 | `realtime.ts` | Channels and who may join them |
-| `security.ts` | Rate limits and abuse rules (Cloudflare) |
+| `security.ts` | The edge: bans, abuse rules and a blanket rate limit (Cloudflare) |
 | `redis.ts` (Next) | Upstash, for anything that must be true across instances |
 | `analytics.ts` | Traffic figures for the observability page |
 | `password-rules.ts`, `suggest.ts` | Password policy; the SKU suggester |
@@ -188,5 +194,9 @@ More than you would think. If you are not using something, remove it:
 - **`lib/security.ts`** — it is a pass-through until `flare gen security`.
 - **`app/api/reference/` and `api-docs.ts`** — if you do not want a public
   API reference.
+- **`app/invite/`, `app/dashboard/invitations/` and `lib/invitations.ts`** — if
+  sign-up is `open` or `closed` rather than `invite`.
+- **`lib/rate-limit.ts` and the `FLARE_RATE_LIMIT` binding** — if no descriptor
+  declares a `rateLimit`.
 
 Nothing in `lib/resource/` is optional; that is what serves your endpoints.

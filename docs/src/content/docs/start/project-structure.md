@@ -47,7 +47,7 @@ myapp/
 │  ├─ auth.ts                  # Better Auth instance (server)
 │  ├─ auth-client.ts           # Better Auth client (browser)
 │  ├─ session.ts               # getSession() / requireSession()
-│  ├─ admin.ts                 # /dashboard access, policy checks, admin stores, record counts
+│  ├─ dashboard.ts             # /dashboard access, policy checks, admin stores, record counts
 │  ├─ api.ts                   # authorize(): every generated API route calls it first
 │  ├─ storage.ts               # R2 signed URL helpers
 │  ├─ mail.ts                  # Resend mailer + sendTransactionalEmail()

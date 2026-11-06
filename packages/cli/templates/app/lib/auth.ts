@@ -253,7 +253,7 @@ export const auth = betterAuth({
     }),
   },
   plugins: [
-    // Adds user.role (default "user") and admin APIs. The /admin area allows ADMIN_ROLES (lib/admin.ts).
+    // Adds user.role (default "user") and admin APIs. The dashboard allows ADMIN_ROLES (lib/dashboard.ts).
     admin({ defaultRole: "user", adminRoles: ["admin"] }),
     // disableSignUp follows the mode: a magic link to an address with no account would
     // otherwise create one, which is a sign-up through a side door. In `invite` mode the

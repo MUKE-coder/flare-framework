@@ -390,6 +390,7 @@ npx flare doctor
 | Bindings | D1 and R2 on Cloudflare; `DATABASE_URL` on Next.js |
 | Descriptors | That every resource descriptor loads |
 | Generated files | Files out of date, and generated blocks edited by hand |
+| Rate limits | Limits a descriptor declares, and whether anything is configured to count them |
 | Policies | Resources with no policy, which any signed-in user can read and write |
 | Renames | A `rename` declared in a descriptor with no migration for it yet |
 | Migrations | Migration files on disk against the ones the local database has run |

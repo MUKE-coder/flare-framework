@@ -26,6 +26,27 @@ list, so `enum(a,b,c)` and `file:[image,pdf]` are each one field.
 | `belongsTo(Model)` | FK column | relation picker |
 | `hasMany(Model)` | — (inverse relation only) | inline table |
 
+### What an option may be called
+
+An `enum`, `select`, `radio` or `multiselect` option may use any printable
+character except a space, a comma, round brackets, a backtick or `$`. So blood
+groups are `A+` and `AB-`, grades are `B-`, and `N/A` and `50%` are options
+like any other:
+
+```bash
+npx flare gen resource Patient --fields 'bloodGroup:enum(A+,A-,B+,B-,O+,O-,AB+,AB-)?'
+```
+
+Commas and brackets end the option list; a space would be trimmed, so `" A"`
+and `"A"` would be the same option; and a backtick or `$` would break the
+`sql` template literal the options are written into in the generated schema.
+
+On SQLite the column is text with a `CHECK` constraint listing the strings. On
+Postgres it becomes a real enum, and because a Prisma enum member has to be an
+identifier the member is `A_2b` with `@map("A+")` carrying the value — Flare
+translates at the store boundary, so the value you read and write is always
+`A+`.
+
 ## Formats
 
 These are strings (a `text` column, searchable and sortable) with their own

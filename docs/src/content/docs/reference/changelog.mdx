@@ -65,6 +65,207 @@ every route and the dashboard already passed `currentUser`, which is why this
 went unnoticed. The call sites it catches are hand-written ones, and the first
 one it caught was Flare's own CI script.
 
+**One error envelope — change this if you read the API from your own code.**
+([#29](https://github.com/MUKE-coder/flare-framework/issues/29))
+
+There were four error shapes. `{ error }` from most guards, `{ error, field }`
+from a unique conflict, `{ error, issues }` with a `path` in each issue from
+validation, and `{ error, issues }` with a `param` instead from a bad query
+string — plus a plain-text refusal from the security layer. A client had to
+handle whichever one the guard that refused it happened to use.
+
+Every error is now the same:
+
+```json
+{
+  "error": "Number is already taken.",
+  "code": "unique_violation",
+  "issues": [{ "path": "number", "message": "Number is already taken.", "code": "unique" }]
+}
+```
+
+`error` is the sentence to show a person and its wording can change between
+releases. `code` is for your code: nineteen values, a closed set, stable.
+`issues` is present whenever the answer is about fields.
+
+**What to change.** If you read `field`, read `issues[0].path`. If you read
+`issues[].param`, read `issues[].path`. Nothing Flare generates needs changing —
+the forms and the import screen moved with it — so this only affects code you
+wrote against the API yourself. Full list of codes in
+[one error shape](/guides/api-routes/#one-error-shape).
+
+Two things fell out of it: a store with an ownership policy and nobody signed in
+answered `403` and now answers `401`, because there is no identity to refuse;
+and the security layer answers a browser navigation with a sentence and an API
+request with the envelope, rather than plain text to both.
+
+**A renamed field keeps its data.**
+([#56](https://github.com/MUKE-coder/flare-framework/issues/56),
+[#75](https://github.com/MUKE-coder/flare-framework/issues/75))
+
+```ts
+fullName: field.string({ rename: { from: "name" } })
+```
+
+```bash
+npx flare sync-types
+npx flare gen migration rename_name --from-schema
+# create  migrations/0004_rename_people_name_to_full_name.sql (people.name → full_name, data kept)
+```
+
+Renaming a field used to be a drop and an add, which emptied the column. It
+applies once — the migration history decides whether there is anything to do, so
+the declaration is safe to leave in place and safe to delete.
+
+**And the bug underneath it, which was worse.** drizzle-kit asks whether a
+column was renamed or dropped, needs a terminal to ask in, and when it has none
+it prints the question as an error and **exits 0**. Flare read only the exit
+code, so that came back as "no table changes" — and because the unresolved
+rename stays in the diff, *every later* `gen resource` produced no migration
+either, silently. A project could stop generating migrations altogether and give
+no sign of it. The run's output is now read alongside its exit code, and a run
+that wrote nothing while printing an error is a failure whatever it exited with.
+
+**`belongsTo("User")` is a relation like any other.**
+([#73](https://github.com/MUKE-coder/flare-framework/issues/73))
+
+```bash
+npx flare gen resource Report --fields 'title:string, reporterId:belongsTo(User)?'
+```
+
+"Who reported it" is in nearly every app and is usually the first relation
+somebody reaches for. It failed, and the error told you to generate a `User`
+resource first — which would have made a second, competing user table, so the
+advice was a trap. You get the real foreign key, the index and a searchable
+picker on both stacks.
+
+`onDelete` defaults differently here: `set null` when the field is optional,
+because somebody closing their account should not be held open by a
+lost-property report from two years ago. A required one is `restrict`.
+
+The picker needed an endpoint over the accounts table, which needed a decision
+about who may see whom. `/api/users` is not a directory: an admin gets the
+searchable list, everybody else gets their own account, signed out gets `401`.
+See [a relation to the signed-in account](/guides/relationships/#a-relation-to-the-signed-in-account).
+
+**Rate limits per resource and action.**
+([#36](https://github.com/MUKE-coder/flare-framework/issues/36))
+
+```ts
+rateLimit: { create: "10/min", "*": "120/min" }
+```
+
+Checked in the generated route, straight after the policy, counted per
+signed-in account (or per IP when there is nobody signed in). A refused call is
+`429` with `retry-after` and the `rate_limited` code. Worth setting on the
+actions that cost something — a create that sends an email, an export that reads
+the whole table — rather than on everything, which is what the edge limiter is
+for.
+
+Counted in a Durable Object on Cloudflare and in Redis on Next.js, not in
+Cloudflare's rate-limiting binding: its window may only be 10 or 60 seconds and
+its limit is fixed in the Worker's configuration, so `"500/hour"` would work on
+one stack and not the other. A declared limit with nothing configured to count
+it logs once and allows, and `flare doctor` reports it. See
+[rate limits](/guides/api-routes/#rate-limits).
+
+**`flare create --signup=open|invite|closed`.**
+([#16](https://github.com/MUKE-coder/flare-framework/issues/16))
+
+Sign-up was open with no way to change it. The default stays `open` — a new
+resource is admin-only and the first account becomes the admin, so a stranger
+who signs up reaches nothing — but `invite` and `closed` are now one flag, or
+one line in `lib/auth-config.ts` afterwards.
+
+Enforced where the account is created, not on each sign-up route: there are four
+ways to end up with a new account and gating them one at a time is how one gets
+missed. The first account is always allowed, whatever the mode, or an app could
+never be set up.
+
+Invitations live in Better Auth's existing `verification` table, so switching an
+app to `invite` needs no migration. Links are single-use and only the hash is
+stored, which is why the link is shown once to copy. `closed` needs a way in, so
+there is one:
+
+```bash
+npx flare user:add ada@example.com --role admin
+```
+
+See [who may sign up](/guides/auth/#who-may-sign-up).
+
+**`flare doctor`.**
+([#54](https://github.com/MUKE-coder/flare-framework/issues/54))
+
+```bash
+npx flare doctor
+```
+
+Eleven checks, for when something does not work and you do not know why: Node's
+version, the package manager, the app's `@flaredev/core` against the CLI,
+missing environment keys, bindings, whether the descriptors load, generated
+files that are stale or hand-edited, resources with no policy, a declared rename
+with no migration, a rate limit nothing is counting, and migrations on disk
+against the ones the database has run.
+
+It changes nothing, so it is safe on a broken app — the only time anybody runs
+it. A check that cannot run says so rather than passing, and the exit code is
+`1` only for a failure, never a warning.
+
+**Enum options can have punctuation in them.**
+([#74](https://github.com/MUKE-coder/flare-framework/issues/74))
+
+```bash
+npx flare gen resource Patient --fields 'bloodGroup:enum(A+,A-,B+,B-,O+,O-,AB+,AB-)?'
+```
+
+Blood groups had to be spelled `aPos`/`aNeg` and mapped back by hand everywhere
+they were shown. An option may now use any printable character except a space, a
+comma, round brackets, a backtick or `$`.
+
+This turned up something already broken: a Prisma enum member has to be an
+identifier, so `A+` becomes `A_2b` with the real value in `@map` — and Prisma's
+client speaks member names, not column values. The seed writer translated; the
+runtime store did not. So on the Next.js stack **every hyphenated option was
+already broken**: `in-progress` has always been the member `in_progress`, which
+the admin showed and the validators then rejected. The store now translates in
+both directions.
+
+**`flare deploy` names the resources that have no policy.**
+([#17](https://github.com/MUKE-coder/flare-framework/issues/17))
+
+A resource with no policy file is readable and writable by any signed-in user.
+`gen resource` writes an admin-only policy, so this only happens to a resource
+generated before 0.11.0 or one whose policy was deleted — but nothing said so at
+the moment it mattered. A warning, not a refusal: an open resource is a real
+choice. `--allow-open` says it was meant.
+
+**Uploads: three more places to put files, and images shrunk before they are sent.**
+
+`STORAGE_DRIVER` takes `uploadthing`, `cloudinary` and `disk` alongside the
+default R2 bucket — `disk` writes to a directory, the way Laravel's local driver
+does, which is what a VPS or a single container wants.
+
+Images are now optimised in the browser before upload, by default: a 5.51 MB
+photo went to 257 KB in a real app, twenty-two times smaller, with the original
+never leaving the device. Set `NEXT_PUBLIC_OPTIMISE_UPLOADS=false` to send the
+original bytes instead. It is read at build time, so changing it is a rebuild
+rather than a restart.
+
+**New apps are scaffolded on vinext 1.4.3**, and there is now a written policy
+for depending on it.
+([#18](https://github.com/MUKE-coder/flare-framework/issues/18))
+
+vinext reached 1.0 in October; apps were still being created against a beta from
+before the stable line existed. Six packages move as one set — vinext,
+`@vinext/cloudflare`, react, react-dom, react-server-dom-webpack and
+`@vitejs/plugin-rsc` — because bumping one alone gives you an app that will not
+install.
+
+[Depending on vinext](/about/vinext-policy/) says which version each release is
+tested against, how an upgrade reaches an app you have already built, and what
+happens if vinext stalls: the app keeps running, and the fallback is Next.js on
+Workers through OpenNext.
+
 **The first changes that came from somebody else.**
 
 Seven pull requests are merged and waiting on the next release. All of this is
