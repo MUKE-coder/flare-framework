@@ -14,3 +14,6 @@ next-env.d.ts
 
 # Duplicate skill copies the skills CLI writes for other agents (.claude/skills is the tracked copy)
 .agents/
+
+# Source material for the docs/projects pages, kept local.
+final_year_fullstack_projects.md
