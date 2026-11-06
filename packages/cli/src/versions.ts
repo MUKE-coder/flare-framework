@@ -99,8 +99,13 @@ export const NEXT_DEPENDENCIES = {
   // protocol. Vercel refuses to build it. A pin is only worth having if it is moved when
   // one of these lands, so treat a critical against this line as a release of its own.
   next: "16.3.8",
-  "@prisma/client": "7.10.0",
-  "@prisma/adapter-pg": "7.10.0",
+  // Prisma 7, pinned exactly and deliberately. `prisma@latest` is 8.0.0-rc — a release
+  // candidate — and Prisma's own update notifier prints "npm i @prisma/client@latest"
+  // inside `prisma migrate` output, so an app that follows that advice lands on a
+  // prerelease. The three move together or not at all; a client newer than the CLI that
+  // generated it is the mismatch that shows up as a runtime error, not a build one.
+  "@prisma/client": "7.10.1",
+  "@prisma/adapter-pg": "7.10.1",
   pg: "^8.16.3",
   "@upstash/redis": "^1.36.0",
   "@better-auth/prisma-adapter": "1.7.17",
@@ -110,7 +115,9 @@ export const NEXT_DEPENDENCIES = {
 } as const;
 
 export const NEXT_DEV_DEPENDENCIES = {
-  prisma: "7.10.0",
+  // Matches @prisma/client and @prisma/adapter-pg above. See the note there before
+  // moving it: the newest 7.x, not `latest`, which is an 8.0 release candidate.
+  prisma: "7.10.1",
   // Runs seeds: the generated Prisma client is TypeScript a bundler compiles.
   tsx: "^4.23.13",
   // `flare deploy` and `npm run deploy`. Local rather than global, so the deploy works

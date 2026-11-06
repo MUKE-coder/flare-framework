@@ -82,7 +82,7 @@ Scaffold a migration by hand, or diff the current schema.
 
 | Flag | |
 | --- | --- |
-| `--from-schema` | Diff current tables instead of writing a blank migration |
+| `--from-schema` | Diff current tables instead of writing a blank migration. On Next.js it also turns a `rename` in a descriptor into an `ALTER TABLE … RENAME COLUMN`; without it Prisma emits a drop and an add, and the data goes with them |
 
 ```bash
 npx flare gen migration backfill_contact_status
@@ -392,6 +392,7 @@ npx flare doctor
 | Package manager | Which lockfile the app has, and whether that manager is installed |
 | Stack | Cloudflare or Next.js, so the rest of the output makes sense |
 | Flare version | The app's `@flaredev/core` against this CLI |
+| Prisma | Next.js only: that `prisma`, `@prisma/client` and `@prisma/adapter-pg` are all on the same Prisma **7** — `prisma@latest` is an 8.0 release candidate |
 | Environment | Keys `.dev.vars.example` (or `.env.example`) lists that the real file lacks, and a required secret left empty |
 | Bindings | D1 and R2 on Cloudflare; `DATABASE_URL` on Next.js |
 | Descriptors | That every resource descriptor loads |

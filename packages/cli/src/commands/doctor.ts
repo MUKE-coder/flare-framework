@@ -236,6 +236,69 @@ export function checkTemplateVersion(installed: string | undefined, cli: string)
     : { check: "Flare version", verdict: "warn", detail: `app has @flaredev/core ${installed}, which is newer than this CLI (${cli}).`, fix: "Update the CLI." };
 }
 
+/** The version of an installed package, if it can be read. */
+export function installedVersion(appRoot: string, name: string): string | undefined {
+  const path = join(appRoot, "node_modules", ...name.split("/"), "package.json");
+  if (!existsSync(path)) return undefined;
+  try {
+    return (JSON.parse(readFileSync(path, "utf8")) as { version?: string }).version;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The three Prisma packages a Next.js app installs, which have to agree. */
+export const PRISMA_PACKAGES = ["prisma", "@prisma/client", "@prisma/adapter-pg"] as const;
+
+/**
+ * Whether the app is still on Prisma 7, and on one version of it.
+ *
+ * Worth its own check because Prisma's own tooling pushes you off it. `prisma@latest`
+ * is an 8.0 release candidate, and the update notifier prints
+ * `npm i @prisma/client@latest` inside the output of `prisma migrate` — so the advice
+ * an app's own commands give leads to a prerelease. Flare's generated code, the
+ * `prisma-client` generator and the driver adapter are written against 7.
+ *
+ * A split major is the other half of this: upgrading one package and not the other
+ * three leaves a client the installed CLI did not generate, which fails at runtime
+ * rather than at build, usually on the first query.
+ */
+export function checkPrismaVersions(versions: Record<string, string | undefined>): Finding {
+  const found = Object.entries(versions).filter(([, version]) => version !== undefined) as [string, string][];
+  if (found.length === 0) {
+    return { check: "Prisma", verdict: "skip", detail: "Prisma is not installed yet.", fix: "Install dependencies." };
+  }
+  const majors = new Set(found.map(([, version]) => version.split(".")[0]));
+  if (majors.size > 1) {
+    return {
+      check: "Prisma",
+      verdict: "fail",
+      detail: `the Prisma packages disagree on a major: ${found.map(([name, version]) => `${name} ${version}`).join(", ")}.`,
+      fix: "Set all three to the same version. A client the installed CLI did not generate fails on the first query, not at build.",
+    };
+  }
+  const [major] = [...majors];
+  if (major !== "7") {
+    const prerelease = found.find(([, version]) => version.includes("-"));
+    return {
+      check: "Prisma",
+      verdict: "fail",
+      detail: `the app is on Prisma ${major}${prerelease ? ` (${prerelease[1]}, a prerelease)` : ""}; Flare generates for 7.`,
+      fix: "Pin prisma, @prisma/client and @prisma/adapter-pg to the same 7.x. `prisma@latest` is an 8.0 release candidate, so ask for the version by number.",
+    };
+  }
+  const distinct = new Set(found.map(([, version]) => version));
+  if (distinct.size > 1) {
+    return {
+      check: "Prisma",
+      verdict: "warn",
+      detail: `Prisma 7, but at mixed versions: ${found.map(([name, version]) => `${name} ${version}`).join(", ")}.`,
+      fix: "Match them. They are released together and are only tested together.",
+    };
+  }
+  return { check: "Prisma", verdict: "ok", detail: `Prisma ${[...distinct][0]}, all three in step.` };
+}
+
 /**
  * Whether the app can actually count the rate limits its descriptors declare.
  *
@@ -288,6 +351,10 @@ export async function diagnose(options: DoctorOptions = {}): Promise<Finding[]> 
 
   findings.push({ check: "Stack", verdict: "ok", detail: stack === "next" ? "Next.js (Prisma, Postgres)." : "Cloudflare (vinext, D1, Drizzle)." });
   findings.push(checkTemplateVersion(installedCoreVersion(appRoot), FLARE_VERSION));
+  // Next.js only: the Cloudflare stack is Drizzle and has no Prisma to disagree about.
+  if (stack === "next") {
+    findings.push(checkPrismaVersions(Object.fromEntries(PRISMA_PACKAGES.map((name) => [name, installedVersion(appRoot, name)]))));
+  }
   findings.push(checkEnv(appRoot, stack));
   findings.push(checkBindings(appRoot, stack));
 

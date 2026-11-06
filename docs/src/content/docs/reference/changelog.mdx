@@ -21,6 +21,41 @@ npx flare --version                 # what this app is on
 pnpm add -D @flaredev/cli@latest    # upgrade it
 ```
 
+<Release version="0.12.2" date="6 November 2026">
+
+**`flare gen migration --from-schema` could not apply a rename on Next.js.**
+It ran `prisma migrate dev --skip-generate`, and Prisma 7 removed that flag —
+the CLI answers `unknown or unexpected option` and refuses the whole command,
+so the rename migration was written to disk and never applied. The flag is
+gone; v7 does not run generators from `migrate dev` anyway, which is all it
+was there to prevent.
+
+While fixing it: `--from-schema` described itself as *(Cloudflare only)*. It is
+not. On Next.js it is the flag that turns a `rename` in a descriptor into an
+`ALTER TABLE … RENAME COLUMN`, and without it Prisma emits a drop and an add
+and the data goes with them. The help and the reference both say so now.
+
+**Prisma 7.10.1**, up from 7.10.0, across `prisma`, `@prisma/client` and
+`@prisma/adapter-pg` — the newest stable 7.x.
+
+Pinned exactly, and worth knowing why: **`prisma@latest` is an 8.0 release
+candidate**, and Prisma's update notifier prints `npm i --save-dev
+prisma@latest` inside the output of `prisma migrate`. Following the advice an
+app's own commands give lands it on a prerelease Flare does not generate for.
+`npx flare doctor` now checks this — it fails an app that has drifted off
+Prisma 7, fails one whose three Prisma packages disagree on a major (a client
+the installed CLI did not generate breaks on the first query, not at build),
+and warns on mixed 7.x patches.
+
+**The generated Prisma client is git-ignored.** `lib/generated/` was not in a
+new app's `.gitignore`, so `prisma generate` output — hundreds of files
+rewritten on every install and every build — was committed, and went stale the
+moment somebody changed the schema without regenerating. This is Prisma's own
+advice for the v7 generator, and it is only safe now that 0.12.1 made
+`postinstall` regenerate the client.
+
+</Release>
+
 <Release version="0.12.1" date="6 November 2026">
 
 **A new Next.js app would not start.** `pnpm dev` failed on

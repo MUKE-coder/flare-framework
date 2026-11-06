@@ -314,6 +314,15 @@ describe("what a new app can do before anyone edits it", () => {
     }
   });
 
+  it("ignores Prisma's generated client, which is output and not source", () => {
+    // postinstall regenerates it on every install and `build` does it again, so the
+    // committed copy could only ever be noise or stale. Prisma's own v7 upgrade guide
+    // says to ignore it.
+    const dir = join(tempDir(), "shop");
+    createApp(dir, { install: false, pm: "pnpm", stack: "next" });
+    expect(readFileSync(join(dir, ".gitignore"), "utf8")).toMatch(/^lib\/generated\/$/m);
+  });
+
   it("asks for one UploadThing variable, not two", () => {
     const dir = join(tempDir(), "shop");
     createApp(dir, { install: false, pm: "pnpm", stack: "next", storage: "uploadthing" });

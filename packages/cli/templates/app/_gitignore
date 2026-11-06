@@ -1,4 +1,11 @@
 node_modules
+
+# Prisma's generated client (Next.js stack). Generated output, not source: it is
+# rewritten by `prisma generate` on every install (postinstall) and on every build, so
+# committing it means hundreds of generated files in your diffs and a stale client the
+# moment someone changes the schema without regenerating.
+lib/generated/
+
 .env*
 !.env.example
 .dev.vars*

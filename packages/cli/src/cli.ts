@@ -142,7 +142,10 @@ export function createCli() {
     .option("--action <action>", "endpoint: policy action to require (read, create, update, delete)")
     .option("--record", "endpoint: put it under one record, /api/<resource>/[id]/<name>")
     .option("--force", "resource/policy/billing/security: overwrite hand-edited generated blocks")
-    .option("--from-schema", "migration: diff the current tables instead of a blank migration (Cloudflare only)")
+    // Not Cloudflare-only, which the help said until 0.12.2: on Next.js it is the flag
+    // that makes `gen migration` honour a `rename` in a descriptor, and without it
+    // Prisma sees a dropped column and an added one and takes the data with them.
+    .option("--from-schema", "migration: diff the current tables instead of a blank migration; on Next.js, also apply declared renames")
     .example("flare gen migration add_phone --from-schema         # Cloudflare: diff the Drizzle tables")
     .example("flare gen migration add_phone                       # Next.js: prisma migrate dev, refusing a drop")
     .option("--roles <roles>", "policy: roles allowed to read, create and update, e.g. admin,staff")

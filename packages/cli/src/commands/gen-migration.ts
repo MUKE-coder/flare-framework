@@ -123,8 +123,12 @@ async function genPrismaMigration(appRoot: string, name: string, options: GenMig
     if (renamed.length) {
       // It has to be applied before the diff runs, or Prisma compares the schema against
       // a database that still has the old column and drops it after all.
+      // No --skip-generate: Prisma 7 removed it from `migrate dev` and refuses the
+      // whole command with "unknown or unexpected option", so passing it turned a
+      // working rename into a failed one. It is not needed either — v7 does not run
+      // generators from `migrate dev`.
       log(`${pc.cyan("prisma")} migrate dev --name ${name}_rename`);
-      const applied = await runNodeCapturing([prisma, "migrate", "dev", "--skip-generate", "--name", `${name}_rename`], appRoot);
+      const applied = await runNodeCapturing([prisma, "migrate", "dev", "--name", `${name}_rename`], appRoot);
       if (applied.code !== 0) {
         throw new Error(`The rename migration could not be applied:\n${applied.output.trim()}`);
       }

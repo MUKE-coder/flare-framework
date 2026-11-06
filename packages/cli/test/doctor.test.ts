@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { checkNode, checkTemplateVersion, declaredBindings, envProblems, MINIMUM_NODE, parseEnvFile } from "../src/commands/doctor.js";
+import {
+  checkNode,
+  checkPrismaVersions,
+  checkTemplateVersion,
+  declaredBindings,
+  envProblems,
+  MINIMUM_NODE,
+  parseEnvFile,
+} from "../src/commands/doctor.js";
 
 describe("checkNode (#54)", () => {
   it("passes the minimum and anything above it", () => {
@@ -115,5 +123,41 @@ describe("checkTemplateVersion (#54)", () => {
 
   it("says it cannot tell when nothing is installed", () => {
     expect(checkTemplateVersion(undefined, "0.11.0").verdict).toBe("skip");
+  });
+});
+
+describe("checkPrismaVersions", () => {
+  const all = (version: string) => ({ prisma: version, "@prisma/client": version, "@prisma/adapter-pg": version });
+
+  it("is happy when all three are the same 7.x", () => {
+    const finding = checkPrismaVersions(all("7.10.1"));
+    expect(finding.verdict).toBe("ok");
+    expect(finding.detail).toContain("7.10.1");
+  });
+
+  it("fails an app that followed Prisma's own upgrade advice", () => {
+    // `prisma@latest` is an 8.0 release candidate, and the update notifier prints
+    // `npm i @prisma/client@latest` inside `prisma migrate` output. Flare's generated
+    // code is written against 7.
+    const finding = checkPrismaVersions(all("8.0.0-rc.32"));
+    expect(finding.verdict).toBe("fail");
+    expect(finding.detail).toContain("prerelease");
+    expect(finding.fix).toMatch(/release candidate/);
+  });
+
+  it("fails a split major, which breaks at runtime rather than at build", () => {
+    const finding = checkPrismaVersions({ prisma: "8.0.0-rc.32", "@prisma/client": "7.10.1", "@prisma/adapter-pg": "7.10.1" });
+    expect(finding.verdict).toBe("fail");
+    expect(finding.detail).toMatch(/disagree on a major/);
+  });
+
+  it("warns on mixed patches within 7, which are only tested together", () => {
+    const finding = checkPrismaVersions({ prisma: "7.10.1", "@prisma/client": "7.10.0", "@prisma/adapter-pg": "7.10.1" });
+    expect(finding.verdict).toBe("warn");
+    expect(finding.detail).toMatch(/mixed versions/);
+  });
+
+  it("skips rather than fails before anything is installed", () => {
+    expect(checkPrismaVersions({ prisma: undefined, "@prisma/client": undefined, "@prisma/adapter-pg": undefined }).verdict).toBe("skip");
   });
 });

@@ -239,6 +239,33 @@ Upgrade an app by bumping `@flaredev/core` and `@flaredev/cli` together in its
 `package.json` (they share a version), then reinstall. Upgrade the global
 command by rerunning the install command or script.
 
+:::danger[Do not take Prisma's upgrade advice literally]
+A Next.js app is on **Prisma 7**, pinned exactly: `prisma`, `@prisma/client`
+and `@prisma/adapter-pg` all at the same `7.x`.
+
+`prisma@latest` is currently an **8.0 release candidate**, and Prisma's update
+notifier prints this inside the output of `prisma migrate`:
+
+```
+npm i --save-dev prisma@latest
+npm i @prisma/client@latest
+```
+
+Running those puts your app on a prerelease that Flare's generated code is not
+written against. If you want a newer Prisma 7, ask for it by number and move
+all three together:
+
+```bash
+pnpm add -D prisma@7.10.1
+pnpm add @prisma/client@7.10.1 @prisma/adapter-pg@7.10.1
+pnpm db:generate
+```
+
+`npx flare doctor` checks this for you: it fails an app that has drifted off 7,
+and an app whose three Prisma packages disagree — a client the installed CLI
+did not generate fails on the first query rather than at build.
+:::
+
 ## Working on Flare itself
 
 To run the CLI from a checkout of the repo:
