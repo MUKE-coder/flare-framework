@@ -23,6 +23,12 @@ export default defineConfig({
       // Starlight sets the title and description tags itself; these are only
       // the image ones it leaves alone, for shared links.
       head: [
+        // Google Search Console. The meta tag rather than the HTML file it also offers:
+        // Workers Static Assets strips `.html` from every path, so the file is only
+        // reachable through a 307 to its extensionless form, and a verifier asking for
+        // the exact URL should not have to follow one. This is on every page and
+        // survives every deploy.
+        { tag: "meta", attrs: { name: "google-site-verification", content: "C9XLQqkUv0JDh68y9bjlfUp2fV-6Ims9MEiMUPjdnLE" } },
         { tag: "meta", attrs: { property: "og:image", content: "https://flare-docs.codetotech.com/banner-social.png" } },
         { tag: "meta", attrs: { property: "og:image:width", content: "1280" } },
         { tag: "meta", attrs: { property: "og:image:height", content: "640" } },

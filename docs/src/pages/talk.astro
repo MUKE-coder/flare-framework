@@ -43,6 +43,11 @@ const md = (text: string) =>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title} — Flare</title>
     <meta name="description" content={lede} />
+    {/* This page is its own Astro page rather than a Starlight one, so the head config
+        in astro.config.mjs does not reach it. Verification only needs the homepage, but
+        a page in the sitemap that is missing the tag the rest of the site carries is the
+        sort of difference nobody remembers on purpose. */}
+    <meta name="google-site-verification" content="C9XLQqkUv0JDh68y9bjlfUp2fV-6Ims9MEiMUPjdnLE" />
     <style is:global>
       :root {
         /* Vercel's register: near-black, hairline borders, one accent, Geist throughout. */
