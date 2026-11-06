@@ -3,7 +3,9 @@ import { basename, join } from "node:path";
 import { snakeCase } from "@flaredev/core";
 import pc from "picocolors";
 import { destructiveStatements } from "../generator/destructive.js";
-import { generateSchemaMigration } from "../generator/migrations.js";
+import { loadResources } from "../generator/load.js";
+import { applyDeclaredRenames, generateSchemaMigration } from "../generator/migrations.js";
+import { pendingPrismaRenames, prismaMigrationDirName, prismaRenameSql, renameProblems } from "../generator/rename.js";
 import { findAppRoot, resolveBin, runNodeCapturing } from "./run.js";
 import { readStack } from "../stack.js";
 
@@ -26,7 +28,9 @@ export const DOWN_TEMPLATE = (up: string) => `-- Rollback for ${up}, run by \`fl
  * Blank (default): drizzle-kit's --custom migration, so it's numbered and journaled
  * like generated ones, plus a matching down file to fill in.
  * --from-schema: drizzle-kit's diff of the current tables (after editing descriptors
- * and running `flare sync-types`).
+ * and running `flare sync-types`). A field carrying `rename: { from: "..." }` becomes a
+ * RENAME COLUMN migration of its own first, so the column keeps its data instead of
+ * being dropped and added back empty.
  */
 export async function genMigration(rawName: string, options: GenMigrationOptions = {}): Promise<string[]> {
   const log = options.log ?? ((message: string) => console.log(message));
@@ -37,10 +41,22 @@ export async function genMigration(rawName: string, options: GenMigrationOptions
   // Prisma writes migrations on the Next.js stack, and it needs guarding — see below.
   if (readStack(appRoot) === "next") return genPrismaMigration(appRoot, name, options);
 
+  // A rename declared in a descriptor has to be turned into a RENAME COLUMN before the
+  // diff runs: by the time the schema file has only the new column, nothing can tell
+  // which old one it came from, and drizzle-kit would ask — or, without a terminal to ask
+  // in, give up and write nothing at all.
+  const renamed = options.fromSchema ? await applyDeclaredRenames(appRoot, await loadResources(appRoot)) : { files: [], renames: [] };
+  for (const [index, file] of renamed.files.entries()) {
+    const rename = renamed.renames[index]!;
+    log(`${pc.green("create".padEnd(9))} ${file} ${pc.dim(`(${rename.table}.${rename.from} → ${rename.to}, data kept)`)}`);
+  }
+
   const { files, repairs } = await generateSchemaMigration(appRoot, name, { custom: !options.fromSchema });
   if (files.length === 0) {
-    log(options.fromSchema ? "No schema changes, so no migration was created." : "drizzle-kit didn't create a migration.");
-    return [];
+    if (renamed.files.length === 0) {
+      log(options.fromSchema ? "No schema changes, so no migration was created." : "drizzle-kit didn't create a migration.");
+    }
+    return renamed.files;
   }
   for (const file of files) log(`${pc.green("create".padEnd(9))} ${file}`);
   for (const repair of repairs) log(pc.dim(`repaired  ${repair}`));
@@ -58,7 +74,7 @@ export async function genMigration(rawName: string, options: GenMigrationOptions
   } else {
     log(`\nNext: ${pc.bold("flare migrate")}.`);
   }
-  return files;
+  return [...renamed.files, ...files];
 }
 
 /**
@@ -79,6 +95,41 @@ async function genPrismaMigration(appRoot: string, name: string, options: GenMig
   const prisma = resolveBin(appRoot, "prisma", "prisma");
   const migrations = join(appRoot, "prisma", "migrations");
   const before = new Set(existsSync(migrations) ? readdirSync(migrations) : []);
+
+  // A declared rename is written as its own migration first, exactly as on the other
+  // stack, and for the same reason: Prisma has no rename detection at all, so left to
+  // itself it emits a DROP COLUMN and an ADD COLUMN and the data goes with them.
+  //
+  // Flare writes the folder rather than asking Prisma for it. Prisma orders migrations by
+  // directory name and records which have run in a table in the database, so a folder
+  // written here is indistinguishable from one `--create-only` produced — and once it has
+  // been applied, the diff that follows sees a column already called the new name and has
+  // nothing to drop.
+  const renamed: string[] = [];
+  if (options.fromSchema) {
+    const all = await loadResources(appRoot);
+    const problems = renameProblems(all);
+    if (problems.length) throw new Error(`Can't apply a rename:\n${problems.map((problem) => `  ${problem}`).join("\n")}`);
+    const existing = existsSync(migrations) ? readdirSync(migrations) : [];
+    for (const rename of pendingPrismaRenames(all, existing)) {
+      const dir = join(migrations, prismaMigrationDirName(rename, new Date()));
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "migration.sql"), prismaRenameSql(rename));
+      const relative = `prisma/migrations/${basename(dir)}/migration.sql`;
+      renamed.push(relative);
+      before.add(basename(dir));
+      log(`${pc.green("create".padEnd(9))} ${relative} ${pc.dim(`(${rename.table}.${rename.from} → ${rename.to}, data kept)`)}`);
+    }
+    if (renamed.length) {
+      // It has to be applied before the diff runs, or Prisma compares the schema against
+      // a database that still has the old column and drops it after all.
+      log(`${pc.cyan("prisma")} migrate dev --name ${name}_rename`);
+      const applied = await runNodeCapturing([prisma, "migrate", "dev", "--skip-generate", "--name", `${name}_rename`], appRoot);
+      if (applied.code !== 0) {
+        throw new Error(`The rename migration could not be applied:\n${applied.output.trim()}`);
+      }
+    }
+  }
 
   log(`${pc.cyan("prisma")} migrate dev --create-only --name ${name}`);
   const { code, output } = await runNodeCapturing([prisma, "migrate", "dev", "--create-only", "--name", name], appRoot);
@@ -118,8 +169,8 @@ async function genPrismaMigration(appRoot: string, name: string, options: GenMig
 
   const added = (existsSync(migrations) ? readdirSync(migrations) : []).filter((entry) => !before.has(entry));
   if (added.length === 0) {
-    log("No schema changes, so no migration was created.");
-    return [];
+    if (renamed.length === 0) log("No schema changes, so no migration was created.");
+    return renamed;
   }
 
   const written: string[] = [];

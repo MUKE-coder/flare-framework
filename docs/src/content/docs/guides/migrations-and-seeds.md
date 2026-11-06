@@ -48,6 +48,58 @@ migration can never silently "succeed." `--from-schema` diffs your current
 Drizzle tables instead — the step after hand-editing a descriptor and
 running `flare sync-types`.
 
+## Renaming a field without emptying it
+
+Rename a field and nothing connects the two names: the schema simply has a
+column fewer and a column more, and the migration drops one and adds the other
+— which empties it. Say they are the same column, and it stays one:
+
+```ts
+// resources/person.resource.ts
+fullName: field.string({ rename: { from: "name" } })
+```
+
+Then the usual two steps:
+
+```bash
+npx flare sync-types
+npx flare gen migration rename_name --from-schema
+```
+
+```
+create    migrations/0004_rename_people_name_to_full_name.sql (people.name → full_name, data kept)
+```
+
+The migration is a rename, and the data is still there:
+
+```sql
+ALTER TABLE `people` RENAME COLUMN `name` TO `full_name`;
+```
+
+An index whose name carried the column is dropped and recreated in the same
+migration — an index holds no data, and leaving it under the old name would
+make the next diff churn it.
+
+**It applies once.** Whether there is anything to do is decided by the
+migration history, not by the descriptor, so the declaration does nothing on
+every run after the first. Leave it in place or delete it on your next edit;
+both are safe.
+
+**Flare refuses a rename it cannot make sense of** — one from a field that
+still exists, or from the field itself — and says which, rather than writing a
+migration that fails halfway.
+
+:::note[On the Next.js stack]
+Prisma has no rename detection at all, so Flare writes the rename as its own
+migration there too and applies it before diffing — after which Prisma sees a
+column already called `full_name` and has nothing to drop. The migration is
+ordinary Postgres:
+
+```sql
+ALTER TABLE "people" RENAME COLUMN "name" TO "full_name";
+```
+:::
+
 ## Seeds
 
 Two ways to fill a table: a command for sample rows, and seed files for data

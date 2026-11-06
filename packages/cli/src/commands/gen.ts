@@ -6,7 +6,7 @@ import { descriptorPath, renderDescriptor, renderFieldsBlock, resourceName, toFi
 import { parseFields, type ParsedField } from "../generator/grammar.js";
 import { loadResources } from "../generator/load.js";
 import { DriftError, writeGenerated } from "../generator/markers.js";
-import { generateSchemaMigration } from "../generator/migrations.js";
+import { applyDeclaredRenames, generateSchemaMigration } from "../generator/migrations.js";
 import { applyPlan, ensureSupportFiles, logResults, planFiles, type FileResult } from "../generator/plan.js";
 import { loadPolicies, policyPath, renderPolicy } from "../generator/policy.js";
 import { findAppRoot } from "./run.js";
@@ -143,9 +143,19 @@ export async function genResource(rawName: string, options: GenResourceOptions):
       // rather than something to do on your behalf here.
       log(`\nNext: ${pc.bold("npx prisma migrate dev")} to turn the schema into a migration and apply it.`);
     } else {
+      // Renames first, and each in its own migration. A rename has to be told apart from
+      // a drop and an add before the ordinary diff runs — once the schema file has only
+      // the new column, drizzle-kit can no longer see which old column it came from.
+      const renamed = await applyDeclaredRenames(appRoot, await loadResources(appRoot));
+      for (const [index, file] of renamed.files.entries()) {
+        const rename = renamed.renames[index]!;
+        log(`${pc.green("create".padEnd(9))} ${file} ${pc.dim(`(${rename.table}.${rename.from} → ${rename.to}, data kept)`)}`);
+      }
+      migrations = [...renamed.files];
+
       const result = await generateSchemaMigration(appRoot, `${exists ? "update" : "create"}_${table}`);
-      migrations = result.files;
-      for (const file of migrations) log(`${pc.green("create".padEnd(9))} ${file}`);
+      migrations = [...migrations, ...result.files];
+      for (const file of result.files) log(`${pc.green("create".padEnd(9))} ${file}`);
       for (const repair of result.repairs) log(pc.dim(`repaired  ${repair}`));
       if (migrations.length) log(`\nNext: ${pc.bold("flare migrate")} to apply it locally.`);
       else if (exists) log(pc.dim("\nNo table changes, so no migration."));

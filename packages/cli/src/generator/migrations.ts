@@ -2,6 +2,8 @@ import { spawn } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { resolveBin } from "../commands/run.js";
+import type { LoadedResource } from "./load.js";
+import { pendingRenames, renameInSnapshot, renameProblems, renameSql, type PendingRename, type Snapshot } from "./rename.js";
 import { repairRebuildMigration, snapshotColumns } from "./repair.js";
 
 export interface GenerateMigrationResult {
@@ -13,6 +15,68 @@ export interface GenerateMigrationResult {
 }
 
 const listSql = (dir: string) => (existsSync(dir) ? readdirSync(dir).filter((file) => file.endsWith(".sql")) : []);
+
+/** The newest drizzle-kit snapshot, which is what the schema is currently diffed against. */
+export function latestSnapshot(appRoot: string): Snapshot | undefined {
+  const metaDir = join(appRoot, "migrations", "meta");
+  if (!existsSync(metaDir)) return undefined;
+  const newest = readdirSync(metaDir)
+    .filter((file) => /^\d+_snapshot\.json$/.test(file))
+    .sort()
+    .pop();
+  return newest ? (JSON.parse(readFileSync(join(metaDir, newest), "utf8")) as Snapshot) : undefined;
+}
+
+/** The snapshot file a migration wrote, by its number: 0004_x.sql → meta/0004_snapshot.json. */
+function snapshotPathFor(appRoot: string, migrationFile: string): string | undefined {
+  const prefix = /^(?:migrations[\\/])?(\d+)_/.exec(migrationFile)?.[1];
+  return prefix ? join(appRoot, "migrations", "meta", `${prefix}_snapshot.json`) : undefined;
+}
+
+/**
+ * Apply the renames a descriptor declares, as real `RENAME COLUMN` migrations.
+ *
+ * One migration per rename, in declaration order, because each has to be written against
+ * the snapshot the one before it left behind — two renames batched into a single
+ * migration would need a snapshot that is correct for neither half of it.
+ *
+ * `--custom` is what makes this safe: drizzle-kit creates the migration file, the journal
+ * entry and the snapshot with its ids and prevId already right, and copies the previous
+ * snapshot into it. All that is missing is the SQL and the one column name, which is
+ * exactly what rename.ts supplies — so no part of drizzle-kit's bookkeeping is written by
+ * hand.
+ */
+export async function applyDeclaredRenames(
+  appRoot: string,
+  all: LoadedResource[],
+): Promise<{ files: string[]; renames: PendingRename[] }> {
+  const problems = renameProblems(all);
+  if (problems.length) throw new Error(`Can't apply a rename:\n${problems.map((problem) => `  ${problem}`).join("\n")}`);
+
+  const files: string[] = [];
+  const applied: PendingRename[] = [];
+  // Re-read the snapshot each time round: the previous rename moved it on.
+  for (let rename = pendingRenames(all, latestSnapshot(appRoot))[0]; rename; rename = pendingRenames(all, latestSnapshot(appRoot))[0]) {
+    const result = await generateSchemaMigration(appRoot, `rename_${rename.table}_${rename.from}_to_${rename.to}`, { custom: true });
+    const file = result.files[0];
+    if (!file) throw new Error(`drizzle-kit wrote no migration for the rename of ${rename.table}.${rename.from}.`);
+
+    const snapshotPath = snapshotPathFor(appRoot, file);
+    if (!snapshotPath || !existsSync(snapshotPath)) {
+      throw new Error(`Renamed ${rename.table}.${rename.from}, but could not find the snapshot ${file} wrote.`);
+    }
+    const { snapshot, indexes } = renameInSnapshot(JSON.parse(readFileSync(snapshotPath, "utf8")) as Snapshot, rename);
+    writeFileSync(snapshotPath, `${JSON.stringify(snapshot, null, 2)}\n`);
+    writeFileSync(join(appRoot, file), `${renameSql(rename, indexes)}\n`);
+
+    files.push(file);
+    applied.push(rename);
+    // A declaration that somehow stayed pending would loop for ever; this cannot happen
+    // once the snapshot is written, and saying so is cheaper than finding out.
+    if (applied.length > 50) throw new Error("Too many renames in one run; apply them a few at a time.");
+  }
+  return { files, renames: applied };
+}
 
 /**
  * Run the app's drizzle-kit to diff `db/schema.ts` against the last snapshot and

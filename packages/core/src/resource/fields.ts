@@ -50,6 +50,18 @@ export interface CommonOptions<T> {
    * time. `required` then means "required *when it applies*" rather than "never null".
    */
   showWhen?: FieldCondition;
+  /**
+   * This field used to be called something else, and the column holds data worth keeping:
+   *
+   *     fullName: field.string({ rename: { from: "name" } })
+   *
+   * Without it a rename is a drop and an add, which empties the column. The descriptor
+   * knows the two names are the same column; the migration should too.
+   *
+   * It applies once. Once the column has been renamed the declaration does nothing, so it
+   * is safe to leave in place and safe to delete on the next edit.
+   */
+  rename?: { from: string };
 }
 
 /**
