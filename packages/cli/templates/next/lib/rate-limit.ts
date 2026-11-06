@@ -40,7 +40,10 @@ export async function checkRateLimit(
   caller: string,
   rate: Rate,
 ): Promise<RateLimitDecision> {
-  if (!redis) {
+  // Captured in a local, because the narrowing from this check does not reach inside the
+  // callback below — the closure is called later, so TypeScript is right to doubt it.
+  const client = redis;
+  if (!client) {
     if (!warned) {
       warned = true;
       console.warn(
@@ -54,18 +57,18 @@ export async function checkRateLimit(
   const key = `flare:rate:${rateLimitKey(resource, action, caller)}`;
   try {
     return await fixedWindow(rate, async (windowSeconds) => {
-      const count = await redis.incr(key);
+      const count = await client.incr(key);
       // Only the call that opened the window sets the expiry, so a busy key's window is
       // not pushed forward on every hit — that would make the limit unbounded.
       if (count === 1) {
-        await redis.expire(key, windowSeconds);
+        await client.expire(key, windowSeconds);
         return { count, ttl: windowSeconds };
       }
-      const ttl = await redis.ttl(key);
+      const ttl = await client.ttl(key);
       // A key with no expiry (a crash between INCR and EXPIRE) would otherwise count for
       // ever; give it one and treat this window as full-length.
       if (ttl < 0) {
-        await redis.expire(key, windowSeconds);
+        await client.expire(key, windowSeconds);
         return { count, ttl: windowSeconds };
       }
       return { count, ttl };
