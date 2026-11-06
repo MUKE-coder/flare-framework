@@ -155,6 +155,18 @@ describe("storageSetupSteps", () => {
     expect(storageSetupSteps("uploadthing", "next")[0]).toBe("Install its SDK: uploadthing");
   });
 
+  it("does not read as a to-do list when the local values already work", () => {
+    // The default on Next.js: docker compose brings up MinIO and .env points at it, so
+    // nothing has to be fetched before the first upload.
+    const steps = storageSetupSteps("r2", "next", { local: true }).join("\n");
+    expect(steps).toContain("Works locally as it is. When you deploy, replace");
+    expect(steps).not.toMatch(/^Get /m);
+  });
+
+  it("does read as one when the values are genuinely missing", () => {
+    expect(storageSetupSteps("cloudinary", "next", { local: true }).join("\n")).toMatch(/^Get /m);
+  });
+
   it("names the variables and where they come from", () => {
     const steps = storageSetupSteps("cloudinary", "next").join("\n");
     expect(steps).toContain("CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET");

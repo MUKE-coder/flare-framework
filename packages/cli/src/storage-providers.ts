@@ -225,13 +225,25 @@ export function storageEnvExample(name: StorageProviderName, stack: Stack): stri
  *
  * Nothing for the default, which is the point of it being the default.
  */
-export function storageSetupSteps(name: StorageProviderName, stack: Stack): string[] {
+export function storageSetupSteps(name: StorageProviderName, stack: Stack, options: { local?: boolean } = {}): string[] {
   const provider = STORAGE_PROVIDERS[name];
   const vars = storageVars(name, stack);
   const steps: string[] = [];
   if (provider.install) steps.push(`Install its SDK: ${provider.install}`);
+
+  // Whether the env file was written with values that already work. For the default on
+  // Next.js that is every variable — docker compose brings up MinIO and .env points at
+  // it — so there is nothing to fetch before the first upload, and a list of credentials
+  // to go and get would be a to-do item that is not one. Said as a deploy-time note
+  // instead, which is when it becomes true.
+  const readyLocally = options.local !== false && vars.length > 0 && vars.every((variable) => variable.local);
+
   if (vars.length > 0 && provider.console) {
-    steps.push(`Get ${vars.map((variable) => variable.name).join(", ")} from ${provider.where ?? provider.console}`);
+    if (readyLocally) {
+      steps.push(`Works locally as it is. When you deploy, replace ${vars.map((variable) => variable.name).join(", ")}:`);
+    } else {
+      steps.push(`Get ${vars.map((variable) => variable.name).join(", ")} from ${provider.where ?? provider.console}`);
+    }
     steps.push(provider.console);
   }
   if (provider.caveat) steps.push(provider.caveat);

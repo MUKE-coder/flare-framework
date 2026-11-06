@@ -345,7 +345,8 @@ export function printNextSteps(result: CreateResult, installed: boolean) {
   // Only when the chosen storage needs something before an upload will work. The default
   // needs nothing, which is the point of it being the default — and a note about
   // credentials nobody has to fetch would train people to skip these.
-  const storage = storageSetupSteps(result.storage, result.stack);
+  // `true` because createApp writes the local values where a provider has them.
+  const storage = storageSetupSteps(result.storage, result.stack, { local: true });
   if (storage.length > 0) {
     prompts.note(storage.map((line) => (line.startsWith("http") ? pc.cyan(line) : line)).join("\n"), `Uploads · ${result.storage}`);
   }
