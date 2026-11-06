@@ -1,0 +1,7 @@
+# Everything here is public documentation. Crawl all of it.
+User-agent: *
+Allow: /
+
+# Where the pages are listed. Starlight generates this from the sidebar and the
+# content collection on every build, so it cannot fall behind the site.
+Sitemap: https://flare-docs.codetotech.com/sitemap-index.xml
