@@ -1,4 +1,5 @@
 import app from "vinext/server/app-router-entry";
+import { RateLimitCounter } from "@flaredev/core/rate-limit/server";
 import { RealtimeChannel, handleRealtimeUpgrade } from "@flaredev/core/realtime/server";
 import { SecurityMonitor } from "@flaredev/core/security/server";
 import { authorizeRealtime } from "../lib/realtime";
@@ -9,12 +10,14 @@ import { protect } from "../lib/security";
 // the `cloudflare:workers` module.
 
 // Durable Object classes must be exported from the Worker's main module.
-export { RealtimeChannel, SecurityMonitor };
+export { RateLimitCounter, RealtimeChannel, SecurityMonitor };
 
 export interface AppEnv {
   ASSETS: Fetcher;
   DB: D1Database;
   FLARE_REALTIME: DurableObjectNamespace<RealtimeChannel>;
+  /** Counters for the rate limits a descriptor declares (see lib/rate-limit.ts). */
+  FLARE_RATE_LIMIT: DurableObjectNamespace<RateLimitCounter>;
 }
 
 export interface AppContext {

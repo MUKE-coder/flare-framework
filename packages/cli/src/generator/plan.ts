@@ -194,7 +194,7 @@ export function ensureSupportFiles(appRoot: string, log: (message: string) => vo
   // user-titles.ts is in the list rather than conditional on a belongsTo("User") field:
   // the three admin components import it unconditionally, so an app missing it would
   // fail to build the moment one of them is regenerated.
-  for (const path of ["lib/api.ts", "lib/cache.ts", "lib/user-titles.ts", ...engine]) {
+  for (const path of ["lib/api.ts", "lib/cache.ts", "lib/rate-limit.ts", "lib/user-titles.ts", ...engine]) {
     const target = join(appRoot, path);
     if (existsSync(target)) continue;
     // The Next.js overlay wins where it has its own version of a file.

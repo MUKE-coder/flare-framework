@@ -1,6 +1,9 @@
 import { headers } from "next/headers";
-import { can, type Policy } from "@flaredev/core";
+import { can, type Policy, rateFor, type Resource } from "@flaredev/core";
 import { PROBLEM_CODES, problemResponse } from "@flaredev/core";
+import { clientIp } from "@flaredev/core/security";
+import type { ResourceAction } from "@/lib/resource";
+import { checkRateLimit } from "@/lib/rate-limit";
 import type { Authorize } from "@/lib/resource/handlers";
 import { policies } from "@/policies";
 import { userFromApiKey } from "./api-keys";
@@ -61,3 +64,37 @@ export const authorize: Authorize = async ({ request, resource, action }) => {
     return problemResponse(403, `Your role can't ${action} ${resource.pluralLabel.toLowerCase()}.`, PROBLEM_CODES.forbidden);
   }
 };
+
+/**
+ * The rate limit a resource declares for this action, enforced.
+ *
+ * Returns a 429 to send back, or nothing when the call is within the limit — the same
+ * shape as `authorize`, so a route reads the two the same way.
+ *
+ * Counted per caller: the signed-in account where there is one, the client IP otherwise.
+ * So a limit on `create` is a limit on that person rather than on everyone sharing an
+ * office connection, and anonymous callers behind one address share a bucket, which is
+ * the right trade for an endpoint that does not know who is calling.
+ *
+ * Checked after `authorize`, deliberately. A request that is going to be refused anyway
+ * should not use up somebody's quota, and a flood with no session is the edge limiter's
+ * job (`flare gen security`) rather than this one's.
+ */
+export async function rateLimitGuard(context: { request: Request; resource: Resource; action: ResourceAction }): Promise<Response | undefined> {
+  const rate = rateFor(context.resource.rateLimit, context.action);
+  if (!rate) return undefined;
+
+  const account = await currentUser();
+  const caller = account?.id ?? clientIp(context.request) ?? "unknown";
+  const decision = await checkRateLimit(context.resource.name, context.action, caller, rate);
+  if (decision.allowed) return undefined;
+
+  return problemResponse(429, "Too many requests. Try again shortly.", PROBLEM_CODES.rateLimited, undefined, {
+    headers: {
+      "retry-after": String(decision.retryAfter),
+      // What the limit was, so a client can pace itself rather than guess.
+      "x-ratelimit-limit": String(rate.limit),
+      "x-ratelimit-remaining": "0",
+    },
+  });
+}

@@ -12,7 +12,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { FLARE_VERSION } from "@flaredev/core";
+import { FLARE_VERSION, ratesIn } from "@flaredev/core";
 import pc from "picocolors";
 import { loadResources } from "../generator/load.js";
 import { applyPlan, planFiles } from "../generator/plan.js";
@@ -236,6 +236,28 @@ export function checkTemplateVersion(installed: string | undefined, cli: string)
     : { check: "Flare version", verdict: "warn", detail: `app has @flaredev/core ${installed}, which is newer than this CLI (${cli}).`, fix: "Update the CLI." };
 }
 
+/**
+ * Whether the app can actually count the rate limits its descriptors declare.
+ *
+ * A declared limit that is not enforced is the worst of the three states — worse than no
+ * limit, because the descriptor says there is one. The route logs it once at runtime;
+ * this is where it is findable before anything is deployed.
+ */
+export function checkRateLimitBackend(declared: { resource: string; action: string; spec: string }[], configured: boolean, stack: Stack): Finding {
+  if (declared.length === 0) return { check: "Rate limits", verdict: "ok", detail: "none declared." };
+  const list = declared.map((entry) => `${entry.resource}.${entry.action} ${entry.spec}`).join(", ");
+  if (configured) return { check: "Rate limits", verdict: "ok", detail: list };
+  return {
+    check: "Rate limits",
+    verdict: "fail",
+    detail: `${list} — declared, but nothing is counting them.`,
+    fix:
+      stack === "next"
+        ? "Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN."
+        : 'Add the FLARE_RATE_LIMIT Durable Object binding (class_name "RateLimitCounter") to wrangler.jsonc.',
+  };
+}
+
 /** Every check, run against the app at `cwd`. */
 export async function diagnose(options: DoctorOptions = {}): Promise<Finding[]> {
   const appRoot = findAppRoot(options.cwd ?? process.cwd());
@@ -308,6 +330,26 @@ export async function diagnose(options: DoctorOptions = {}): Promise<Finding[]> 
             fix: drifted.length ? "flare sync-types (--force to overwrite the hand-edited blocks)" : "flare sync-types",
           },
     );
+
+    // Rate limits, and whether anything is counting them.
+    const declaredRates = resources.flatMap(({ resource }) =>
+      ratesIn(resource.rateLimit).map((entry) => ({ resource: resource.name, action: entry.action, spec: entry.spec })),
+    );
+    if (declaredRates.length > 0 || stack === "next") {
+      const configured =
+        stack === "next"
+          ? (() => {
+              const envPath = join(appRoot, ".env");
+              if (!existsSync(envPath)) return false;
+              const values = parseEnvFile(readFileSync(envPath, "utf8"));
+              return Boolean(values.get("UPSTASH_REDIS_REST_URL") && values.get("UPSTASH_REDIS_REST_TOKEN"));
+            })()
+          : (() => {
+              const configPath = ["wrangler.jsonc", "wrangler.json", "wrangler.toml"].map((name) => join(appRoot, name)).find((path) => existsSync(path));
+              return configPath ? /FLARE_RATE_LIMIT/.test(readFileSync(configPath, "utf8")) : false;
+            })();
+      findings.push(checkRateLimitBackend(declaredRates, configured, stack));
+    }
 
     const open = resourcesWithoutPolicy(resources, policies);
     findings.push(

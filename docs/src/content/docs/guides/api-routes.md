@@ -178,6 +178,77 @@ because a page of JSON is no use to somebody reading it, but an API request gets
 the envelope.
 :::
 
+## Rate limits
+
+A descriptor says how often each action may be called:
+
+```ts
+// resources/invitation.resource.ts
+export default defineResource({
+  name: "Invitation",
+  fields: { email: field.string({ format: "email" }) },
+  rateLimit: { create: "10/min", "*": "120/min" },
+});
+```
+
+The named action wins over `*`, so that reads as "ten creates a minute, a
+hundred and twenty of anything else". Write it as `calls/window`: `10/min`,
+`5/s`, `500/hour`, `200/day`, or with a count — `30/5min`. A rate that cannot be
+read stops `flare gen` rather than leaving the action quietly unlimited.
+
+The generated route checks it straight after the policy, so a refused call costs
+nothing but the count:
+
+```
+HTTP/1.1 429
+retry-after: 37
+x-ratelimit-limit: 10
+x-ratelimit-remaining: 0
+
+{ "error": "Too many requests. Try again shortly.", "code": "rate_limited" }
+```
+
+**Counted per caller** — the signed-in account where there is one, the client IP
+otherwise. So a limit on `create` is a limit on that person, not on everyone in
+one office; anonymous callers behind one address share a bucket, which is the
+right trade for an endpoint that does not know who is calling.
+
+**After the policy, deliberately.** A request that is going to be refused anyway
+should not spend somebody's quota, and the caller is not known until then. A
+flood with no session is the edge's job, not this one's — see
+[security](/guides/security/).
+
+**Set it on the actions that cost something.** A create that sends an email, an
+export that reads the whole table. A blanket limit on everything is what the
+edge limiter is for.
+
+### Where the counting happens
+
+| Stack | Counter |
+| --- | --- |
+| Cloudflare | A Durable Object, `FLARE_RATE_LIMIT` in `wrangler.jsonc` |
+| Next.js | Redis, through `lib/redis.ts` (`UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`) |
+
+Both are in `lib/rate-limit.ts` in your app and both are yours to replace.
+
+One Durable Object per resource *and action*, holding a count per caller — not
+one per caller, which would be an invoice rather than a feature. Counters live
+in memory, so an eviction restarts the window and lets a caller through a little
+early. That is the right trade for stopping one account hammering one endpoint;
+a limit that has to hold exactly — a paid quota — belongs in the database beside
+the thing it is metering.
+
+Cloudflare has its own rate-limiting binding and it is cheaper than this, but
+its window may only be 10 or 60 seconds and its limit is fixed in the Worker's
+configuration rather than per call. A descriptor saying `"500/hour"` would work
+on one stack and not the other, and that is the one thing Flare does not do.
+
+**If nothing is configured, nothing is limited.** The route says so in the log,
+once, rather than refusing every request — and `flare doctor` reports it as a
+problem, which is where to find it before deploying. If the counter is
+unreachable the call is allowed: an outage in the limiter should not become an
+outage in the app.
+
 ## CORS
 
 **By default there is none, and that is deliberate.** The API is for your own

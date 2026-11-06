@@ -16,6 +16,13 @@
         // Object instance created on demand; wrangler provisions nothing upfront.
         "name": "FLARE_REALTIME",
         "class_name": "RealtimeChannel"
+      },
+      {
+        // Rate limit counters (see lib/rate-limit.ts). One instance per resource and
+        // action, holding a count per caller — so a limited endpoint costs one object
+        // request, not one per person calling it.
+        "name": "FLARE_RATE_LIMIT",
+        "class_name": "RateLimitCounter"
       }
     ]
   },
@@ -23,6 +30,10 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["RealtimeChannel"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["RateLimitCounter"]
     }
   ],
   "d1_databases": [

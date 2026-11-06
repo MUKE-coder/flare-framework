@@ -56,6 +56,10 @@
       "types": "./dist/security/index.d.ts",
       "import": "./dist/security/index.js"
     },
+    "./rate-limit/server": {
+      "types": "./dist/rate-limit/server.d.ts",
+      "import": "./dist/rate-limit/server.js"
+    },
     "./security/server": {
       "types": "./dist/security/worker.d.ts",
       "import": "./dist/security/worker.js"

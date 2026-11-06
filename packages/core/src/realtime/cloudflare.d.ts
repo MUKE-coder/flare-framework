@@ -30,6 +30,11 @@ declare module "cloudflare:workers" {
     delete(key: string): Promise<boolean>;
     deleteAll(): Promise<void>;
     list<T = unknown>(options?: { prefix?: string }): Promise<Map<string, T>>;
+    /** The scheduled alarm time in epoch milliseconds, or null when none is set. */
+    getAlarm(): Promise<number | null>;
+    /** Wake the object at this time (epoch milliseconds) and run its `alarm()`. */
+    setAlarm(scheduledTime: number | Date): Promise<void>;
+    deleteAlarm(): Promise<void>;
   };
 
   export interface DurableObjectState {

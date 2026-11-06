@@ -45,6 +45,12 @@ Presentation and validation options — `label`, `helpText`, `placeholder`,
 `pattern`, `format`, `optionLabels`, `maxBytes` — are read at request time,
 so changing them is just an edit and a save.
 
+`rateLimit` is almost one of those: it is read at request time, but a route
+only consults it if one was declared when the route was generated. Adding
+`rateLimit` to a descriptor for the first time, or taking the last one away,
+needs a `flare sync-types`; changing a limit that is already there does not.
+See [rate limits](/guides/api-routes/#rate-limits).
+
 Storage options — the field's kind, `required`, `unique`, `default`,
 relation targets, `onDelete` — change the underlying column, so they need
 a migration (`npx flare gen resource <Name> --fields "..."` again, or

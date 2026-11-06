@@ -8,6 +8,7 @@ export default defineConfig({
     "src/react.ts",
     "src/realtime/client.ts",
     "src/realtime/server.ts",
+    "src/rate-limit/server.ts",
     "src/security/index.ts",
     "src/security/worker.ts",
   ],

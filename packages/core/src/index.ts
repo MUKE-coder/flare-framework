@@ -25,6 +25,20 @@ export {
   type ReadUrlOptions,
 } from "./storage.js";
 export { sniffMatches, SNIFF_BYTES } from "./sniff.js";
+// Rate limiting per resource and action.
+export {
+  fixedWindow,
+  parseRate,
+  rateFor,
+  rateLimitKey,
+  ratesIn,
+  RateSyntaxError,
+  type Rate,
+  type RateLimitConfig,
+  type RateLimitDecision,
+  type RateLimitedAction,
+  type RateLimitStore,
+} from "./rate-limit.js";
 // One error envelope for the whole API. In the main entry rather than the server one
 // because the copied engine reads it, and the engine never imports @flaredev/core/server.
 export {

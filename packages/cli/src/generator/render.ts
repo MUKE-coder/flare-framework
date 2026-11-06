@@ -1,4 +1,4 @@
-import { camelCase, columnName, defaultAuthUserOnDelete, isAuthUserTarget, relationGraph, type Resource, type StoredField, storedFields } from "@flaredev/core";
+import { camelCase, columnName, defaultAuthUserOnDelete, isAuthUserTarget, rateFor, type RateLimitedAction, ratesIn, relationGraph, type Resource, type StoredField, storedFields } from "@flaredev/core";
 import type { Stack } from "../stack.js";
 import type { LoadedResource } from "./load.js";
 
@@ -224,7 +224,7 @@ export function renderRelations(all: LoadedResource[]): string {
  * The adapter is named rather than implied — it is the one thing about these routes
  * that differs between stacks, so it is written out where you can see it.
  */
-const routeHeader = (entry: LoadedResource, stack: Stack) => {
+const routeHeader = (entry: LoadedResource, stack: Stack, actions: RateLimitedAction[]) => {
   const local = resourceLocal(entry.stem);
   const source =
     stack === "next"
@@ -239,13 +239,16 @@ const routeHeader = (entry: LoadedResource, stack: Stack) => {
           rows: `drizzleRows(${tableExport(entry.resource)}, getDb)`,
         };
   const adapter = stack === "next" ? "prismaRows" : "drizzleRows";
+  // Imported only when one of this route's own actions is limited, so neither an
+  // unlimited resource nor the half of a limited one that is unlimited mentions it.
+  const limited = actions.some((action) => rateFor(entry.resource.rateLimit, action));
 
   return (helpers: string[]) => [
     // PROBLEM_CODES rides along with the rest: a route takes everything from the app's
     // own engine, never from the framework it was copied out of.
     `import { createResourceStore, ${[adapter, ...(helpers.includes("problem") ? ["PROBLEM_CODES"] : []), ...helpers].join(", ")} } from "@/lib/resource";`,
     ...source.imports,
-    `import { authorize, currentUser, policyFor } from "@/lib/api";`,
+    `import { ${["authorize", ...(limited ? ["rateLimitGuard"] : []), "currentUser", "policyFor"].join(", ")} } from "@/lib/api";`,
     `import { revalidateResource } from "@/lib/cache";`,
     `import ${local} from "@/resources/${entry.stem}.resource";`,
     "",
@@ -263,6 +266,21 @@ const routeHeader = (entry: LoadedResource, stack: Stack) => {
 };
 
 /**
+ * The rate-limit check for one action, or nothing when the descriptor sets no limit.
+ *
+ * Generated per action rather than always, so a resource with no limits produces exactly
+ * the route it produced before — there is no cost, and nothing to read, for a feature
+ * that is not in use.
+ */
+function limiter(entry: LoadedResource, local: string, action: RateLimitedAction, indent: string): string[] {
+  if (!rateFor(entry.resource.rateLimit, action)) return [];
+  return [
+    `${indent}const tooMany = await rateLimitGuard({ request, resource: ${local}, action: ${JSON.stringify(action)} });`,
+    `${indent}if (tooMany) return tooMany;`,
+  ];
+}
+
+/**
  * `app/api/<slug>/route.ts`: GET list, POST create.
  *
  * Written out rather than delegated. Every step a request goes through is here —
@@ -274,11 +292,12 @@ export function renderCollectionRoute(entry: LoadedResource, stack: Stack = "clo
   const local = resourceLocal(entry.stem);
   const plural = entry.resource.pluralLabel.toLowerCase();
   return [
-    ...routeHeader(entry, stack)(["crossOrigin", "drain", "failureResponse", "problem", "readJson", "respond"]),
+    ...routeHeader(entry, stack, ["list", "create"])(["crossOrigin", "drain", "failureResponse", "problem", "readJson", "respond"]),
     `/** GET /api/${entry.resource.slug} — list ${plural}. Query: page, perPage, sort, q, filter[field], cursor. */`,
     `export async function GET(request: Request): Promise<Response> {`,
     `  const denied = await authorize({ request, resource: ${local}, action: "list" });`,
     `  if (denied) return denied;`,
+    ...limiter(entry, local, "list", "  "),
     "",
     `  return respond(await store.list(new URL(request.url).searchParams));`,
     `}`,
@@ -288,6 +307,7 @@ export function renderCollectionRoute(entry: LoadedResource, stack: Stack = "clo
     `  try {`,
     `    const denied = await authorize({ request, resource: ${local}, action: "create" });`,
     `    if (denied) return denied;`,
+    ...limiter(entry, local, "create", "    "),
     `    if (crossOrigin(request)) return problem(403, "Cross-origin request blocked.", PROBLEM_CODES.crossOriginBlocked);`,
     "",
     `    const read = await readJson(request);`,
@@ -311,13 +331,14 @@ export function renderCollectionRoute(entry: LoadedResource, stack: Stack = "clo
 export function renderItemRoute(entry: LoadedResource, stack: Stack = "cloudflare"): string {
   const local = resourceLocal(entry.stem);
   const one = entry.resource.label.toLowerCase();
-  const write = (method: string, action: string, call: string, doc: string) => [
+  const write = (method: string, action: RateLimitedAction, call: string, doc: string) => [
     `/** ${doc} */`,
     `export async function ${method}(request: Request, context: RouteContext): Promise<Response> {`,
     `  try {`,
     `    const { id } = await context.params;`,
     `    const denied = await authorize({ request, resource: ${local}, action: "${action}", id });`,
     `    if (denied) return denied;`,
+    ...limiter(entry, local, action, "    "),
     `    if (crossOrigin(request)) return problem(403, "Cross-origin request blocked.", PROBLEM_CODES.crossOriginBlocked);`,
     "",
     ...call.split("\n"),
@@ -329,12 +350,13 @@ export function renderItemRoute(entry: LoadedResource, stack: Stack = "cloudflar
   ];
 
   return [
-    ...routeHeader(entry, stack)(["crossOrigin", "drain", "failureResponse", "problem", "readJson", "respond", "type RouteContext"]),
+    ...routeHeader(entry, stack, ["read", "update", "delete"])(["crossOrigin", "drain", "failureResponse", "problem", "readJson", "respond", "type RouteContext"]),
     `/** GET /api/${entry.resource.slug}/[id] — read one ${one}. */`,
     `export async function GET(request: Request, context: RouteContext): Promise<Response> {`,
     `  const { id } = await context.params;`,
     `  const denied = await authorize({ request, resource: ${local}, action: "read", id });`,
     `  if (denied) return denied;`,
+    ...limiter(entry, local, "read", "  "),
     "",
     `  return respond(await store.get(id));`,
     `}`,

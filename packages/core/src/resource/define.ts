@@ -1,4 +1,5 @@
 import { STRING_FORMATS, type CreateInput, type Field, type RecordOf, type StoredField, type UpdateInput } from "./fields.js";
+import { parseRate, type RateLimitConfig } from "../rate-limit.js";
 import { camelCase, humanize, kebabCase, pascalCase, pluralize, snakeCase } from "./naming.js";
 
 export const RESERVED_FIELD_NAMES = ["id", "createdAt", "updatedAt", "deletedAt"] as const;
@@ -41,6 +42,18 @@ export interface ResourceConfig<Fields extends Record<string, Field>> {
    * decision rather than an accident.
    */
   softDelete?: boolean;
+  /**
+   * How often each action may be called, per signed-in account (or per IP when there is
+   * nobody signed in):
+   *
+   *     rateLimit: { create: "10/min", "*": "120/min" }
+   *
+   * The named action wins over `*`. Enforced in the generated route, before the store is
+   * touched, so a refused call costs nothing but the count. Worth setting on the actions
+   * that cost something — a create that sends an email, an export that reads the whole
+   * table — rather than on everything.
+   */
+  rateLimit?: RateLimitConfig;
   /**
    * Your logic, beside the fields it belongs to. Every write — the REST API, the
    * dashboard's forms, a seed, an import — goes through the same store, so a hook here
@@ -97,6 +110,8 @@ export interface Resource<Fields extends Record<string, Field> = Record<string, 
   perPage: number;
   /** Deleted records are kept and hidden, not removed. See ResourceConfig.softDelete. */
   softDelete: boolean;
+  /** How often each action may be called. See ResourceConfig.rateLimit. */
+  rateLimit?: RateLimitConfig;
   /** Fields with labels filled in. */
   fields: Fields & Record<string, Field & { label: string }>;
   /** Type-only helpers: `typeof contact.$types.record`. Always undefined at runtime. */
@@ -135,6 +150,24 @@ export class ResourceDefinitionError extends Error {
 }
 
 const IDENTIFIER = /^[a-z][A-Za-z0-9]*$/;
+
+/**
+ * Every rate a descriptor declares, checked by parsing it.
+ *
+ * Returns the config unchanged; it is the parse that matters. A typo in `"10/mni"` should
+ * stop the generator, not reach a route and leave the action unlimited.
+ */
+function validateRateLimit(name: string, config: RateLimitConfig): RateLimitConfig {
+  for (const [action, spec] of Object.entries(config)) {
+    if (typeof spec !== "string") continue;
+    try {
+      parseRate(spec);
+    } catch (error) {
+      throw new ResourceDefinitionError(name, `rateLimit.${action}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  return config;
+}
 
 /** Label for a field key; belongsTo keys drop their "Id" suffix ("companyId" → "Company"). */
 export function defaultFieldLabel(key: string, field: Field): string {
@@ -211,6 +244,9 @@ export function defineResource<const Fields extends Record<string, Field>>(confi
     defaultSort,
     perPage,
     softDelete: config.softDelete === true,
+    // Parsed here rather than in the route, so a rate that cannot be read is an error at
+    // `flare gen` with the descriptor in front of you, not a surprise in production.
+    ...(config.rateLimit ? { rateLimit: validateRateLimit(config.name, config.rateLimit) } : {}),
     fields: fields as Resource<Fields>["fields"],
     $types: undefined as unknown as Resource<Fields>["$types"],
   };
