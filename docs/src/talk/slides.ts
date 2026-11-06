@@ -60,6 +60,7 @@ export const slides: Slide[] = [
       "[`DGateway`](https://dgateway.desispay.com/) — MTN, Airtel and Stripe payments, over **100M** in transactions",
       "[`Flare`](https://flare-docs.codetotech.com) — the framework this talk is about",
       "[`Grit`](https://gritframework.dev) — its Go sibling",
+      "**10,310** contributions across 567 repositories — [12+ open source projects](https://jb.desishub.com/opensource)",
       "[JB WEB DEVELOPER](https://www.youtube.com/@JBWEBDEVELOPER) on YouTube — **16K** subscribers",
     ],
     links:

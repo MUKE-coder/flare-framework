@@ -204,7 +204,8 @@ const md = (text: string) =>
 
       .portrait { display: grid; grid-template-columns: 420px 1fr; gap: 90px; align-items: center; }
       .portrait img { width: 420px; height: 420px; object-fit: cover; border-radius: 28px; border: 1px solid var(--s-rule); display: block; }
-      .facts { list-style: none; margin: 36px 0 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+      /* Eight facts is the most this slide holds; the gap is sized for that. */
+      .facts { list-style: none; margin: 30px 0 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
       .facts li { font-size: 31px; color: var(--s-body); line-height: 1.35; padding-left: 34px; position: relative; }
       .facts li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 14px; height: 2px; background: var(--s-ember); }
       .portrait-links { font-family: var(--mono); font-size: 25px; color: var(--s-muted); margin: 34px 0 0; }
