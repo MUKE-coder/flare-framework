@@ -129,7 +129,13 @@ describe("createApp", () => {
     expect(pkg.dependencies["better-auth"]).toBeDefined();
     expect(pkg.dependencies["@better-auth/drizzle-adapter"]).toBeDefined();
     const devVars = readFileSync(join(dir, ".dev.vars"), "utf8");
-    expect(devVars).toMatch(/^BETTER_AUTH_SECRET=[A-Za-z0-9+/]{43}=\nRESEND_API_KEY=\nMAIL_FROM=\n$/);
+    // No longer anchored to the end: the storage block for the chosen driver follows.
+    expect(devVars).toMatch(/^BETTER_AUTH_SECRET=[A-Za-z0-9+/]{43}=\nRESEND_API_KEY=\nMAIL_FROM=\n/);
+    // r2 is the default, and the bound bucket needs nothing — so there is a driver line
+    // and no credentials to go and find.
+    expect(devVars).toContain("STORAGE_DRIVER=r2");
+    expect(devVars).toContain("nothing to configure");
+    expect(devVars).not.toContain("R2_ACCESS_KEY_ID");
     const auth = readFileSync(join(dir, "lib/auth.ts"), "utf8");
     expect(auth).toContain('"shop.*.workers.dev"');
     expect(auth).toContain("hash: hashPassword");

@@ -82,13 +82,23 @@ export default defineConfig({
           ],
         },
         {
+          label: "Storage providers",
+          items: [
+            { label: "Where files go", slug: "storage" },
+            { label: "Cloudflare R2", slug: "storage/r2" },
+            { label: "Local disk", slug: "storage/disk" },
+            { label: "Cloudinary", slug: "storage/cloudinary" },
+            { label: "UploadThing", slug: "storage/uploadthing" },
+          ],
+        },
+        {
           label: "Guides",
           items: [
             { label: "Authentication", slug: "guides/auth" },
             { label: "Themes", slug: "guides/themes" },
             { label: "Relationships", slug: "guides/relationships" },
             { label: "File uploads", slug: "guides/file-uploads" },
-            { label: "File storage (R2)", slug: "guides/storage" },
+            { label: "How signed URLs work", slug: "guides/storage" },
             { label: "Email (Resend)", slug: "guides/mail" },
             { label: "Roles & policies", slug: "guides/roles-and-policies" },
             { label: "API keys", slug: "guides/api-keys" },

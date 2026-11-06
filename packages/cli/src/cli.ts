@@ -69,6 +69,7 @@ export function createCli() {
     .option("--pm <manager>", "Package manager: pnpm, npm, yarn, or bun (default: detected)")
     .option("--stack <name>", "Where it runs: next (default) or cloudflare")
     .option("--signup <mode>", "Who may create an account: open (default), invite or closed")
+    .option("--storage <provider>", "Where uploads go: r2 (default), disk (Next.js only), cloudinary or uploadthing")
     .option("--theme <name>", "Look of the app: default, coral, amber, sky, mono or emerald")
     .option("--auth <list>", "Sign-in methods: magic-link, email-otp, passkeys, 2fa-app, 2fa-email, all or none (default: all)")
     .option("--auth-providers <list>", "Social sign-in, comma-separated: google, github, apple, microsoft")
@@ -77,13 +78,30 @@ export function createCli() {
     .example("flare create shop")
     .example("flare create shop --stack next")
     .example("flare create shop --theme mono --auth passkeys,2fa-app --auth-providers google,github --yes")
+    .example("flare create shop --storage cloudinary")
     .action(
       async (
         dir: string,
-        options: { pm?: string; stack?: string; signup?: string; skipInstall?: boolean; authProviders?: string; auth?: string; theme?: string; yes?: boolean },
+        options: {
+          pm?: string;
+          stack?: string;
+          signup?: string;
+          storage?: string;
+          skipInstall?: boolean;
+          authProviders?: string;
+          auth?: string;
+          theme?: string;
+          yes?: boolean;
+        },
       ) => {
       const wanted = !options.skipInstall;
-      let answers: CreateAnswers = { stack: options.stack, theme: options.theme, auth: options.auth, authProviders: options.authProviders };
+      let answers: CreateAnswers = {
+        stack: options.stack,
+        storage: options.storage,
+        theme: options.theme,
+        auth: options.auth,
+        authProviders: options.authProviders,
+      };
       if (canPrompt(options.yes)) answers = await askCreateQuestions(answers, toAppName(dir));
       // Not asked for in the prompts: `open` is right for most apps and changing it is one
       // line in lib/auth-config.ts, so it is a flag rather than another question.

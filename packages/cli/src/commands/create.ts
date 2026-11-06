@@ -5,6 +5,13 @@ import * as prompts from "@clack/prompts";
 import pc from "picocolors";
 import { FLARE_VERSION } from "@flaredev/core";
 import { devVarsEntries, devVarsExampleEntries, parseAuthMethods, parseAuthProviders, renderAuthConfig, type SignupMode } from "../auth-providers.js";
+import {
+  parseStorage,
+  storageEnv,
+  storageEnvExample,
+  storageSetupSteps,
+  type StorageProviderName,
+} from "../storage-providers.js";
 import { parseTheme } from "../themes.js";
 import {
   APP_DEPENDENCIES,
@@ -36,6 +43,8 @@ export interface CreateOptions {
   stack?: string;
   /** Who may create an account: "open" (default), "invite" or "closed". */
   signup?: string;
+  /** Where uploads go: "r2" (default), "disk" (Next.js only), "cloudinary" or "uploadthing". */
+  storage?: string;
 }
 
 /**
@@ -61,6 +70,9 @@ export interface CreateResult {
   name: string;
   packageManager: PackageManager;
   inWorkspace: boolean;
+  stack: Stack;
+  /** Where uploads go, so the next steps can say what it still needs. */
+  storage: StorageProviderName;
 }
 
 /** Turn a directory name into a valid package / Worker name (lowercase, alphanumerics and dashes). */
@@ -131,6 +143,9 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   const authMethods = parseAuthMethods(options.auth);
   const theme = parseTheme(options.theme);
   const signup = parseSignup(options.signup);
+  // Parsed against the stack: `disk` cannot run on a Worker, and saying so now beats an
+  // app that is created and then cannot upload anything.
+  const storage = parseStorage(options.storage, stack);
 
   // When scaffolding inside an existing pnpm workspace (e.g. this repo's examples/),
   // the app joins that workspace instead of becoming its own root.
@@ -155,7 +170,20 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   writeFileSync(join(dir, "lib", "auth-config.ts"), renderAuthConfig(authMethods, authProviders, signup));
   // The committed example of the secrets file, which is a different file per stack —
   // and on Next.js .dev.vars.example was just removed, so appending would bring it back.
-  appendFileSync(join(dir, stack === "next" ? ".env.example" : ".dev.vars.example"), devVarsExampleEntries(authProviders));
+  // The disk driver writes files into the repository, so the directory it writes to has
+  // to be ignored before anybody uploads anything. Only for that driver: an app using a
+  // bucket has no such directory, and an ignore rule for a path that does not exist is
+  // the kind of line nobody can later explain.
+  if (storage === "disk") {
+    appendFileSync(join(dir, ".gitignore"), `
+# Uploads (STORAGE_DRIVER=disk)
+storage/
+`);
+  }
+
+  const exampleEnv = join(dir, stack === "next" ? ".env.example" : ".dev.vars.example");
+  appendFileSync(exampleEnv, devVarsExampleEntries(authProviders));
+  appendFileSync(exampleEnv, storageEnvExample(storage, stack));
 
   const shared = { react: APP_DEPENDENCIES.react, "react-dom": APP_DEPENDENCIES["react-dom"] };
   // Everything a Next.js app shares with the Cloudflare one: the UI packages, auth, the
@@ -212,7 +240,11 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   writeFileSync(
     join(dir, stack === "next" ? ".env" : ".dev.vars"),
     `BETTER_AUTH_SECRET=${randomBytes(32).toString("base64")}\nRESEND_API_KEY=\nMAIL_FROM=\n${devVarsEntries(authProviders)}` +
-      (stack === "next" ? `\n${LOCAL_SERVICES}` : ""),
+      (stack === "next" ? `\n${LOCAL_SERVICES}` : "") +
+      // The chosen driver, with the local values filled in where it has them — so the
+      // default still needs nothing but `docker compose up -d`, and a provider with
+      // credentials arrives with the link to where they live rather than a bare name.
+      `\n${storageEnv(storage, stack, { local: true })}`,
   );
 
   if (packageManager === "pnpm" && !inWorkspace) {
@@ -242,7 +274,7 @@ ${ALLOW_BUILDS}
   // with pnpm unless told otherwise, and minutes of silence would be worse than a line.
   if (prefersPnpm) log(pc.dim(`Installing with pnpm — far quicker for an app this size. Use ${pc.bold("--pm npm")} to change that.`));
 
-  return { dir, name, packageManager, inWorkspace };
+  return { dir, name, packageManager, inWorkspace, stack, storage };
 }
 
 /**
@@ -252,31 +284,15 @@ ${ALLOW_BUILDS}
 /**
  * Addresses of the services in docker-compose.yml, written into a new Next.js app's
  * `.env` so there is nothing to edit before the first `pnpm dev`.
+ *
+ * Storage is not here: the driver and its variables come from `--storage` (see
+ * storage-providers.ts), so the file has one `STORAGE_DRIVER` line and it is the one that
+ * was asked for rather than a default plus three commented alternatives.
  */
 export const LOCAL_SERVICES = [
   "# Local services (docker-compose.yml). Swap these for Neon, R2 and Upstash to deploy.",
   "DATABASE_URL=postgresql://flare:flare@127.0.0.1:5432/app",
   "BETTER_AUTH_URL=http://localhost:3000",
-  "",
-  "# Where uploads go: r2 (S3-compatible, the default), disk, cloudinary or uploadthing.",
-  "# Each driver is a readable file in lib/storage/ — see the file-uploads guide.",
-  "STORAGE_DRIVER=r2",
-  "R2_ENDPOINT=http://127.0.0.1:9000",
-  "R2_BUCKET=app-uploads",
-  "R2_ACCESS_KEY_ID=flare",
-  "R2_SECRET_ACCESS_KEY=flare-secret-123",
-  "",
-  '# STORAGE_DRIVER=disk   # no account, no network; one machine only. Default storage/app.',
-  "# STORAGE_DIR=storage/app",
-  "",
-  "# STORAGE_DRIVER=cloudinary",
-  "# CLOUDINARY_CLOUD_NAME=",
-  "# CLOUDINARY_API_KEY=",
-  "# CLOUDINARY_API_SECRET=",
-  "",
-  "# STORAGE_DRIVER=uploadthing   # needs: pnpm add uploadthing",
-  "# UPLOADTHING_TOKEN=",
-  "# UPLOADTHING_APP_ID=",
   "",
   "# Cloudinary and UploadThing serve files from their own CDN, so a read URL is public",
   "# and does not expire. Set this to keep every read signed and proxied by the app.",
@@ -325,5 +341,14 @@ export function printNextSteps(result: CreateResult, installed: boolean) {
   const width = Math.max(...commands.map(([command]) => command.length)) + 2;
   const steps = commands.map(([command, note]) => `${pc.cyan(command.padEnd(width))}${pc.dim(note)}`);
   prompts.note(steps.join("\n"), "Next");
+
+  // Only when the chosen storage needs something before an upload will work. The default
+  // needs nothing, which is the point of it being the default — and a note about
+  // credentials nobody has to fetch would train people to skip these.
+  const storage = storageSetupSteps(result.storage, result.stack);
+  if (storage.length > 0) {
+    prompts.note(storage.map((line) => (line.startsWith("http") ? pc.cyan(line) : line)).join("\n"), `Uploads · ${result.storage}`);
+  }
+
   prompts.outro(`${pc.bold(result.name)} is ready ${pc.dim("·")} ${pc.cyan("https://flare-docs.codetotech.com/start/quickstart/")}`);
 }

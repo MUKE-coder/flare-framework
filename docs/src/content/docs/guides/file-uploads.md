@@ -272,10 +272,15 @@ is whatever `docker compose up` or your `R2_*` variables point at.
 
 | `STORAGE_DRIVER` | What it is | Needs | Stack |
 | --- | --- | --- | --- |
-| `r2` *(default)* | The bound bucket on Cloudflare. On Next.js, anything S3-compatible: R2, MinIO, B2, S3 | nothing on Cloudflare; four `R2_*` variables on Next.js | both |
-| `disk` | The local filesystem, like Laravel's `local` disk | nothing | Next.js |
-| `cloudinary` | A CDN with an image pipeline | three `CLOUDINARY_*` variables | both |
-| `uploadthing` | A CDN with an uploader | a token, an app id, and `pnpm add uploadthing` | both |
+| [`r2`](/storage/r2/) *(default)* | The bound bucket on Cloudflare. On Next.js, anything S3-compatible: R2, MinIO, B2, S3 | nothing on Cloudflare; four `R2_*` variables on Next.js | both |
+| [`disk`](/storage/disk/) | The local filesystem, like Laravel's `local` disk | nothing | Next.js |
+| [`cloudinary`](/storage/cloudinary/) | A CDN with an image pipeline | three `CLOUDINARY_*` variables | both |
+| [`uploadthing`](/storage/uploadthing/) | A CDN with an uploader | a token, an app id, and `pnpm add uploadthing` | both |
+
+`flare create` asks which one you want and writes it into the app's env file with
+the variables it needs. Each provider has a page of its own covering the account,
+the dashboard screens and where every value comes from — see
+[storage providers](/storage/).
 
 `disk` is the one exception: a Worker has no filesystem to write to, and the
 bound bucket already covers what it is for.
@@ -306,6 +311,8 @@ become ordinary private storage with a good pipeline attached.
 
 ### r2 — the default
 
+[Full setup: Cloudflare R2](/storage/r2/)
+
 On **Cloudflare**, nothing to do: the app is bound to a `STORAGE` bucket that
 Wrangler provisions on first deploy and simulates locally as a directory.
 
@@ -325,6 +332,8 @@ shows what was uploaded. MinIO speaks S3, so this is the same code path you
 deploy.
 
 ### disk — no account, no network
+
+[Full setup: local disk](/storage/disk/)
 
 Next.js only.
 
@@ -349,6 +358,8 @@ saying so, rather than failing an upload for no stated reason.
 
 ### cloudinary
 
+[Full setup: Cloudinary](/storage/cloudinary/)
+
 ```ini
 STORAGE_DRIVER=cloudinary
 CLOUDINARY_CLOUD_NAME=…
@@ -366,6 +377,8 @@ rather than leaving the old bytes cached at the edge under a URL you have
 already handed out.
 
 ### uploadthing
+
+[Full setup: UploadThing](/storage/uploadthing/)
 
 ```bash
 pnpm add uploadthing

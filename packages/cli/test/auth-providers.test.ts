@@ -72,7 +72,8 @@ describe("create with auth and theme choices", () => {
   it("writes the chosen providers, env placeholders and callback docs", () => {
     const { config, devVars, example, auth } = scaffold({ authProviders: "google,microsoft" });
     expect(config).toContain('social: ["google", "microsoft"] as SocialProvider[],');
-    expect(devVars).toMatch(/GOOGLE_CLIENT_ID=\nGOOGLE_CLIENT_SECRET=\nMICROSOFT_CLIENT_ID=\nMICROSOFT_CLIENT_SECRET=\n$/);
+    // No longer anchored to the end: the storage block follows the auth providers.
+    expect(devVars).toMatch(/GOOGLE_CLIENT_ID=\nGOOGLE_CLIENT_SECRET=\nMICROSOFT_CLIENT_ID=\nMICROSOFT_CLIENT_SECRET=\n/);
     expect(example).toContain("# Callback URL: <your app URL>/api/auth/callback/google");
     expect(example).toContain("MICROSOFT_TENANT_ID=");
     expect(auth).not.toMatch(/__[A-Z_]+__/);

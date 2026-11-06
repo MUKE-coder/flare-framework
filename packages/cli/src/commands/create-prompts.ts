@@ -3,6 +3,7 @@ import pc from "picocolors";
 import { FLARE_VERSION } from "@flaredev/core";
 import { AUTH_METHODS, AUTH_PROVIDERS, DEFAULT_AUTH_METHODS, type AuthMethod, type AuthProvider } from "../auth-providers.js";
 import { STACK_LABELS, STACKS, type Stack } from "../stack.js";
+import { DEFAULT_STORAGE, STORAGE_PROVIDERS, storageHint, storageProvidersFor, type StorageProviderName } from "../storage-providers.js";
 import { THEMES, type ThemeName } from "../themes.js";
 
 export interface CreateAnswers {
@@ -10,6 +11,7 @@ export interface CreateAnswers {
   theme?: string;
   auth?: string;
   authProviders?: string;
+  storage?: string;
 }
 
 /** Whether `flare create` may ask questions: a real terminal, and not told to skip them. */
@@ -44,9 +46,9 @@ function stopIfCancelled<T>(value: T): Exclude<T, symbol> {
 }
 
 /**
- * Ask for the stack, the theme, the sign-in methods and the social providers, skipping
- * any the command line already answered (`--stack`, `--theme`, `--auth`,
- * `--auth-providers`).
+ * Ask for the stack, where uploads go, the theme, the sign-in methods and the social
+ * providers, skipping any the command line already answered (`--stack`, `--storage`,
+ * `--theme`, `--auth`, `--auth-providers`).
  */
 export async function askCreateQuestions(given: CreateAnswers, appName?: string): Promise<CreateAnswers> {
   prompts.intro(`${pc.bgRed(pc.white(" Flare "))} ${pc.dim(`v${FLARE_VERSION}`)}${appName ? ` ${pc.dim("·")} ${pc.bold(appName)}` : ""}`);
@@ -60,6 +62,23 @@ export async function askCreateQuestions(given: CreateAnswers, appName?: string)
         message: "Where will it run?",
         initialValue: "next" satisfies Stack,
         options: STACKS.map((value) => ({ value, label: value === "next" ? "Next.js" : "Cloudflare", hint: STACK_LABELS[value] })),
+      }),
+    );
+  }
+
+  // After the stack, because the stack decides what is on offer: `disk` needs a
+  // filesystem, which a Worker does not have.
+  if (given.storage === undefined) {
+    const stack = (answers.stack ?? "next") as Stack;
+    answers.storage = stopIfCancelled(
+      await prompts.select<StorageProviderName>({
+        message: `Where do uploaded files go? ${pc.dim("you can change this later in one line")}`,
+        initialValue: DEFAULT_STORAGE,
+        options: storageProvidersFor(stack).map((value) => ({
+          value,
+          label: STORAGE_PROVIDERS[value].label,
+          hint: storageHint(value, stack),
+        })),
       }),
     );
   }

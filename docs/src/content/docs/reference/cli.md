@@ -7,13 +7,16 @@ Short, `wrangler`-consistent verbs. Every command below accepts `--help`.
 
 ## `flare create <dir>`
 
-Scaffold a new app. In a terminal it asks where the app will run, then for
-the theme, the sign-in methods and the social providers; flags answer those
-questions up front, and `--yes` skips any left unanswered.
+Scaffold a new app. In a terminal it asks where the app will run, where
+uploaded files go, then for the theme, the sign-in methods and the social
+providers; flags answer those questions up front, and `--yes` skips any left
+unanswered.
 
 | Flag | |
 | --- | --- |
-| `--stack <name>` | `cloudflare` (default) or `next` ([Choosing a stack](/start/stacks/)) |
+| `--stack <name>` | `next` (default) or `cloudflare` ([Choosing a stack](/start/stacks/)) |
+| `--storage <provider>` | Where uploads go: `r2` (default), `disk` (Next.js only), `cloudinary` or `uploadthing` ([Storage providers](/storage/)) |
+| `--signup <mode>` | Who may create an account: `open` (default), `invite` or `closed` ([Who may sign up](/guides/auth/#who-may-sign-up)) |
 | `--theme <name>` | `default`, `coral`, `amber`, `sky`, `mono` or `emerald` ([Themes](/guides/themes/)) |
 | `--auth <list>` | Sign-in methods: `magic-link`, `email-otp`, `passkeys`, `2fa-app`, `2fa-email`, or `all` (default) / `none` |
 | `--auth-providers <list>` | Social sign-in: `google`, `github`, `apple`, `microsoft` |
