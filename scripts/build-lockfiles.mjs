@@ -14,6 +14,10 @@
  * Only resolution runs (`--package-lock-only`, `--lockfile-only`) for npm and pnpm, so
  * nothing is downloaded. Run it whenever versions.ts or the packages' versions change,
  * before publishing — RELEASING.md has it in the release steps.
+ *
+ * The pnpm resolution runs under pnpm 12 by name rather than whatever is on PATH, so a
+ * version too new to install is never written into the lockfile in the first place. See
+ * the comment at the call.
  */
 import { execFileSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -81,8 +85,18 @@ for (const stack of stacks) {
     // enforces a 24-hour minimum release age on install, so every new app failed its first
     // command with ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION until those versions aged out.
     //
-    // This repo pins pnpm 11, which has no such policy, so nothing here could have caught it.
-    run("pnpm", ["install", "--lockfile-only"], app);
+    // Resolved by pnpm 12 by name, not by whatever `pnpm` is on PATH. That matters more
+    // than it reads: the policy is only ON if the resolver has one, and this repo pins
+    // pnpm 11, which does not. Under 11 the resolution happily picks a package published
+    // this morning, writes it into the lockfile, and the first thing pnpm 12 does with
+    // that lockfile is refuse it — which is exactly how @better-auth/core@1.7.18 got
+    // shipped eleven hours after it was published.
+    //
+    // Running 12 here makes the resolver obey the same cutoff the user's install will,
+    // so it picks the newest version that is actually old enough and the two can no
+    // longer disagree. npx rather than corepack, because corepack would hand back the
+    // pinned 11 inside this repo.
+    run("npx", ["--yes", "pnpm@12", "install", "--lockfile-only"], app);
     cpSync(join(app, "pnpm-lock.yaml"), join(locksDir, "pnpm-lock.yaml"));
     console.log(`✔ templates/locks/${stack}/pnpm-lock.yaml`);
 
