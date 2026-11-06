@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FileCell } from "@/components/dashboard/fields/file-cell";
 import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
-import { clientResource, formatValue, optionLabel, statusTone, storedFields, type Resource, type StoredField } from "@flaredev/core";
+import { clientResource, formatValue, isAuthUserTarget, optionLabel, statusTone, storedFields, type Resource, type StoredField } from "@flaredev/core";
 import { isSortable } from "@/lib/resource/query";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ import { ResourceTableToolbar } from "./resource-table-toolbar";
 import { SaveViewButton } from "./save-view-button";
 import { RowActions } from "./row-actions";
 import { RowCheckbox, SelectAllCheckbox, SelectionBar, TableSelection } from "./table-selection";
+import { AUTH_USER_RELATION } from "@/lib/user-titles";
 
 type Column = { key: string; label: string; def: StoredField | { kind: "timestamp" } };
 
@@ -92,6 +93,11 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
   const relations: Record<string, RelationMeta & { initialTitle?: string }> = {};
   for (const [key, def] of fields) {
     if (def.kind !== "belongsTo") continue;
+    if (isAuthUserTarget(def.target)) {
+      // The picker fills its own title from /api/users/<id>, so no lookup is needed here.
+      relations[key] = AUTH_USER_RELATION;
+      continue;
+    }
     const target = byName.get(def.target);
     if (!target) continue;
     relations[key] = { name: target.name, label: target.label, pluralLabel: target.pluralLabel, slug: target.slug, titleField: target.titleField };

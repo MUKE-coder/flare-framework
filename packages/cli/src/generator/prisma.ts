@@ -10,7 +10,7 @@
  * multiselect is a real `String[]` instead of a JSON blob, and an enum is a real
  * Postgres enum instead of a check constraint.
  */
-import { camelCase, columnName, enumMemberCollision, pascalCase, pluralize, prismaEnumMember as member, storedFields, type Resource, type StoredField } from "@flaredev/core";
+import { camelCase, columnName, defaultAuthUserOnDelete, enumMemberCollision, isAuthUserTarget, pascalCase, pluralize, prismaEnumMember as member, type Resource, type StoredField, storedFields } from "@flaredev/core";
 import type { LoadedResource } from "./load.js";
 
 const q = (value: unknown) => JSON.stringify(value);
@@ -135,6 +135,82 @@ export function backReferences(target: Resource, all: LoadedResource[]): BackRef
 }
 
 /**
+ * The relation name shared by both halves of a relation to Better Auth's User.
+ *
+ * Named rather than inferred because a resource with two of them — `reportedById` and
+ * `assignedToId` — is the ordinary case, and Prisma cannot tell two relations between
+ * the same pair of models apart without a name. Derived from the resource and the field,
+ * so it is stable across regenerations.
+ */
+export const authUserRelationName = (resource: string, key: string) => `${resource}_${key}`;
+
+/**
+ * The back-reference lines `model User` needs, one per `belongsTo("User")` field in the
+ * app, in a stable order.
+ *
+ * Prisma refuses a schema where one side of a relation is missing, and the missing side
+ * here is on a model Flare does not generate: User lives in base.prisma, which is the
+ * app's to edit. So the lines are produced here and spliced into a generated block
+ * inside that model — see `withAuthUserBackReferences`.
+ *
+ * `reporterId` on Item becomes `reporterItems Item[]`: the items where this user is the
+ * reporter. Keyed by resource and field, so two fields pointing at User from the same
+ * resource get two distinct back-references.
+ */
+export function authUserBackReferences(all: LoadedResource[]): string[] {
+  const lines: { field: string; line: string }[] = [];
+  for (const { resource } of all) {
+    for (const [key, def] of storedFields(resource)) {
+      if (def.kind !== "belongsTo" || !isAuthUserTarget(def.target)) continue;
+      const field = camelCase(`${key.replace(/Id$/, "")} ${pluralize(resource.name)}`);
+      lines.push({ field, line: `${field} ${resource.name}[] @relation(${q(authUserRelationName(resource.name, key))})` });
+    }
+  }
+  return lines.sort((a, b) => a.field.localeCompare(b.field)).map(({ line }) => line);
+}
+
+/**
+ * `base.prisma` with the User back-references in a generated block inside `model User`.
+ *
+ * base.prisma is the app's file — the datasource, the generator and the tables Better
+ * Auth needs are all in it, and Flare never rewrites it. But a relation to User has to
+ * have a side on User, so this splices just those lines in, between markers, and takes
+ * them back out when the last `belongsTo("User")` field goes away.
+ *
+ * Returns the source unchanged when there is nothing to do, so a caller can compare and
+ * leave the file alone. Returns null when it cannot find `model User` to edit, which is
+ * a thing to report rather than guess at.
+ */
+export function withAuthUserBackReferences(source: string, lines: string[]): string | null {
+  const text = source.replace(/\r\n/g, "\n");
+  const model = /(^|\n)(model User \{\n)([\s\S]*?)(\n\})/.exec(text);
+  if (!model) return null;
+
+  const body = model[3]!;
+  const marked = /\n?[ \t]*\/\/ generated:start[^\n]*\n[\s\S]*?[ \t]*\/\/ generated:end[^\n]*/;
+  const stripped = body.replace(marked, "");
+  if (lines.length === 0) {
+    return stripped === body ? text : text.slice(0, model.index + model[1]!.length) + model[2]! + stripped + model[4]! + text.slice(model.index + model[0]!.length);
+  }
+
+  // Before the trailing @@map/@@index attributes if there are any, so the block sits with
+  // the fields it belongs among rather than after the table's own configuration.
+  const attribute = /\n[ \t]*@@/.exec(stripped);
+  const cut = attribute ? attribute.index : stripped.length;
+  const block = [
+    "",
+    "  // generated:start",
+    "  // Back-references for belongsTo(\"User\") fields (maintained by flare gen). Prisma",
+    "  // needs both sides of a relation; the other side is in prisma/schema/resources.prisma.",
+    ...lines.map((line) => `  ${line}`),
+    "  // generated:end",
+  ].join("\n");
+  const rebuilt = stripped.slice(0, cut).replace(/\s*$/, "") + "\n" + block + "\n" + stripped.slice(cut).replace(/^\n/, "");
+  if (rebuilt === body) return text;
+  return text.slice(0, model.index + model[1]!.length) + model[2]! + rebuilt + model[4]! + text.slice(model.index + model[0]!.length);
+}
+
+/**
  * One `model` block.
  *
  * `all` is needed for two reasons: a belongsTo has to name a model that exists, and a
@@ -150,6 +226,12 @@ export function renderPrismaModel(entry: LoadedResource, all: LoadedResource[]):
     if (def.kind === "hasMany") {
       // Emitted below with the rest of the back-references, so a declared hasMany and an
       // undeclared one come out the same way and can't be written twice.
+      if (isAuthUserTarget(def.target)) {
+        throw new Error(
+          `${resource.name}.${key} is hasMany("User"), which Flare does not generate: Better Auth owns that table. ` +
+            `Put the relation on the other side — a ${key}: belongsTo("User") field on the resource that belongs to a user.`,
+        );
+      }
       if (!byName.get(def.target)) {
         throw new Error(`${resource.name}.${key} has many "${def.target}", but there is no ${def.target} resource. Generate it first.`);
       }
@@ -157,6 +239,25 @@ export function renderPrismaModel(entry: LoadedResource, all: LoadedResource[]):
     }
 
     if (def.kind === "belongsTo") {
+      if (isAuthUserTarget(def.target)) {
+        // Better Auth's User model, which lives in base.prisma. Always a named relation:
+        // a resource with two of these (reportedBy and assignedTo) is the ordinary case,
+        // and Prisma cannot tell two relations between the same pair of models apart
+        // without names. The matching back-reference goes into model User — see
+        // authUserBackReferences.
+        const optional = def.required && !def.showWhen ? "" : "?";
+        const relationField = key.replace(/Id$/, "");
+        const args = [
+          q(authUserRelationName(resource.name, key)),
+          `fields: [${key}]`,
+          "references: [id]",
+          `onDelete: ${onDeleteAction(def.onDelete ?? defaultAuthUserOnDelete(def.required))}`,
+        ];
+        lines.push(`  ${key} String${optional} @map(${q(columnName(key))})`);
+        lines.push(`  ${relationField} User${optional} @relation(${args.join(", ")})`);
+        indexes.push(`  @@index([${key}])`);
+        continue;
+      }
       const target = byName.get(def.target);
       if (!target) throw new Error(`${resource.name}.${key} belongs to "${def.target}", but there is no ${def.target} resource. Generate it first.`);
       const optional = def.required && !def.showWhen ? "" : "?";

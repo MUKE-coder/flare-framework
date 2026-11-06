@@ -7,7 +7,7 @@ import { renderPrismaEnums } from "../src/generator/prisma.js";
 import { renderTableModule } from "../src/generator/render.js";
 
 /** The case from issue #74: a clinic resource whose blood group is spelled like a blood group. */
-const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
 
 const patient = defineResource({ name: "Patient", fields: { name: field.string(), bloodGroup: field.enum(BLOOD_GROUPS) } });
 const loadedPatient: LoadedResource = { resource: patient, stem: "patient", file: "resources/patient.resource.ts" };

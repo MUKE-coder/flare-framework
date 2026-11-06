@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { clientResource, formatValue, optionLabel, relationGraph, statusTone, storedFields, type Resource } from "@flaredev/core";
+import { clientResource, formatValue, isAuthUserTarget, optionLabel, relationGraph, statusTone, storedFields, type Resource } from "@flaredev/core";
 import { Badge } from "@/components/ui/badge";
 import { FileCell } from "@/components/dashboard/fields/file-cell";
 import { Markdown } from "@/components/dashboard/fields/markdown";
@@ -13,6 +13,7 @@ import { LocalTime } from "./local-time";
 import { PageHeader } from "./page-header";
 import { RecordActions } from "./record-actions";
 import type { RelationMeta } from "./fields/field-widget";
+import { AUTH_USER_RELATION, userTitles } from "@/lib/user-titles";
 
 /** How many of a record's children to show before pointing at the filtered list. */
 const RELATED_LIMIT = 5;
@@ -43,10 +44,20 @@ export async function RecordDetail({ resource, id }: { resource: Resource; id: s
   const relations: Record<string, RelationMeta & { initialTitle?: string }> = {};
   for (const [key, def] of fields) {
     if (def.kind !== "belongsTo") continue;
+    const value = record[key];
+    // Better Auth's account table is not a resource, so it has no store to ask: its
+    // names come from lib/user-titles.ts and its picker from /api/users.
+    if (isAuthUserTarget(def.target)) {
+      relations[key] = AUTH_USER_RELATION;
+      if (typeof value === "string") {
+        const title = (await userTitles([value]))[value];
+        if (title) relationTitles[key] = title;
+      }
+      continue;
+    }
     const target = byName.get(def.target);
     if (!target) continue;
     relations[key] = { name: target.name, label: target.label, pluralLabel: target.pluralLabel, slug: target.slug, titleField: target.titleField };
-    const value = record[key];
     if (typeof value === "string") {
       const titles = await dashboardStore(target.name).titles([value]);
       const title = titles[value];

@@ -23,32 +23,30 @@ expiry dates, and the one place where Flare's field grammar says no.
 | `StockBatch` | A delivery, with an expiry date |
 | `Prescription` | What was given, and when it was dispensed |
 
-## The enum that will not take a plus sign
+## The enum with a plus sign in it
 
-Blood groups are `A+`, `O-`, `AB+`. That command fails:
+Blood groups are `A+`, `O-`, `AB+`, and that is how you write them:
 
 ```bash
 npx flare gen resource Patient --fields 'bloodGroup:enum(A+,A-,B+,B-,O+,O-,AB+,AB-)?'
 ```
-```
-✖ enum option "A+" may only use letters, digits, _ and -.
-```
 
-Not an oversight. An enum option becomes a Prisma enum *member*, and a
-member has to be an identifier — so `+` and `-` both become `_`, and `A+`
-and `A-` collide into one member. Refusing is better than generating a
-schema with two members of the same name.
+An option may use any printable character except a space, a comma, round
+brackets, a backtick or `$`. The last two are excluded because the options are
+written into a `sql` template literal in the generated Drizzle schema, where a
+backtick would end it and `${` would interpolate; the others end the option
+list in the grammar itself.
 
-Spell them out, and map back for display:
+It is worth knowing what happens underneath, because the two stacks do
+different things with it. On SQLite the column is text with a `CHECK`
+constraint listing the strings, so `A+` is stored as `A+` and that is the end
+of it. On Postgres it becomes a real enum, and a Prisma enum member has to be
+an identifier — so the member is `A_2b` with `@map("A+")` carrying the real
+value. Flare translates at the store boundary, so the value you read and write
+is always `A+`; the member name never reaches your code.
 
-```bash
-bloodGroup:enum(aPos,aNeg,bPos,bNeg,oPos,oNeg,abPos,abNeg)?
-```
-
-[#74](https://github.com/MUKE-coder/flare-framework/issues/74) tracks
-relaxing this with a collision-free encoding. Until then this is the
-workaround, and it is worth knowing the reason rather than just the rule —
-grades (`A+`, `B-`) hit it too.
+Grades (`A+`, `B-`), fractions (`1/2`) and percentages (`50%`) work the same
+way.
 
 ## 1. The app
 
@@ -76,7 +74,7 @@ cd clinic
 
 ```bash
 npx flare gen resource Patient --icon user --group Clinic \
-  --fields 'regNumber:string!, fullName:string, bloodGroup:enum(aPos,aNeg,bPos,bNeg,oPos,oNeg,abPos,abNeg)?, allergies:text?, emergencyContact:tel?, userId:string?'
+  --fields 'regNumber:string!, fullName:string, bloodGroup:enum(A+,A-,B+,B-,O+,O-,AB+,AB-)?, allergies:text?, emergencyContact:tel?, userId:string?'
 
 npx flare gen resource Clinician --icon stethoscope --group Clinic \
   --fields 'fullName:string, role:enum(nurse,doctor,pharmacist), licenceNo:string!, speciality:string?, userId:string?'
@@ -85,6 +83,12 @@ npx flare gen resource Clinician --icon stethoscope --group Clinic \
 Both have `userId:string?` — nullable. A patient exists in the register
 before they ever sign in, and a clinician's record outlives their account.
 Same reasoning as [the fees project](/projects/fees/#why-there-is-a-student-table-here).
+
+The blood groups are spelled the way a nurse would write them. An enum option
+may use any printable character except a space, a comma, round brackets, a
+backtick or `$`, so `A+` and `AB-` go in as they are — on Postgres they become
+a real enum whose members carry the value in `@map`, and on SQLite a `CHECK`
+constraint listing the strings.
 
 `allergies:text?` is free text on purpose. A fixed list is wrong the first
 time somebody is allergic to something not on it, and in a clinic that is

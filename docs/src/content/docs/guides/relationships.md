@@ -88,21 +88,60 @@ The `!` makes the foreign key unique, so two memberships cannot point at the
 same member — that is the whole difference between one-to-one and
 one-to-many.
 
-:::caution[`belongsTo(User)` is not one of these]
-`User` is Better Auth's table, not a Flare resource, so the generator has
-nothing to point a foreign key at and refuses the command. Hold the account
-id as a plain column instead:
+### A relation to the signed-in account
+
+`belongsTo("User")` points at Better Auth's account table — "who reported it",
+"who approved it", "who it is assigned to":
+
+```bash
+npx flare gen resource Report --fields 'title:string, reporterId:belongsTo(User)?, assigneeId:belongsTo(User)?'
+```
+
+`User` is the one target that is not a Flare resource. Better Auth owns that
+table, and generating a `User` resource to point at would make a second,
+competing one — so Flare points the foreign key at the auth table directly:
+`user` from `db/auth-schema.ts` on Cloudflare, the `User` model on Next.js. You
+get the real foreign key, the index, and the relation picker, the same as any
+other `belongsTo`.
+
+**`onDelete` defaults differently here.** An optional one is `set null`: somebody
+who closes their account should not be held open by a lost-property report from
+two years ago, and the report usually wants to outlive them. A required one is
+`restrict`, because there is nothing else it could be — a required column cannot
+be set to null, and quietly deleting the record instead would destroy data
+nobody asked to lose. Say `onDelete` in the descriptor to choose otherwise.
+
+**Who the picker can see.** A list of everyone's names and email addresses is
+not something to hand to anybody who can edit a record, so the generated
+`/api/users` endpoint is not a user directory:
+
+| Who is asking | What they get |
+| --- | --- |
+| An admin (`ADMIN_ROLES`) | The searchable list — what reassigning a ticket needs |
+| Anyone else signed in | Their own account, and nothing else |
+| Signed out | `401` |
+
+So anybody can set the field to themselves, and anybody can read back the name
+of whoever is on a record they can already see; only an admin can enumerate the
+table. The endpoint is generated only for apps that have a `belongsTo("User")`
+field, so one that does not use the feature does not grow it.
+
+**`hasMany("User")` is not supported** and says so: the relation goes on the
+other side, as a `belongsTo("User")` field on the resource that belongs to a
+user.
+
+**For ownership, a plain column is still often right.** An ownership policy
+names a field, and `userId:string` is enough for it:
 
 ```bash
 npx flare gen resource Profile --fields 'bio:text?, website:website?, userId:string!'
 ```
 
-That is also the field an ownership policy names — see
-[roles and policies](/guides/roles-and-policies/). You lose the relation
-picker in the admin, which is the trade; for "who owns this" that is usually
-right anyway, since the answer is the person signed in rather than one chosen
-from a list.
-:::
+See [roles and policies](/guides/roles-and-policies/). The difference is the
+admin: `belongsTo("User")` gives you a picker and a name, a plain column gives
+you a uuid in a text box. For "who owns this" the answer is the person signed
+in rather than one chosen from a list, so the column costs you nothing — for
+"who is this assigned to", the picker is the point.
 
 ```prisma
 userId String @unique @map("user_id")
@@ -228,7 +267,8 @@ export default defineResource({
 | --- | --- | --- |
 | One category, many products | `category:belongsTo(Category)?` | On `Product` |
 | See a category's products | `products: field.hasMany("Product")` | On `Category` |
-| One profile per account | `userId:string!` — not a relation, see above | On `Profile` |
+| Who reported this | `reporterId:belongsTo(User)?` | On the resource |
+| One profile per account | `userId:belongsTo(User)!`, or `userId:string!` for ownership only | On `Profile` |
 | Products in many orders | An `OrderItem` resource with two `belongsTo` | Its own resource |
 | A fixed set of tags | `tags:multiselect(a,b,c)?` | No relation at all |
 | Sub-categories | `parent:belongsTo(Category)?` | On itself |

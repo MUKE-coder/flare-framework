@@ -42,6 +42,32 @@ export class RelationError extends Error {
 const relationNameFor = (table: string, key: string) => `${table}_${columnName(key)}`;
 
 /**
+ * The one relation target that is not a generated resource.
+ *
+ * Better Auth owns the account table — `user` in Drizzle, `User` in Prisma — and
+ * generating a `User` resource to point at would create a second, competing user table.
+ * So `belongsTo("User")` resolves to the auth table instead, which is what makes "who
+ * reported it" a relation like any other rather than a bare string column.
+ */
+export const AUTH_USER = "User";
+
+/** Whether a belongsTo target is Better Auth's account table rather than a resource. */
+export const isAuthUserTarget = (target: string) => target === AUTH_USER;
+
+/**
+ * What `onDelete` a relation to the auth user gets when the descriptor doesn't say.
+ *
+ * `set null` when the field is optional, which is the case worth defaulting for: a
+ * person who closes their account should not be held open by a lost-property report
+ * from two years ago, and the report itself usually wants to outlive them.
+ *
+ * `restrict` when the field is required, because there is nothing else it could be — a
+ * required column cannot be set to null, and silently deleting the record instead
+ * (`cascade`) would destroy data the user never asked to lose.
+ */
+export const defaultAuthUserOnDelete = (required: boolean): "restrict" | "set null" => (required ? "restrict" : "set null");
+
+/**
  * Resolve belongsTo/hasMany across all resources. Throws for belongsTo targets that
  * don't exist and for hasMany declarations without a matching belongsTo on the target.
  */
@@ -53,7 +79,8 @@ export function relationGraph(resources: readonly Resource[]): RelationGraph {
     const relations: ResourceRelations = { belongsTo: [], hasMany: [] };
     for (const [key, def] of storedFields(resource)) {
       if (def.kind !== "belongsTo") continue;
-      if (!byName.has(def.target)) {
+      const authUser = isAuthUserTarget(def.target);
+      if (!authUser && !byName.has(def.target)) {
         throw new RelationError(`${resource.name}.${key} belongs to "${def.target}", but there is no ${def.target} resource.`);
       }
       relations.belongsTo.push({
@@ -61,7 +88,7 @@ export function relationGraph(resources: readonly Resource[]): RelationGraph {
         name: key.replace(/Id$/, ""),
         target: def.target,
         required: def.required,
-        onDelete: def.onDelete ?? "restrict",
+        onDelete: def.onDelete ?? (authUser ? defaultAuthUserOnDelete(def.required) : "restrict"),
         relationName: relationNameFor(resource.table, key),
       });
     }

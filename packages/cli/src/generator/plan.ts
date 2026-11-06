@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
 import pc from "picocolors";
 import { readStack } from "../stack.js";
@@ -8,7 +8,8 @@ import { DriftError, inspectGenerated, writeGenerated, type FileStatus } from ".
 import type { LoadedPolicy } from "./policy.js";
 import { renderPolicyRegistry } from "./policy.js";
 import type { Stack } from "../stack.js";
-import { renderPrismaSchema } from "./prisma.js";
+import { authUserBackReferences, renderPrismaSchema, withAuthUserBackReferences } from "./prisma.js";
+import { renderUserItemRoute, renderUsersRoute, usesAuthUser } from "./users-route.js";
 import {
   renderPrismaServerRegistry,
   renderRegistry,
@@ -21,8 +22,19 @@ import {
 export interface PlannedFile {
   /** Relative to the app root. */
   path: string;
-  content: string;
+  content?: string;
   header?: string;
+  /**
+   * An edit to a file the app owns, rather than a file Flare writes whole.
+   *
+   * Used where Flare has to put something inside a file that is not its own —
+   * `prisma/schema/base.prisma`, which holds the datasource and Better Auth's tables and
+   * is never regenerated, but which needs the other half of every `belongsTo("User")`
+   * relation. The transform gets the current contents and returns the new ones, or null
+   * if it cannot make the edit safely; returning the input unchanged means "nothing to
+   * do". A file that does not exist is skipped, not created.
+   */
+  transform?: (existing: string) => string | null;
 }
 
 export const resourceHeader = (name: string) =>
@@ -57,6 +69,13 @@ export function planFiles(all: LoadedResource[], policies?: LoadedPolicy[], stac
         content: renderPrismaServerRegistry(all),
         header: "// Server-only: resource name → descriptor and Prisma delegate (maintained by flare gen).\n",
       },
+      {
+        // Not a file Flare writes: base.prisma is the app's. Only the back-references for
+        // belongsTo("User") go in, in a block inside model User, because Prisma refuses a
+        // relation with one side missing and that side is on a model Flare never generates.
+        path: "prisma/schema/base.prisma",
+        transform: (existing) => withAuthUserBackReferences(existing, authUserBackReferences(all)),
+      },
     );
   } else {
     files.push(
@@ -69,6 +88,16 @@ export function planFiles(all: LoadedResource[], policies?: LoadedPolicy[], stac
       { path: "db/schema.ts", content: renderSchemaIndex(all) },
     );
   }
+  // The picker's endpoint for belongsTo("User"), generated only for apps that have such
+  // a field — see users-route.ts for who is allowed to see whom.
+  if (usesAuthUser(all)) {
+    const header = `// Read-only accounts endpoint for belongsTo("User") pickers (maintained by flare gen).\n`;
+    files.push(
+      { path: "app/api/users/route.ts", content: renderUsersRoute(stack), header },
+      { path: "app/api/users/[id]/route.ts", content: renderUserItemRoute(stack), header },
+    );
+  }
+
   // Only when the caller loaded policies: commands that don't (`gen resource`) leave the registry alone.
   if (policies) {
     files.push({
@@ -90,9 +119,20 @@ export interface FileResult {
 
 /** Inspect (dryRun) or write planned files. Drifted and hand-written files are skipped, never thrown. */
 export function applyPlan(appRoot: string, plan: PlannedFile[], options: { force?: boolean; dryRun?: boolean } = {}): FileResult[] {
-  return plan.map(({ path, content, header }) => {
+  return plan.map(({ path, content, header, transform }) => {
     const absolute = join(appRoot, path);
-    const status = inspectGenerated(absolute, content);
+    if (transform) {
+      // A file the app owns: never created, never reformatted, and left alone entirely
+      // if the edit cannot be placed.
+      if (!existsSync(absolute)) return { path, status: "missing", outcome: "skipped-unmarked" };
+      const existing = readFileSync(absolute, "utf8");
+      const next = transform(existing);
+      if (next === null) return { path, status: "unmarked", outcome: "skipped-unmarked" };
+      if (next === existing) return { path, status: "identical", outcome: "identical" };
+      if (!options.dryRun) writeFileSync(absolute, next);
+      return { path, status: "outdated", outcome: "update" };
+    }
+    const status = inspectGenerated(absolute, content!);
     if (status === "unmarked") return { path, status, outcome: "skipped-unmarked" };
     if (status === "drift" && !options.force) return { path, status, outcome: "skipped-drift" };
     if (options.dryRun) {
@@ -100,7 +140,7 @@ export function applyPlan(appRoot: string, plan: PlannedFile[], options: { force
       return { path, status, outcome };
     }
     try {
-      return { path, status, outcome: writeGenerated(absolute, content, { header, force: options.force }) };
+      return { path, status, outcome: writeGenerated(absolute, content!, { header, force: options.force }) };
     } catch (error) {
       if (error instanceof DriftError) return { path, status: "drift", outcome: "skipped-drift" };
       throw error;
@@ -151,7 +191,10 @@ export function ensureSupportFiles(appRoot: string, log: (message: string) => vo
     (name) => `lib/resource/${name}`,
   );
 
-  for (const path of ["lib/api.ts", "lib/cache.ts", ...engine]) {
+  // user-titles.ts is in the list rather than conditional on a belongsTo("User") field:
+  // the three admin components import it unconditionally, so an app missing it would
+  // fail to build the moment one of them is regenerated.
+  for (const path of ["lib/api.ts", "lib/cache.ts", "lib/user-titles.ts", ...engine]) {
     const target = join(appRoot, path);
     if (existsSync(target)) continue;
     // The Next.js overlay wins where it has its own version of a file.

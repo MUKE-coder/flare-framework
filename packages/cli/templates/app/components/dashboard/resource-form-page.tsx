@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
-import { clientResource, formatValue, storedFields, type Resource } from "@flaredev/core";
+import { clientResource, formatValue, isAuthUserTarget, storedFields, type Resource } from "@flaredev/core";
 import { resourcePath, allResources, confinedField, dashboardStore, requireAccess } from "@/lib/dashboard";
 import type { RelationMeta } from "./fields/field-widget";
 import { PageHeader } from "./page-header";
 import { ResourceForm } from "./resource-form";
+import { AUTH_USER_RELATION, userTitles } from "@/lib/user-titles";
 
 /** Server wrapper for create/edit pages: loads the record and relation titles, renders the heading and form. */
 export async function ResourceFormPage({ resource, id }: { resource: Resource; id?: string }) {
@@ -25,6 +26,13 @@ export async function ResourceFormPage({ resource, id }: { resource: Resource; i
   const relations: Record<string, RelationMeta & { initialTitle?: string }> = {};
   for (const [key, def] of storedFields(resource)) {
     if (def.kind !== "belongsTo") continue;
+    if (isAuthUserTarget(def.target)) {
+      // The accounts table, whose names and picker come from outside the resource store.
+      const current = record?.[key];
+      const titles = typeof current === "string" ? await userTitles([current]) : {};
+      relations[key] = { ...AUTH_USER_RELATION, initialTitle: typeof current === "string" ? titles[current] : undefined };
+      continue;
+    }
     const target = byName.get(def.target);
     if (!target) continue;
     const value = record?.[key];

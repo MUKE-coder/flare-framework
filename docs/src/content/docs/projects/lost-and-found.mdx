@@ -44,13 +44,20 @@ columns holding the signed-in account's id:
 reporterId:string
 ```
 
-Not `belongsTo(User)`. That command fails, because `User` is not a Flare
-resource for a foreign key to point at
-([#73](https://github.com/MUKE-coder/flare-framework/issues/73) tracks making
-it work). The cost is the admin showing a raw id instead of a picker. For
-"who reported this" that is usually right anyway — the answer is whoever is
-signed in, not someone chosen from a list — and it is the field an ownership
-policy names.
+A plain column is enough here, and it is the field an ownership policy names.
+For "who reported this" the answer is whoever is signed in rather than someone
+chosen from a list, so the picker buys you nothing.
+
+If you do want the picker — "who is this assigned to", on a resource where that
+is a choice — write `belongsTo(User)` instead and you get the foreign key, the
+index and a searchable picker:
+
+```bash
+reporterId:belongsTo(User)?
+```
+
+See [relationships](/guides/relationships/#a-relation-to-the-signed-in-account)
+for what the picker shows to whom; it is not a user directory.
 
 ## 1. The app
 

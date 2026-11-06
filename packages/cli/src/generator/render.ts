@@ -1,4 +1,4 @@
-import { camelCase, columnName, relationGraph, storedFields, type Resource, type StoredField } from "@flaredev/core";
+import { camelCase, columnName, defaultAuthUserOnDelete, isAuthUserTarget, relationGraph, type Resource, type StoredField, storedFields } from "@flaredev/core";
 import type { Stack } from "../stack.js";
 import type { LoadedResource } from "./load.js";
 
@@ -44,6 +44,12 @@ function columnExpression(key: string, def: StoredField, resources: Map<string, 
       expr = `text(${col}, { mode: "json" })`;
       break;
     case "belongsTo": {
+      if (isAuthUserTarget(def.target)) {
+        // Better Auth's own table, imported from db/auth-schema rather than generated.
+        const onDelete = def.onDelete ?? defaultAuthUserOnDelete(def.required);
+        expr = `text(${col}).references(() => user.id, { onDelete: ${q(onDelete)} })`;
+        break;
+      }
       const target = resources.get(def.target);
       if (!target) {
         throw new Error(`${selfName}.${key} belongs to "${def.target}", but there is no ${def.target} resource. Generate it first.`);
@@ -100,9 +106,12 @@ export function renderTableModule(entry: LoadedResource, all: LoadedResource[]):
   // Every read of a soft-deleting resource filters on this, so it is not an optional one.
   if (resource.softDelete) addIndex("deletedAt", "deleted_at");
 
-  const targets = [...new Set(fields.flatMap(([, def]) => (def.kind === "belongsTo" ? [resources.get(def.target)!] : [])))]
+  const targets = [
+    ...new Set(fields.flatMap(([, def]) => (def.kind === "belongsTo" && !isAuthUserTarget(def.target) ? [resources.get(def.target)!] : []))),
+  ]
     .filter((target) => target.name !== resource.name)
     .sort((a, b) => a.table.localeCompare(b.table));
+  const referencesAuthUser = fields.some(([, def]) => def.kind === "belongsTo" && isAuthUserTarget(def.target));
 
   const coreImports = ["integer", "sqliteTable", "text"];
   if (fields.some(([, def]) => def.kind === "float")) coreImports.push("real");
@@ -115,6 +124,8 @@ export function renderTableModule(entry: LoadedResource, all: LoadedResource[]):
     `import { sql } from "drizzle-orm";`,
     `import { ${coreImports.sort().join(", ")} } from "drizzle-orm/sqlite-core";`,
     ...(selfReference ? [`import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";`] : []),
+    // One directory up: generated tables live in db/schema/, the auth schema in db/.
+    ...(referencesAuthUser ? [`import { user } from "../auth-schema";`] : []),
     ...targets.map((target) => `import { ${tableExport(target)} } from "./${target.table}";`),
     "",
     `export const ${name} = sqliteTable(`,
@@ -161,6 +172,7 @@ export function renderRelations(all: LoadedResource[]): string {
 
   const blocks: string[] = [];
   const used = new Set<Resource>();
+  let usesAuthUser = false;
   for (const resource of [...resources].sort((a, b) => a.table.localeCompare(b.table))) {
     const { belongsTo, hasMany } = graph.byResource[resource.name]!;
     if (belongsTo.length === 0 && hasMany.length === 0) continue;
@@ -169,6 +181,13 @@ export function renderRelations(all: LoadedResource[]): string {
 
     const lines = [
       ...belongsTo.map((relation) => {
+        if (isAuthUserTarget(relation.target)) {
+          // No relationName: userRelations in db/auth-schema.ts declares no matching
+          // `many` side, and naming one half of a relation Drizzle cannot complete is
+          // how you get "there is not enough information to infer relation".
+          usesAuthUser = true;
+          return `  ${relation.name}: one(user, { fields: [${self}.${relation.key}], references: [user.id] }),`;
+        }
         const target = byName.get(relation.target)!;
         used.add(target);
         const other = tableExport(target);
@@ -188,6 +207,7 @@ export function renderRelations(all: LoadedResource[]): string {
   const imports = [...used]
     .sort((a, b) => a.table.localeCompare(b.table))
     .map((resource) => `import { ${tableExport(resource)} } from "./schema/${resource.table}";`);
+  if (usesAuthUser) imports.unshift(`import { user } from "./auth-schema";`);
   return [`import { relations } from "drizzle-orm";`, ...imports, "", blocks.join("\n")].join("\n");
 }
 

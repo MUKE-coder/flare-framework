@@ -61,6 +61,9 @@ export { enumMemberCollision, enumTranslations, prismaEnumMember, type EnumTrans
 export { createValidators, fieldSchema, fileKeyPrefix, type ResourceValidators } from "./validators.js";
 export { camelCase, humanize, kebabCase, pascalCase, pluralize, snakeCase, words } from "./naming.js";
 export {
+  AUTH_USER,
+  defaultAuthUserOnDelete,
+  isAuthUserTarget,
   relationGraph,
   RelationError,
   type RelationGraph,

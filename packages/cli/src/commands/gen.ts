@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { camelCase, defineResource, relationGraph, type Resource } from "@flaredev/core";
+import { AUTH_USER, camelCase, defineResource, relationGraph, type Resource } from "@flaredev/core";
 import pc from "picocolors";
 import { descriptorPath, renderDescriptor, renderFieldsBlock, resourceName, toField } from "../generator/descriptor.js";
 import { parseFields, type ParsedField } from "../generator/grammar.js";
@@ -37,7 +37,9 @@ export interface GenResult {
 }
 
 function validateFields(name: string, fields: ParsedField[], others: Resource[], log: (message: string) => void) {
-  const known = new Set([name, ...others.map((resource) => resource.name)]);
+  // AUTH_USER is a target without a resource: Better Auth owns that table, and
+  // generating a User resource to satisfy this check would create a second one.
+  const known = new Set([name, AUTH_USER, ...others.map((resource) => resource.name)]);
   for (const field of fields) {
     if (field.kind === "belongsTo" && !known.has(field.target!)) {
       throw new Error(`${name}.${field.key} belongs to "${field.target}", which doesn't exist yet. Generate ${field.target} first.`);
