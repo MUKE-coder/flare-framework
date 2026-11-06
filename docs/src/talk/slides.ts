@@ -56,6 +56,7 @@ export const slides: Slide[] = [
     facts: [
       "Founder of [Desishub Technologies](https://www.desishub.com)",
       "[30+ client projects](https://www.desishub.com/case-studies) shipped across four countries",
+      "30+ products sold online — **$19k** in product sales alone",
       "[`DGateway`](https://dgateway.desispay.com/) — MTN, Airtel and Stripe payments, over **100M** in transactions",
       "[`Flare`](https://flare-docs.codetotech.com) — the framework this talk is about",
       "[`Grit`](https://gritframework.dev) — its Go sibling",
