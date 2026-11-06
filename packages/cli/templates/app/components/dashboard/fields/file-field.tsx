@@ -58,6 +58,19 @@ const IMAGE_PROFILE = {
 } as const;
 
 /**
+ * Optimisation is on unless this says otherwise.
+ *
+ * It has to be a NEXT_PUBLIC_ variable because this decision is made in the browser,
+ * and those are substituted at build time — so turning it off is a rebuild, not a
+ * restart. That is the trade for not shipping a round trip to ask the server whether
+ * to compress before every upload.
+ *
+ * Reasons to turn it off: a field that must keep the file byte-for-byte, a photography
+ * site where 1600px is a downgrade, or anything where the original is the deliverable.
+ */
+const OPTIMISE_IMAGES = process.env.NEXT_PUBLIC_OPTIMISE_UPLOADS !== "false";
+
+/**
  * The most we will decode in the browser, whatever the field's own limit is.
  *
  * The size check moves to *after* optimisation for images, because a 6 MB photo that
@@ -148,7 +161,8 @@ export function FileField({ id, value, onChange, invalid, disabled, field, resou
 
   const accepted = mimeTypesFor(field.accept);
   const maxBytes = fileMaxBytes(field);
-  const help = `${capitalize(describeAccept(field.accept))}, up to ${formatBytes(maxBytes)}`;
+  const shrinks = OPTIMISE_IMAGES && field.accept.includes("image");
+  const help = `${capitalize(describeAccept(field.accept))}, up to ${formatBytes(maxBytes)}${shrinks ? " — images are shrunk before upload" : ""}`;
   const busy = upload !== null;
 
   // Thumbnail for a stored image (a local preview replaces it while uploading).
@@ -169,7 +183,8 @@ export function FileField({ id, value, onChange, invalid, disabled, field, resou
     // An image is measured after it has been shrunk — a 6 MB photo that becomes 32 KB
     // is not over a 1 MB limit, and refusing it before trying would be a lie. Anything
     // else is measured as it is, because nothing is going to make it smaller.
-    const limit = OPTIMISABLE.has(type) ? Math.max(maxBytes, MAX_DECODE_BYTES) : maxBytes;
+    const willShrink = OPTIMISE_IMAGES && OPTIMISABLE.has(type);
+    const limit = willShrink ? Math.max(maxBytes, MAX_DECODE_BYTES) : maxBytes;
     if (file.size > limit) return `${file.name} is ${formatBytes(file.size)}; the limit is ${formatBytes(limit)}.`;
     const head = new Uint8Array(await file.slice(0, SNIFF_BYTES).arrayBuffer());
     if (sniffMatches(type, head) === false) {
@@ -191,7 +206,7 @@ export function FileField({ id, value, onChange, invalid, disabled, field, resou
   async function prepare(file: File): Promise<Prepared> {
     const type = file.type || "application/octet-stream";
     const asIs: Prepared = { blob: file, name: file.name, type };
-    if (!OPTIMISABLE.has(type)) return asIs;
+    if (!OPTIMISE_IMAGES || !OPTIMISABLE.has(type)) return asIs;
 
     try {
       setStatus(`Optimising ${file.name}…`);

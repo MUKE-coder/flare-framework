@@ -214,7 +214,25 @@ decompression bomb — a solid-colour PNG that is 144 megapixels once
 decoded — will hang a mobile browser tab, so the optimiser refuses one
 before it tries.
 
-### Changing it, or removing it
+### Turning it off
+
+```ini
+NEXT_PUBLIC_OPTIMISE_UPLOADS=false
+```
+
+Uploads then send the original bytes, and the size limit goes back to
+being measured against the file somebody picked.
+
+It is a `NEXT_PUBLIC_` variable because the decision is made in the
+browser, and those are substituted at build time — so changing it needs a
+rebuild rather than a restart. That is the trade for not asking the server
+whether to compress before every single upload.
+
+Reasons you might: a field where the file has to stay byte-for-byte, a
+photography site where 1600px is a downgrade, or anywhere the original is
+the deliverable.
+
+### Changing it instead
 
 The profile is a single object at the top of
 `components/dashboard/fields/file-field.tsx`, in your repository:

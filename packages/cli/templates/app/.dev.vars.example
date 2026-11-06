@@ -26,3 +26,8 @@ MAIL_FROM=
 # Both serve files from their own CDN, so a read URL is public and does not expire.
 # Set this to keep every read signed and proxied by the app instead.
 # STORAGE_PUBLIC=false
+
+# Images are shrunk in the browser before upload (about 20x smaller). Set this to turn
+# it off and send the original bytes. It is read at build time, so changing it means a
+# rebuild rather than a restart.
+# NEXT_PUBLIC_OPTIMISE_UPLOADS=false

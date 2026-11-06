@@ -14,15 +14,15 @@ export const COMPATIBILITY_DATE = "2026-09-15";
  * build together (vinext is pre-1.0, so ranges are kept tight on purpose).
  */
 export const APP_DEPENDENCIES = {
-  "@better-auth/drizzle-adapter": "1.7.14",
-  "@better-auth/passkey": "1.7.14",
+  "@better-auth/drizzle-adapter": "1.7.18",
+  "@better-auth/passkey": "1.7.18",
   // Shrinks a photo in the browser before it is uploaded. Zero dependencies, and the
   // file field imports it only when somebody picks an image — see file-field.tsx.
   "@gritframework/upload": "0.2.1",
   // Server components import Slot from here rather than the "radix-ui" umbrella (see components/ui/button.tsx).
   "@radix-ui/react-slot": "1.3.3",
   "@vinext/cloudflare": "1.0.0-beta.8",
-  "better-auth": "1.7.14",
+  "better-auth": "1.7.18",
   // Admin UI (shadcn/ui primitives in components/ui).
   "class-variance-authority": "^0.7.1",
   clsx: "^2.1.1",
@@ -56,9 +56,12 @@ export const APP_DEPENDENCIES = {
  * Keep every @better-auth/* package on this version. They peer-depend on each other by
  * exact version, so a mixed set does not resolve at all: 1.7.7 stopped installing under
  * npm the day @better-auth/core 1.7.14 shipped, because passkey@1.7.7 pins
- * @better-auth/utils 0.4.2 and the newer core pulls 0.5.x through better-call.
+ * @better-auth/utils 0.4.2 and the newer core pulls 0.5.x through better-call. It
+ * happened again at 1.7.14 once core reached 1.7.18: passkey pins better-call 1.4.4 and
+ * the newer core needs 1.4.5. The lesson has not changed — move the whole family, and
+ * run scripts/build-lockfiles.mjs, which is where both breakages surfaced.
  */
-export const BETTER_AUTH_VERSION = "1.7.14";
+export const BETTER_AUTH_VERSION = "1.7.18";
 
 /** The API key plugin, added by `flare gen apikeys` rather than shipped with every app. */
 export const API_KEY_PACKAGE = "@better-auth/api-key";
@@ -94,7 +97,7 @@ export const NEXT_DEPENDENCIES = {
   "@prisma/adapter-pg": "7.10.0",
   pg: "^8.16.3",
   "@upstash/redis": "^1.36.0",
-  "@better-auth/prisma-adapter": "1.7.14",
+  "@better-auth/prisma-adapter": "1.7.18",
   // Signs S3 requests in a few kilobytes, where the AWS SDK is megabytes.
   aws4fetch: "^1.0.20",
   dotenv: "^17.2.3",
