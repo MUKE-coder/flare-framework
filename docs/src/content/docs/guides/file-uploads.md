@@ -163,6 +163,89 @@ allows.
 An image shows a preview immediately — from the local file while uploading,
 then from a signed URL.
 
+## Images are shrunk before they are uploaded
+
+An `image` field optimises in the browser, by default, with nothing to turn on.
+
+```
+5.5 MB  4000x3000 JPEG     what somebody picked off their phone
+ 256 KB 1600x1200 WebP     what gets uploaded and stored
+--------------------------------------------------------------
+ 22x smaller, in about 300ms, measured in Chromium
+```
+
+A real photograph does better than that — the figure above is a synthetic
+image full of random noise, which is close to the worst case for a
+compressor. The point is the order of magnitude.
+
+This matters more on Flare than on most frameworks. Uploaded bytes pass
+*through* your app on their way to storage — a Worker, or a Vercel
+function — so a 6MB photo is 6MB of transit and CPU you are paying for,
+on top of the storage. Shrinking first removes almost all of it.
+
+### What it does, and does not, touch
+
+| | |
+| --- | --- |
+| PNG, JPEG, WebP, AVIF | resized to fit 1600×1600 and re-encoded |
+| GIF | left alone — a canvas keeps only the first frame |
+| SVG, PDF, CSV, video, anything else | left alone |
+| An image it cannot decode | uploaded untouched |
+
+That last row is deliberate. Losing somebody's upload because a codec
+choked is worse than storing a large file.
+
+The format is chosen per image rather than fixed: anything with real
+transparency stays lossless, so a logo is never flattened onto a black
+background.
+
+### Why the size limit is checked afterwards
+
+A 6MB photo that becomes 256KB is not over a 1MB limit. So for an image,
+`maxBytes` is measured against **what will be stored**, not what was
+picked — which is what makes `avatar:file:[image]:1mb` a usable field
+rather than one that rejects every modern phone.
+
+Anything that is not optimised is still measured as it is, because
+nothing is going to make it smaller.
+
+There is a separate ceiling on what will be decoded at all. A
+decompression bomb — a solid-colour PNG that is 144 megapixels once
+decoded — will hang a mobile browser tab, so the optimiser refuses one
+before it tries.
+
+### Changing it, or removing it
+
+The profile is a single object at the top of
+`components/dashboard/fields/file-field.tsx`, in your repository:
+
+```ts
+const IMAGE_PROFILE = {
+  max_width: 1600,
+  max_height: 1600,
+  quality: 0.82,
+  format: "auto",
+  max_pixels: 50_000_000,
+};
+```
+
+Raise the dimensions for a photography site, lower the quality for
+thumbnails, or delete the `prepare()` call and uploads go back to sending
+the original bytes.
+
+It is [`@gritframework/upload`](https://www.npmjs.com/package/@gritframework/upload)
+underneath — MIT, no dependencies of its own — and it is imported only
+when somebody actually picks an image, so a form without an image field
+never loads a canvas encoder.
+
+:::note[The server still checks everything]
+Optimising in the browser changes what the server's job is, not whether
+it has one. The signed upload URL carries the exact byte count it will
+accept, the route re-reads the real bytes, and the content type is
+checked against them. None of that moved to the client, because every
+number a client sends is a claim.
+:::
+
 ## Where the bytes go
 
 `STORAGE_DRIVER` picks where they go. The default needs nothing set: on

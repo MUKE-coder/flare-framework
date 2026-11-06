@@ -27,13 +27,62 @@ interface Props {
   fieldKey: string;
 }
 
-type Upload = { name: string; loaded: number; total: number; abort: () => void };
+type Upload = { name: string; loaded: number; total: number; originalSize?: number; abort: () => void };
 
 /** "contacts/avatar/2026/09/<uuid>-me.png" → "me.png" */
 const fileName = (key: string) => key.split("/").pop()!.replace(/^[0-9a-f-]{36}-/, "");
 
 const IMAGE_TYPES = new Set<string>(FILE_CATEGORIES.image);
 const isImageKey = (key: string) => /\.(png|jpe?g|gif|webp|avif)$/i.test(key);
+
+/**
+ * How a picked image is re-encoded before it is uploaded.
+ *
+ * 1600px is larger than any screen shows a photograph at, and 0.82 is the quality
+ * where WebP stops being visibly lossy for photographs. `auto` keeps anything with
+ * real transparency lossless, so a logo is never flattened onto a black background.
+ *
+ * Change these and every upload changes with them; they are deliberately one object
+ * rather than scattered through the call.
+ */
+const IMAGE_PROFILE = {
+  name: "flare",
+  max_width: 1600,
+  max_height: 1600,
+  crop: false,
+  quality: 0.82,
+  format: "auto",
+  // A crash guard, not a security control: a solid-colour PNG of 144 megapixels is a
+  // small file that will kill a mobile browser tab when it is decoded.
+  max_pixels: 50_000_000,
+} as const;
+
+/**
+ * The most we will decode in the browser, whatever the field's own limit is.
+ *
+ * The size check moves to *after* optimisation for images, because a 6 MB photo that
+ * becomes 32 KB should not be refused for being 6 MB. This is the bound that stops
+ * that being an invitation to hand the tab a 500 MB file.
+ */
+const MAX_DECODE_BYTES = 80 * 1024 * 1024;
+
+/** GIF loses every frame but the first on a canvas, so it is passed through untouched. */
+const OPTIMISABLE = new Set(["image/png", "image/jpeg", "image/webp", "image/avif"]);
+
+/** What `prepare` hands to the uploader: the bytes to send, and what to call them. */
+interface Prepared {
+  blob: Blob;
+  name: string;
+  type: string;
+  /** The size of what the user picked, when that differs from what is being sent. */
+  originalSize?: number;
+}
+
+/** "me.PNG" + "image/webp" → "me.webp", so the stored key says what the bytes are. */
+function renameTo(name: string, mime: string): string {
+  const extension = mime.split("/")[1]?.replace("jpeg", "jpg") ?? "bin";
+  return `${name.replace(/\.[^./\\]+$/, "") || "image"}.${extension}`;
+}
 
 const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 const whole = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
@@ -59,7 +108,7 @@ const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1
 const typeName = (type: string) => (type.split("/")[1] ?? type).replace(/^vnd\..*\./, "").toUpperCase();
 
 /** PUT with progress events, which fetch() can't report for uploads. */
-function put(url: string, file: File, onProgress: (loaded: number) => void, signal: { abort?: () => void }) {
+function put(url: string, file: Prepared, onProgress: (loaded: number) => void, signal: { abort?: () => void }) {
   return new Promise<void>((resolve, reject) => {
     const request = new XMLHttpRequest();
     signal.abort = () => request.abort();
@@ -78,7 +127,7 @@ function put(url: string, file: File, onProgress: (loaded: number) => void, sign
     request.onabort = () => reject(new DOMException("Upload cancelled.", "AbortError"));
     request.open("PUT", url);
     request.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-    request.send(file);
+    request.send(file.blob);
   });
 }
 
@@ -117,7 +166,11 @@ export function FileField({ id, value, onChange, invalid, disabled, field, resou
   async function check(file: File): Promise<string | null> {
     const type = file.type || "application/octet-stream";
     if (!matchesContentType(type, accepted)) return `${field.label} accepts ${describeAccept(field.accept)} files.`;
-    if (file.size > maxBytes) return `${file.name} is ${formatBytes(file.size)}; the limit is ${formatBytes(maxBytes)}.`;
+    // An image is measured after it has been shrunk — a 6 MB photo that becomes 32 KB
+    // is not over a 1 MB limit, and refusing it before trying would be a lie. Anything
+    // else is measured as it is, because nothing is going to make it smaller.
+    const limit = OPTIMISABLE.has(type) ? Math.max(maxBytes, MAX_DECODE_BYTES) : maxBytes;
+    if (file.size > limit) return `${file.name} is ${formatBytes(file.size)}; the limit is ${formatBytes(limit)}.`;
     const head = new Uint8Array(await file.slice(0, SNIFF_BYTES).arrayBuffer());
     if (sniffMatches(type, head) === false) {
       return `${file.name} isn't a valid ${typeName(type)} file. It may have been renamed; choose the original file.`;
@@ -125,24 +178,73 @@ export function FileField({ id, value, onChange, invalid, disabled, field, resou
     return null;
   }
 
+  /**
+   * The bytes to upload: the picked file, or a smaller version of it.
+   *
+   * The optimiser is imported here rather than at the top of the file, so a form with
+   * no image field never loads a canvas encoder, and a page that only reads records
+   * never loads it at all.
+   *
+   * A file that cannot be decoded is uploaded untouched. Losing somebody's upload
+   * because a codec choked is the worse of the two failures.
+   */
+  async function prepare(file: File): Promise<Prepared> {
+    const type = file.type || "application/octet-stream";
+    const asIs: Prepared = { blob: file, name: file.name, type };
+    if (!OPTIMISABLE.has(type)) return asIs;
+
+    try {
+      setStatus(`Optimising ${file.name}…`);
+      const { optimizeImage } = await import("@gritframework/upload/web");
+      const { primary } = await optimizeImage(file, IMAGE_PROFILE);
+      // Only if it actually helped: re-encoding a small, already-optimised image can
+      // come out larger, and uploading the bigger one would be a straight loss.
+      if (primary.blob.size >= file.size) return asIs;
+      return {
+        blob: primary.blob,
+        name: renameTo(file.name, primary.mime),
+        type: primary.mime,
+        originalSize: file.size,
+      };
+    } catch {
+      return asIs;
+    }
+  }
+
   async function start(file: File) {
     setError(null);
     const problem = await check(file);
     if (problem) return setError(problem);
 
-    // A browser leaves `type` empty for an extension it doesn't know, and an upload has
-    // to say what it is sending, so fall back to the type that means "bytes".
-    const contentType = file.type || "application/octet-stream";
     const signal: { abort?: () => void } = {};
     const localPreview = IMAGE_TYPES.has(file.type) ? URL.createObjectURL(file) : null;
-    setUpload({ name: file.name, loaded: 0, total: file.size, abort: () => signal.abort?.() });
     if (localPreview) setPreview(localPreview);
-    setStatus(`Uploading ${file.name}…`);
 
     try {
-      const signed = await createUploadUrlAction(resourceName, fieldKey, { name: file.name, type: contentType, size: file.size });
+      // Shrink first, then sign: the URL carries the size it is allowed to accept, and
+      // that has to be the size of what is actually being sent.
+      const sending = await prepare(file);
+      if (sending.blob.size > maxBytes) {
+        const was = sending.originalSize ? ` (${formatBytes(sending.originalSize)} before optimising)` : "";
+        throw new Error(`${file.name} is ${formatBytes(sending.blob.size)}${was}; the limit is ${formatBytes(maxBytes)}.`);
+      }
+
+      setUpload({
+        name: file.name,
+        loaded: 0,
+        total: sending.blob.size,
+        originalSize: sending.originalSize,
+        abort: () => signal.abort?.(),
+      });
+      setStatus(`Uploading ${file.name}…`);
+
+      const signed = await createUploadUrlAction(resourceName, fieldKey, {
+        name: sending.name,
+        type: sending.type,
+        size: sending.blob.size,
+      });
       if (!signed.ok) throw new Error(signed.error);
-      await put(signed.data.url, file, (loaded) => setUpload((current) => current && { ...current, loaded }), signal);
+      await put(signed.data.url, sending, (loaded) => setUpload((current) => current && { ...current, loaded }), signal);
       onChange(signed.data.key);
       setStatus(`${file.name} uploaded`);
     } catch (cause) {
@@ -225,6 +327,9 @@ export function FileField({ id, value, onChange, invalid, disabled, field, resou
               <span className="truncate font-medium">{upload.name}</span>
               <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                 {percent}% · {formatBytes(upload.loaded)} of {formatBytes(upload.total)}
+                {upload.originalSize !== undefined && (
+                  <span className="text-primary"> · from {formatBytes(upload.originalSize)}</span>
+                )}
               </span>
             </div>
             <Progress value={percent} aria-label={`Uploading ${upload.name}`} />

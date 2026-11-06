@@ -233,3 +233,41 @@ describe("a bucket that is its own CDN", () => {
     expect(await storage.createReadUrl({ key: "uploads/a.png" })).toContain("/api/storage?token=");
   });
 });
+
+describe("an optimised image", () => {
+  /** RIFF....WEBP, which is what a browser's canvas encoder produces. */
+  const WEBP = () => {
+    const head = new Uint8Array(64);
+    head.set([0x52, 0x49, 0x46, 0x46, 0x38, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x4c]);
+    return head;
+  };
+
+  it("is accepted when the field takes images", async () => {
+    // The file field shrinks a PNG or JPEG to WebP before uploading, so WebP is now the
+    // common case on a `file:[image]` field rather than an unusual one.
+    const { storage } = setup();
+    const { url } = await storage.createUploadUrl({
+      key: "uploads/photo.webp",
+      contentTypes: ["image/*"],
+      maxBytes: 1024 * 1024,
+    });
+    expect((await storage.handleRequest(put(url, WEBP(), "image/webp"))).status).toBe(201);
+  });
+
+  it("is served back inline, not as a download", async () => {
+    const { storage } = setup();
+    const { url, key } = await storage.createUploadUrl({ key: "uploads/photo.webp", contentTypes: ["image/webp"], maxBytes: 1024 });
+    await storage.handleRequest(put(url, WEBP(), "image/webp"));
+    const read = await storage.handleRequest(new Request(ORIGIN + (await storage.createReadUrl({ key }))));
+    expect(read.headers.get("content-type")).toBe("image/webp");
+    expect(read.headers.get("content-disposition")).toMatch(/^inline/);
+  });
+
+  it("is still refused when the bytes are not what the type says", async () => {
+    // Optimisation does not get to skip the check: a file claiming to be WebP still has
+    // to start like one.
+    const { storage } = setup();
+    const { url } = await storage.createUploadUrl({ key: "uploads/x.webp", contentTypes: ["image/*"], maxBytes: 1024 });
+    expect((await storage.handleRequest(put(url, "not a webp at all", "image/webp"))).status).toBe(415);
+  });
+});

@@ -16,6 +16,9 @@ export const COMPATIBILITY_DATE = "2026-09-15";
 export const APP_DEPENDENCIES = {
   "@better-auth/drizzle-adapter": "1.7.14",
   "@better-auth/passkey": "1.7.14",
+  // Shrinks a photo in the browser before it is uploaded. Zero dependencies, and the
+  // file field imports it only when somebody picks an image — see file-field.tsx.
+  "@gritframework/upload": "0.2.1",
   // Server components import Slot from here rather than the "radix-ui" umbrella (see components/ui/button.tsx).
   "@radix-ui/react-slot": "1.3.3",
   "@vinext/cloudflare": "1.0.0-beta.8",
