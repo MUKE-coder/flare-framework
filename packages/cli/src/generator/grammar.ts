@@ -1,4 +1,4 @@
-import { camelCase, FILE_CATEGORIES, STRING_FORMATS, type FieldCondition, type FileCategory, type NumberFormat, type StringFormat, type TextFormat } from "@flaredev/core";
+import { camelCase, enumMemberCollision, FILE_CATEGORIES, STRING_FORMATS, type FieldCondition, type FileCategory, type NumberFormat, type StringFormat, type TextFormat } from "@flaredev/core";
 
 /**
  * The `--fields` grammar of `flare gen resource`:
@@ -132,6 +132,23 @@ export function splitTopLevel(input: string): string[] {
  * Workers stream an upload through the Worker itself, so there's no point accepting more
  * than the platform will carry; the cap here is the request body limit.
  */
+/**
+ * What an enum, select, radio or multiselect option may be spelled with.
+ *
+ * Printable ASCII, less six characters that are not safe to let through:
+ *
+ *   `,` `(` `)` end the option list in the grammar itself.
+ *   a space is trimmed by `list()`, so " A" and "A" would be the same option.
+ *   `` ` `` and `$` are emitted inside a `sql`…`` template literal in the generated
+ *       Drizzle schema, where a backtick would end it and `${` would interpolate.
+ *
+ * Everything else is allowed, which is what lets a blood group be `A+` and a grade be
+ * `B-` rather than `aPos` and `bMinus` (issue #74). Quotes and backslashes are fine:
+ * every emitter that writes an option escapes it.
+ */
+const OPTION_CHARS = /^[!-~]+$/;
+const OPTION_FORBIDDEN = /[,()`$]/;
+
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const SIZE_UNITS: Record<string, number> = { b: 1, kb: 1024, mb: 1024 * 1024, gb: 1024 * 1024 * 1024 };
 
@@ -258,11 +275,24 @@ export function parseField(spec: string): ParsedField {
     if (choice === "multiselect" && unique) throw new FieldGrammarError(`"${spec}": multiselect fields can't be unique.`);
     const options = list(match[2]!, `${choice} option`, spec);
     for (const option of options) {
-      if (!/^[A-Za-z0-9_-]+$/.test(option)) {
-        throw new FieldGrammarError(`"${spec}": ${choice} option "${option}" may only use letters, digits, _ and -.`);
+      if (!OPTION_CHARS.test(option) || OPTION_FORBIDDEN.test(option)) {
+        throw new FieldGrammarError(
+          `"${spec}": ${choice} option "${option}" can't be used — an option may use any printable character ` +
+            `except a space, a comma, round brackets, a backtick or $.`,
+        );
       }
     }
     if (new Set(options).size !== options.length) throw new FieldGrammarError(`"${spec}": duplicate ${choice} options.`);
+    // Two options that differ here can still land on the same Prisma enum member, and
+    // the schema that would produce does not generate. Better said now, about the two
+    // options, than later about a duplicated identifier.
+    const clash = enumMemberCollision(options);
+    if (clash) {
+      throw new FieldGrammarError(
+        `"${spec}": ${choice} options "${clash.a}" and "${clash.b}" can't both be used — on the Next.js stack they ` +
+          `become the same Prisma enum member (\`${clash.member}\`). Rename one of them.`,
+      );
+    }
     field.options = options;
   } else if (/^file\[/.test(type)) {
     // "file[image]" is the shape people write first; the colon is easy to miss.

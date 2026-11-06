@@ -208,7 +208,12 @@ const routeHeader = (entry: LoadedResource, stack: Stack) => {
   const local = resourceLocal(entry.stem);
   const source =
     stack === "next"
-      ? { imports: [`import { prisma } from "@/lib/db";`], rows: `prismaRows(prisma.${camelCase(entry.resource.name)}, prisma)` }
+      ? {
+          imports: [`import { prisma } from "@/lib/db";`],
+          // The descriptor is passed so the store can translate enum values: Prisma's
+          // client speaks member names, and `A+` is the member `A_2b`.
+          rows: `prismaRows(prisma.${camelCase(entry.resource.name)}, prisma, ${resourceLocal(entry.stem)})`,
+        }
       : {
           imports: [`import { getDb } from "@/db";`, `import { ${tableExport(entry.resource)} } from "@/db/schema";`],
           rows: `drizzleRows(${tableExport(entry.resource)}, getDb)`,

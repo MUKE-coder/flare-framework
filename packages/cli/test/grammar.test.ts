@@ -69,7 +69,7 @@ describe("parseField", () => {
     ["name:strng", /unknown type "strng". Did you mean "string"\?/],
     ["due:datetim", /Did you mean "datetime"\?/],
     ["s:enum()", /enum option list is empty/],
-    ["s:enum(a b)", /may only use letters/],
+    ["s:enum(a b)", /except a space, a comma/],
     ["s:enum(a,a)", /duplicate enum options/],
     ["f:file", /list accepted types/],
     ["f:file:[imgae]", /unknown file type "imgae". Did you mean "image"\?/],

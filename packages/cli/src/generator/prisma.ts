@@ -10,7 +10,7 @@
  * multiselect is a real `String[]` instead of a JSON blob, and an enum is a real
  * Postgres enum instead of a check constraint.
  */
-import { camelCase, columnName, pascalCase, pluralize, storedFields, type Resource, type StoredField } from "@flaredev/core";
+import { camelCase, columnName, enumMemberCollision, pascalCase, pluralize, prismaEnumMember as member, storedFields, type Resource, type StoredField } from "@flaredev/core";
 import type { LoadedResource } from "./load.js";
 
 const q = (value: unknown) => JSON.stringify(value);
@@ -18,18 +18,12 @@ const q = (value: unknown) => JSON.stringify(value);
 /** `Product` + `kind` → `ProductKind`, the Prisma enum a field of that shape needs. */
 export const enumTypeName = (resource: string, key: string) => `${pascalCase(resource)}${pascalCase(key)}`;
 
-/**
- * The identifier a Prisma enum member gets. "in-progress" can't be one, so it becomes
- * `in_progress` and the real value is kept with `@map`.
- *
- * Anything going through the Prisma client — `createMany` in a seed, a `where` clause —
- * has to use this name rather than the value stored in the column, so it is exported
- * and shared rather than written twice.
- */
-export const prismaEnumMember = (option: string) => option.replace(/[^A-Za-z0-9_]/g, "_").replace(/^(?=\d)/, "v_");
+// Re-exported because the seed writer and the tests import it from here, and it lived
+// here before core needed it too.
+export { prismaEnumMember } from "@flaredev/core";
 
 const enumMember = (option: string) => {
-  const safe = prismaEnumMember(option);
+  const safe = member(option);
   return safe === option ? `  ${safe}` : `  ${safe} @map(${q(option)})`;
 };
 
@@ -92,6 +86,13 @@ export function renderPrismaEnums(resource: Resource): string[] {
     .filter(([, def]) => def.kind === "enum")
     .map(([key, def]) => {
       if (def.kind !== "enum") return "";
+      const clash = enumMemberCollision(def.options);
+      if (clash) {
+        throw new Error(
+          `${resource.name}.${key}: enum options ${q(clash.a)} and ${q(clash.b)} both become the Prisma member ` +
+            `\`${clash.member}\`, which would declare it twice. Rename one of them.`,
+        );
+      }
       return [`enum ${enumTypeName(resource.name, key)} {`, ...def.options.map(enumMember), "}"].join("\n");
     })
     .filter(Boolean);

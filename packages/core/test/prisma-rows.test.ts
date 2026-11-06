@@ -238,3 +238,73 @@ describe("a store with neither a table nor rows", () => {
     expect(() => createResourceStore({ resource: contact })).toThrow(/needs either a Drizzle table and getDb, or rows/);
   });
 });
+
+/**
+ * Enum values across the Prisma boundary (issue #74).
+ *
+ * Prisma's generated client speaks enum *member* names: an option of `A+` is declared
+ * `A_2b @map("A+")`, so the column holds `A+` and the client both returns and demands
+ * `A_2b`. The store translates, which is what lets the grammar accept a blood group at
+ * all — and what fixes the hyphenated options that were already broken here, since
+ * `in-progress` has always been the member `in_progress`.
+ */
+describe("enum values that are not identifiers", () => {
+  const patient = defineResource({
+    name: "Patient",
+    fields: { name: field.string(), bloodGroup: field.enum(["A+", "A-", "O+", "O-"]) },
+  });
+  const store = (delegate: PrismaDelegate) =>
+    createResourceStore({ resource: patient, rows: prismaRows(delegate, { client: true }, patient) });
+
+  it("writes the member name, because Prisma rejects the real value", async () => {
+    const { delegate, last } = fakeDelegate();
+    await store(delegate).create({ name: "Ada", bloodGroup: "A+" });
+    expect((last("create")!.data as Record<string, unknown>).bloodGroup).toBe("A_2b");
+  });
+
+  it("hands back the value the user chose, not the member name", async () => {
+    const { delegate } = fakeDelegate([{ id: "1", name: "Ada", bloodGroup: "A_2b" }]);
+    const result = await store(delegate).get("1");
+    expect(result.ok && result.data.bloodGroup).toBe("A+");
+  });
+
+  it("translates every row of a list", async () => {
+    const { delegate } = fakeDelegate([
+      { id: "1", name: "Ada", bloodGroup: "A_2b" },
+      { id: "2", name: "Bob", bloodGroup: "O_" },
+    ]);
+    const result = await store(delegate).list(new URLSearchParams());
+    expect(result.ok && result.data.data.map((row) => row.bloodGroup)).toEqual(["A+", "O-"]);
+  });
+
+  it("translates a filter, so filtering by A+ finds anything", async () => {
+    const { delegate, last } = fakeDelegate();
+    await store(delegate).list(new URLSearchParams({ "filter[bloodGroup]": "A+" }));
+    expect((last("findMany")!.where as Record<string, unknown>).bloodGroup).toBe("A_2b");
+  });
+
+  it("translates on update, both ways", async () => {
+    const { delegate, last } = fakeDelegate([{ id: "1", name: "Ada", bloodGroup: "A_2b" }]);
+    const result = await store(delegate).update("1", { bloodGroup: "O-" });
+    expect((last("update")!.data as Record<string, unknown>).bloodGroup).toBe("O_");
+    expect(result.ok && result.data.bloodGroup).toBe("O-");
+  });
+
+  it("leaves a resource whose options are already identifiers untouched", async () => {
+    // The common case, and it should cost nothing: no table is built for it at all.
+    const { delegate, last } = fakeDelegate();
+    await createResourceStore({ resource: contact, rows: prismaRows(delegate, { client: true }, contact) }).create({
+      name: "Ada",
+      email: "ada@example.com",
+      status: "lead",
+    });
+    expect((last("create")!.data as Record<string, unknown>).status).toBe("lead");
+  });
+
+  it("passes a member it has never heard of straight through", async () => {
+    // A row written before an option was removed should still be readable.
+    const { delegate } = fakeDelegate([{ id: "1", name: "Ada", bloodGroup: "AB_2b" }]);
+    const result = await store(delegate).get("1");
+    expect(result.ok && result.data.bloodGroup).toBe("AB_2b");
+  });
+});

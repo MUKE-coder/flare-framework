@@ -149,7 +149,8 @@ describe("route, client, and registry rendering", () => {
 
   it("names the row adapter at the call site, per stack", () => {
     expect(renderCollectionRoute(contact)).toContain("rows: drizzleRows(contacts, getDb),");
-    expect(renderCollectionRoute(contact, "next")).toContain("rows: prismaRows(prisma.contact, prisma),");
+    // The descriptor is the third argument so the store can translate enum values.
+    expect(renderCollectionRoute(contact, "next")).toContain("rows: prismaRows(prisma.contact, prisma, contactResource),");
   });
 
   it("renders a typed client bound to the resource slug", () => {

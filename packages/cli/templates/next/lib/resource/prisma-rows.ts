@@ -20,6 +20,7 @@
  * package can't depend on one. The delegate is described structurally instead, which is
  * also what makes it easy to test without a database.
  */
+import { enumTranslations, storedFields, type EnumTranslation, type Resource } from "@flaredev/core";
 import type { ConstraintHit, ResourceRows, Row, RowsQuery } from "./rows";
 
 /**
@@ -79,10 +80,46 @@ function fromIndexName(name: string): string {
   return match ? match[1]! : name;
 }
 
-export function prismaRows(delegate: PrismaDelegate, client: unknown): ResourceRows {
+/**
+ * Prisma's client speaks enum *member* names, not the values stored in the column.
+ *
+ * `A+` cannot be an identifier, so the schema declares the member `A_2b` with
+ * `@map("A+")`. The map applies to Postgres: the column holds `A+`, and the generated
+ * client still hands back `A_2b` and insists on it when writing. Left alone, the admin
+ * shows `A_2b`, the validators reject it because the descriptor says the value is `A+`,
+ * and a create fails outright.
+ *
+ * So values are translated at this boundary, and nothing above it has to know. A
+ * resource whose options are all identifiers already — `draft`, `published`, which is
+ * most of them — gets no translation table and pays nothing.
+ */
+function translate(row: Row, enums: Record<string, EnumTranslation>, direction: "toValue" | "toMember"): Row {
+  let copy: Row | undefined;
+  for (const key of Object.keys(enums)) {
+    const current = row[key];
+    if (typeof current !== "string") continue;
+    const mapped = enums[key]![direction][current];
+    // An unknown member is left as it is rather than blanked: a value written before an
+    // option was removed should still be visible in the admin, not silently become null.
+    if (mapped === undefined || mapped === current) continue;
+    copy ??= { ...row };
+    copy[key] = mapped;
+  }
+  return copy ?? row;
+}
+
+export function prismaRows(delegate: PrismaDelegate, client: unknown, resource?: Resource): ResourceRows {
+  // Built once per store rather than per row. Without a descriptor there is nothing to
+  // translate, which keeps the old two-argument call working.
+  const enums = resource ? enumTranslations(storedFields(resource)) : {};
+  const hasEnums = Object.keys(enums).length > 0;
+  const toValue = (row: Row): Row => (hasEnums ? translate(row, enums, "toValue") : row);
+  const toMember = (row: Row): Row => (hasEnums ? translate(row, enums, "toMember") : row);
   /** The search and filter half of a where clause — everything but the cursor. */
   function matching(query: Pick<RowsQuery, "search" | "filters" | "deleted">): Record<string, unknown> {
-    const where: Record<string, unknown> = { ...query.filters };
+    // A filter on an enum field arrives as the value the user sees, and has to reach
+    // Prisma as the member name.
+    const where: Record<string, unknown> = hasEnums ? { ...toMember(query.filters as Row) } : { ...query.filters };
     // A soft-deleting resource hides its deleted rows. Set on the query rather than in
     // `filters` because "only" is `not: null`, which the filter shape cannot say.
     if (query.deleted === "exclude") where.deletedAt = null;
@@ -106,18 +143,22 @@ export function prismaRows(delegate: PrismaDelegate, client: unknown): ResourceR
         // Postgres compares a timestamp against a Date, not the number the cursor
         // carried. Without this, paging past the first page of a date-sorted list fails
         // with "Expected DateTime, provided Int".
-        const value = isDate && (typeof query.cursor.value === "number" || typeof query.cursor.value === "string") ? new Date(query.cursor.value) : query.cursor.value;
+        let value = isDate && (typeof query.cursor.value === "number" || typeof query.cursor.value === "string") ? new Date(query.cursor.value) : query.cursor.value;
+        // Paging over an enum column: the cursor carries the value the row was handed
+        // out with, and Prisma compares member names.
+        if (hasEnums && enums[field] && typeof value === "string") value = enums[field]!.toMember[value] ?? value;
         // (sort, id) as one comparison, so rows sharing a sort value are neither skipped
         // nor repeated. AND-ed with the filters rather than replacing them.
         const keyset = [{ [field]: { [op]: value } }, { AND: [{ [field]: value }, { id: { [op]: id } }] }];
         where.AND = [...((where.AND as unknown[]) ?? []), { OR: keyset }];
       }
-      return delegate.findMany({
+      const rows = await delegate.findMany({
         where,
         orderBy: [{ [query.sort.field]: query.sort.direction }, { id: query.sort.direction }],
         take: query.limit,
         ...(query.offset ? { skip: query.offset } : {}),
       });
+      return hasEnums ? rows.map(toValue) : rows;
     },
 
     countUpTo(query, limit) {
@@ -125,8 +166,9 @@ export function prismaRows(delegate: PrismaDelegate, client: unknown): ResourceR
       return delegate.count({ where: matching(query), take: limit });
     },
 
-    byId(id) {
-      return delegate.findUnique({ where: { id } });
+    async byId(id) {
+      const row = await delegate.findUnique({ where: { id } });
+      return row ? toValue(row) : row;
     },
 
     async titles(ids, titleField, owner) {
@@ -135,13 +177,14 @@ export function prismaRows(delegate: PrismaDelegate, client: unknown): ResourceR
       return rows.map((row) => ({ id: String(row.id), title: row[titleField] }));
     },
 
-    insert(values) {
-      return delegate.create({ data: values });
+    async insert(values) {
+      return toValue(await delegate.create({ data: hasEnums ? toMember(values as Row) : values }));
     },
 
     async update(id, values) {
       try {
-        return await delegate.update({ where: { id }, data: values });
+        const row = await delegate.update({ where: { id }, data: hasEnums ? toMember(values as Row) : values });
+        return toValue(row);
       } catch (error) {
         if (codeOf(error) === NOT_FOUND) return null;
         throw error;

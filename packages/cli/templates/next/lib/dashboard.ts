@@ -80,7 +80,9 @@ export function dashboardStore(name: string): ResourceStore {
   if (!store) {
     store = createResourceStore({
       resource: entry.resource,
-      rows: prismaRows(entry.delegate, prisma),
+      // The descriptor goes in so the store can translate enum values both ways:
+      // Prisma's client speaks member names, so the column's "A+" is "A_2b" to it.
+      rows: prismaRows(entry.delegate, prisma, entry.resource),
       // The admin is not exempt from ownership. A policy that confines staff to their own
       // rows has to mean the same thing here as it does over the API, or the dashboard is
       // a way around it.

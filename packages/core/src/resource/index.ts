@@ -57,6 +57,7 @@ export {
   type ResourceConfig,
 } from "./define.js";
 export { conditionHolds, describeCondition, type FieldCondition } from "./conditions.js";
+export { enumMemberCollision, enumTranslations, prismaEnumMember, type EnumTranslation } from "./enum-member.js";
 export { createValidators, fieldSchema, fileKeyPrefix, type ResourceValidators } from "./validators.js";
 export { camelCase, humanize, kebabCase, pascalCase, pluralize, snakeCase, words } from "./naming.js";
 export {
