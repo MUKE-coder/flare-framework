@@ -147,6 +147,18 @@ export async function genResource(rawName: string, options: GenResourceOptions):
       for (const repair of result.repairs) log(pc.dim(`repaired  ${repair}`));
       if (migrations.length) log(`\nNext: ${pc.bold("flare migrate")} to apply it locally.`);
       else if (exists) log(pc.dim("\nNo table changes, so no migration."));
+      else {
+        // A resource that is new and got no migration is not a quiet success: there is
+        // now a table in db/schema.ts that nothing will create on a fresh database. The
+        // old code printed nothing at all in this branch, which is how a project could
+        // stop generating migrations and give no sign of it.
+        log(
+          pc.yellow(
+            `\nNo migration was generated, but ${name} is new — so nothing will create ${table} on a fresh database.` +
+              `\nRun ${pc.bold("npx drizzle-kit generate")} in this app to see why.`,
+          ),
+        );
+      }
     }
   }
 
