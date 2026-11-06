@@ -51,7 +51,7 @@ export const slides: Slide[] = [
     kind: "portrait",
     eyebrow: "Who is telling it",
     name: "Muke JohnBaptist (JB)",
-    image: "/talk/jb-portrait.webp",
+    image: "/talk/jb-profile.webp",
     role: "Fullstack engineer · Kampala, Uganda",
     facts: [
       "Founder of [Desishub Technologies](https://www.desishub.com)",

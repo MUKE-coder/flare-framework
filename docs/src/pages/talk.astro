@@ -202,8 +202,10 @@ const md = (text: string) =>
       .focus-main { display: flex; flex-direction: column; gap: 40px; }
       .focus-main .s-head { font-size: 76px; }
 
-      .portrait { display: grid; grid-template-columns: 420px 1fr; gap: 90px; align-items: center; }
-      .portrait img { width: 420px; height: 420px; object-fit: cover; border-radius: 28px; border: 1px solid var(--s-rule); display: block; }
+      /* The photo is 3:4, so the frame is too — a square crop threw away the half of
+         it that makes it a portrait rather than a headshot. */
+      .portrait { display: grid; grid-template-columns: 400px 1fr; gap: 80px; align-items: center; }
+      .portrait img { width: 400px; height: 533px; object-fit: cover; object-position: center 20%; border-radius: 28px; border: 1px solid var(--s-rule); display: block; }
       /* Eight facts is the most this slide holds; the gap is sized for that. */
       .facts { list-style: none; margin: 30px 0 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
       .facts li { font-size: 31px; color: var(--s-body); line-height: 1.35; padding-left: 34px; position: relative; }
