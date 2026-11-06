@@ -186,6 +186,13 @@ idle database, so the first request after a quiet spell waits for it to wake
 files, this is often the single biggest line on the bill, which is why both
 stacks use R2 for storage.
 
+**The framework underneath.** The Cloudflare stack runs on vinext, which is
+younger than Next.js and is the dependency people hesitate over. Which version
+each Flare release is tested against, how an upgrade reaches an app you have
+already built, and what happens if vinext stalls are written down in
+[depending on vinext](/about/vinext-policy/) — worth reading before choosing
+this stack for a client.
+
 **Realtime.** Cloudflare gives every channel a Durable Object — one address,
 its own storage, websockets that stay open. Vercel has no equivalent, so
 `realtimeChannel().publish()` delivers nothing. It logs a warning the first

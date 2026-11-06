@@ -59,6 +59,7 @@ export default defineConfig({
             { label: "The pitch", slug: "about/pitch" },
             { label: "Who Flare is for", slug: "about/who-its-for" },
             { label: "Philosophy", slug: "about/philosophy" },
+            { label: "Depending on vinext", slug: "about/vinext-policy" },
           ],
         },
         {
