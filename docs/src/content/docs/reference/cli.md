@@ -382,3 +382,8 @@ shares the running server on a public URL
 `--skip-secrets`, `--skip-security`, `--env <name>`, and `--preview`
 (shorthand for `--env preview`). On Next.js, the Vercel CLI's own flags work
 instead — `--yes`, `--scope <team>`, and so on.
+
+On either stack, `flare deploy` first names any resource with no policy, since
+that resource is readable and writable by any signed-in user. It warns rather
+than refuses; `--allow-open` silences it
+([Deployment](/guides/deployment/#resources-with-no-policy)).

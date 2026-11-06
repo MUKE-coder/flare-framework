@@ -20,6 +20,9 @@ import { readD1Databases, runWrangler, type D1Database } from "../utils/wrangler
  *   uploaded as secrets, so the app can ban at the zone edge too.
  */
 
+import { loadResources } from "../generator/load.js";
+import { loadPolicies } from "../generator/policy.js";
+
 export const REQUIRED_SECRET = "BETTER_AUTH_SECRET";
 const MISSING_DATABASE = /Couldn't find a D1 DB/i;
 
@@ -121,6 +124,59 @@ export async function provisionZoneSecurity(
     const result = await zone.syncCustomRules(config.zone.customRules);
     options.log(`  custom rules: ${result.written} Flare rule(s), ${result.kept} other rule(s) kept`);
   }
+}
+
+/**
+ * Resources that no policy covers, by name, in the order they would be listed.
+ *
+ * A resource with no policy is readable and writable by any signed-in user. Since 0.11.0
+ * `flare gen resource` writes an admin-only policy, but a resource generated before that
+ * — or one whose policy file was deleted — is still wide open, and nothing said so at
+ * the moment it mattered.
+ *
+ * Pure, and takes both lists rather than a path, so the interesting cases are testable
+ * without an app on disk.
+ */
+export function resourcesWithoutPolicy(resources: { resource: { name: string } }[], policies: { policy: { resource: string } }[]): string[] {
+  const covered = new Set(policies.map(({ policy }) => policy.resource));
+  return resources
+    .map(({ resource }) => resource.name)
+    .filter((name) => !covered.has(name))
+    .sort();
+}
+
+/**
+ * Say out loud, before anything is pushed, which resources are open to any signed-in
+ * user.
+ *
+ * A warning rather than a refusal: an open resource is a legitimate choice — a public
+ * catalogue, a form anybody may submit — and a deploy that stopped for one would be
+ * worse than one that mentions it. `--allow-open` says "I meant that" and silences it.
+ *
+ * Both stacks go through here. The policy is enforced in the route on either, so a
+ * missing one means the same thing on Vercel as it does on Workers.
+ */
+export async function warnAboutOpenResources(
+  appRoot: string,
+  options: { log: (message: string) => void; allowOpen?: boolean },
+): Promise<string[]> {
+  if (options.allowOpen) return [];
+  let open: string[];
+  try {
+    open = resourcesWithoutPolicy(await loadResources(appRoot), await loadPolicies(appRoot));
+  } catch {
+    // A descriptor that does not load is the deploy's problem a moment from now, and it
+    // will say so far better than this check could. Never block on the warning itself.
+    return [];
+  }
+  if (open.length === 0) return [];
+  const count = open.length === 1 ? "1 resource has" : `${open.length} resources have`;
+  options.log(
+    `\n${pc.yellow(`⚠ ${count} no policy, so any signed-in user can read and write ${open.length === 1 ? "it" : "them"}:`)}\n` +
+      `    ${pc.bold(open.join(", "))}\n` +
+      `  Run ${pc.bold("flare gen policy <Name> --roles admin")} for each, or deploy with ${pc.bold("--allow-open")} if that is what you meant.`,
+  );
+  return open;
 }
 
 export async function runDeploy(args: string[], context: DeployContext): Promise<number> {

@@ -4,7 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import pc from "picocolors";
 import { openTunnel, parseLocalUrl, tunnelBanner, type Tunnel } from "../tunnel.js";
 import { findUp } from "../utils/fs.js";
-import { runDeploy } from "./deploy.js";
+import { runDeploy, warnAboutOpenResources } from "./deploy.js";
 import { readStack } from "../stack.js";
 
 /**
@@ -23,7 +23,7 @@ export const DELEGATED_COMMANDS = {
   },
   deploy: {
     description:
-      "Migrate D1, build and deploy to Cloudflare Workers (vinext-cloudflare deploy), then ensure secrets and push security.config.ts zone rules. Flags: --skip-migrations, --skip-secrets, --skip-security",
+      "Migrate D1, build and deploy to Cloudflare Workers (vinext-cloudflare deploy), then ensure secrets and push security.config.ts zone rules. Flags: --skip-migrations, --skip-secrets, --skip-security, --allow-open",
     pkg: "@vinext/cloudflare",
     bin: "vinext-cloudflare",
     args: ["deploy", "--config", "dist/server/wrangler.json"],
@@ -199,10 +199,18 @@ export async function runDelegated(command: DelegatedCommand, forwarded: string[
   }
 
   if (command === "deploy") {
+    // Which resources anybody signed in can read and write, said before anything is
+    // pushed rather than discovered afterwards. Both stacks: the policy is enforced in
+    // the route on either, so a missing one means the same thing on Vercel as on
+    // Workers. --allow-open is ours, so it never reaches wrangler or vercel.
+    const allowOpen = forwarded.includes("--allow-open");
+    const deployArgs = forwarded.filter((arg) => arg !== "--allow-open");
+    if (!wantsHelp) await warnAboutOpenResources(appRoot, { log: (message) => console.log(message), allowOpen });
+
     // The Cloudflare deploy migrates D1, pushes secrets and applies zone rules first.
     // On Vercel every one of those is the platform's, so this is just the CLI.
-    if (next) return runNode(delegatedArgv(appRoot, "deploy", forwarded), appRoot);
-    return runDeploy(forwarded, {
+    if (next) return runNode(delegatedArgv(appRoot, "deploy", deployArgs), appRoot);
+    return runDeploy(deployArgs, {
       appRoot,
       wranglerBin: resolveBin(appRoot, "wrangler", "wrangler"),
       deploy: (args) => runNode(delegatedArgv(appRoot, "deploy", args), appRoot),

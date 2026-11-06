@@ -31,9 +31,30 @@ needs and almost always forgets the first time:
 | `--skip-migrations` | Don't touch D1 at all this deploy |
 | `--skip-secrets` | Don't check or generate secrets this deploy |
 | `--skip-security` | Don't push `security.config.ts` zone rules this deploy (see [Security](/guides/security/)) |
+| `--allow-open` | Don't warn about resources with no policy (see below) |
 | `--env <name>` | Forwarded to every Wrangler call (migrations, secrets, deploy) |
 | `--preview` | Shorthand for `--env preview` |
 | `--dry-run` / `--help` | Delegate straight through — nothing remote is touched |
+
+## Resources with no policy
+
+A resource with no policy file is readable and writable by any signed-in user.
+`flare gen resource` writes an admin-only policy, so this only happens to a
+resource generated before 0.11.0, or one whose policy was deleted — but when it
+happens, the deploy is the moment it matters. So the deploy says so first:
+
+```
+⚠ 1 resource has no policy, so any signed-in user can read and write it:
+    Payment
+  Run `flare gen policy <Name> --roles admin` for each, or deploy with --allow-open if that is what you meant.
+```
+
+It is a warning, not a refusal: an open resource is a legitimate choice — a
+public catalogue, a form anybody may submit — and the deploy goes ahead. Pass
+`--allow-open` once you have decided that is what you want, and it stays quiet.
+
+Both stacks warn. The policy is enforced in the route on either, so a missing
+one means the same thing on Vercel as it does on Workers.
 
 ## First deploy
 
