@@ -298,7 +298,10 @@ export async function diagnose(options: DoctorOptions = {}): Promise<Finding[]> 
     findings.push({
       check: "Descriptors",
       verdict: "ok",
-      detail: resources.length === 0 ? "No resources yet." : `${resources.length} resource${resources.length === 1 ? "" : "s"} load cleanly.`,
+      detail:
+        resources.length === 0
+          ? "No resources yet."
+          : `${resources.length} resource${resources.length === 1 ? " loads" : "s load"} cleanly.`,
     });
   } catch (error) {
     findings.push({
