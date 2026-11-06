@@ -68,6 +68,28 @@ export const slides: Slide[] = [
 
   // ─── The room ───────────────────────────────────────────────────────────────
   {
+    id: "open-source",
+    kind: "projects",
+    eyebrow: "And what I do when nobody is paying me",
+    title: "Twelve are open. All take pull requests.",
+    items: [
+      { name: "Grit", commits: 1288, site: { label: "site", href: "https://gritframework.dev/" }, code: "https://github.com/MUKE-coder/grit" },
+      { name: "Flare", commits: 214, site: { label: "site", href: "https://flare-docs.codetotech.com" }, code: "https://github.com/MUKE-coder/flare-framework" },
+      { name: "Scout", commits: 142, site: { label: "site", href: "https://scout.codetotech.com/" }, code: "https://github.com/MUKE-coder/scout" },
+      { name: "Orbita", commits: 107, site: { label: "site", href: "https://orbita.gritframework.dev/" }, code: "https://github.com/MUKE-coder/orbita" },
+      { name: "Vibekit", commits: 91, site: { label: "site", href: "https://vibekit.desishub.com/" }, code: "https://github.com/MUKE-coder/vibekit" },
+      { name: "Sentinel", commits: 47, site: { label: "site", href: "https://sentinel-desishub.vercel.app/" }, code: "https://github.com/MUKE-coder/sentinel" },
+      { name: "Pulse", commits: 40, code: "https://github.com/MUKE-coder/pulse" },
+      { name: "Zenith", commits: 34, site: { label: "site", href: "https://zenith.gritframework.dev/" }, code: "https://github.com/MUKE-coder/zenith" },
+      { name: "GORM Studio", commits: 28, site: { label: "site", href: "https://gorm-studio.vercel.app/" }, code: "https://github.com/MUKE-coder/gorm-studio" },
+      { name: "Beautiful Banner Ads", commits: 20, site: { label: "npm", href: "https://www.npmjs.com/package/beautiful-banner-ads" }, code: "https://github.com/MUKE-coder/beautiful-banner-ads" },
+      { name: "Simple UI", site: { label: "site", href: "https://simpleui.desishub.com/" } },
+      { name: "Optimised Uploads", site: { label: "npm", href: "https://www.npmjs.com/package/@gritframework/upload" } },
+    ],
+    caption: "Two thousand commits, MIT, and every one has issues nobody has taken — **including this one**.",
+    notes: "Twenty seconds, and do not read the list. The point is only that this is a habit rather than a single project, which is what makes the contributor ask at the end credible. If somebody asks afterwards, Grit is the Go one and the oldest; Flare is this talk.",
+  },
+  {
     id: "q-next",
     kind: "statement",
     eyebrow: "A show of hands",

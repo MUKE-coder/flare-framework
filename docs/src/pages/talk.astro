@@ -235,6 +235,18 @@ const md = (text: string) =>
         background: color-mix(in srgb, var(--s-ember) 22%, transparent);
       }
 
+      /*
+       * Twelve projects on one slide. Four columns so nothing wraps, and no borders:
+       * twelve boxes at this size is a grid of noise, and the name carries the weight.
+       */
+      .projects { list-style: none; margin: 0 0 34px; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px 44px; }
+      .projects li { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+      .p-name { font-size: 31px; font-weight: 600; letter-spacing: -0.02em; color: var(--s-ink); line-height: 1.15; }
+      .p-size { font-family: var(--mono); font-size: 20px; color: var(--s-muted); }
+      .p-links { display: flex; gap: 16px; margin-top: 2px; }
+      .p-links a { font-family: var(--mono); font-size: 19px; color: var(--s-muted); text-decoration-thickness: 1px; text-underline-offset: 4px; }
+      .p-links a:hover { color: var(--s-ember); }
+
       /* The tables as objects you can point at, before any of their detail. */
       .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 26px; }
       .card { border: 1px solid var(--s-rule); border-radius: 18px; padding: 32px 30px; background: var(--s-surface); display: flex; flex-direction: column; gap: 12px; min-height: 250px; }
@@ -402,6 +414,34 @@ const md = (text: string) =>
                         {slide.links && <p class="portrait-links" set:html={md(slide.links)} />}
                       </div>
                     </div>
+                  </>
+                )}
+
+                {slide.kind === "projects" && (
+                  <>
+                    <p class="s-eyebrow">{slide.eyebrow}</p>
+                    {slide.title && <h2 class="s-head" style="font-size:62px">{slide.title}</h2>}
+                    <ul class="projects">
+                      {slide.items.map((item) => (
+                        <li>
+                          <span class="p-name">{item.name}</span>
+                          {item.commits && <span class="p-size">{item.commits.toLocaleString()} commits</span>}
+                          <span class="p-links">
+                            {item.site && (
+                              <a href={item.site.href} target="_blank" rel="noopener">
+                                {item.site.label}
+                              </a>
+                            )}
+                            {item.code && (
+                              <a href={item.code} target="_blank" rel="noopener">
+                                code
+                              </a>
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    {slide.caption && <p class="caption" set:html={md(slide.caption)} />}
                   </>
                 )}
 

@@ -46,6 +46,19 @@ type SlideKind =
     }
   /** The speaker. A portrait, a name, and the handful of facts worth saying out loud. */
   | { id: string; kind: "portrait"; eyebrow: string; name: string; role: string; image: string; facts: string[]; links?: string; section?: string }
+  /**
+   * A wall of projects: name, size, and where to find each one. Denser than the other
+   * kinds on purpose — it is a slide to point at and scan, not one to read aloud.
+   */
+  | {
+      id: string;
+      kind: "projects";
+      eyebrow: string;
+      title?: string;
+      items: { name: string; commits?: number; site?: { label: string; href: string }; code?: string }[];
+      caption?: string;
+      section?: string;
+    }
   /** Bold cards: the seven tables as objects you can point at, before the detail. */
   | { id: string; kind: "cards"; eyebrow: string; title?: string; cards: { num: string; name: string; note: string; hangs?: string }[]; caption?: string; section?: string }
   /** A real table: the columns of a resource, or any grid with a header row. */
