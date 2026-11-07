@@ -234,6 +234,23 @@ pnpm db:generate
 ```
 :::
 
+## "This tab is running old code"
+
+A page in the dashboard says that, or the browser console says a module
+"was instantiated because it was required from module ... but the module
+factory is not available". Nothing is wrong with your app. The tab loaded one
+build and the server is serving another — after an update, or after starting a
+**different Flare app on the same port**, which is the common one: both stacks
+use `localhost:3000`, so two apps share an origin and a browser can hold the
+first one's JavaScript while talking to the second.
+
+**Hard-reload the page** — Ctrl+Shift+R (Cmd+Shift+R on a Mac). The error page
+offers a Reload button for exactly this, because React's usual "Try again"
+re-renders the same stale modules and cannot fix it.
+
+To avoid it entirely, stop one app before starting the next, or give the second
+one its own port: `npx flare dev --port 3001`.
+
 ## Upgrading
 
 Upgrade an app by bumping `@flaredev/core` and `@flaredev/cli` together in its

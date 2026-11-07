@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
+import { hardReload, isStaleChunkError } from "@/lib/stale-chunk";
 
 /**
  * The public error boundary.
@@ -10,6 +11,10 @@ import { RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
  * Reached when a page throws. It is a client component because it has to be — React
  * needs somewhere to hand `reset`, which re-renders the segment without a full page
  * load, and that is usually all a transient failure needs.
+ *
+ * Usually, but not always: a tab holding stale JavaScript throws too, and `reset` can
+ * never fix that one — it re-renders the same stale modules. So that case is told
+ * apart and offered a reload, which does fix it. See lib/stale-chunk.ts.
  *
  * `error.digest` is the only detail shown. The message itself is deliberately not:
  * in production it is replaced by React anyway, and in development the overlay is
@@ -21,17 +26,21 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
     console.error(error);
   }, [error]);
 
+  const stale = isStaleChunkError(error);
+
   return (
     <main className="mx-auto flex min-h-[70vh] max-w-2xl flex-col items-center justify-center gap-6 px-6 py-20 text-center">
       <div className="flex size-14 items-center justify-center rounded-2xl border border-border bg-surface">
         <TriangleAlertIcon className="size-6 text-danger" aria-hidden="true" />
       </div>
       <div className="flex flex-col gap-3">
-        <h1 className="text-3xl text-balance md:text-4xl">Something went wrong</h1>
+        <h1 className="text-3xl text-balance md:text-4xl">{stale ? "This tab is running old code" : "Something went wrong"}</h1>
         <p className="text-foreground-muted text-pretty">
-          This one is on us. Trying again often works; if it doesn&apos;t, the error has been logged.
+          {stale
+            ? "Nothing is wrong with the app. This tab loaded one build and the server is serving another — usually after an update, or after starting a different app on this port. Reloading fixes it."
+            : "This one is on us. Trying again often works; if it doesn't, the error has been logged."}
         </p>
-        {error.digest && (
+        {!stale && error.digest && (
           <p className="font-mono text-xs text-foreground-muted">
             Reference: <span className="select-all">{error.digest}</span>
           </p>
@@ -40,11 +49,11 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
       <div className="flex flex-wrap justify-center gap-3">
         <button
           type="button"
-          onClick={reset}
+          onClick={stale ? hardReload : reset}
           className="inline-flex h-11 items-center gap-2 rounded-[var(--button-radius)] bg-brand px-5 font-medium text-brand-foreground [background-image:var(--brand-gradient,none)] hover:brightness-95"
         >
           <RefreshCwIcon className="size-4" aria-hidden="true" />
-          Try again
+          {stale ? "Reload the page" : "Try again"}
         </button>
         <Link href="/" className="inline-flex h-11 items-center rounded-[var(--button-radius)] border border-border px-5 font-medium hover:bg-accent">
           Back home
