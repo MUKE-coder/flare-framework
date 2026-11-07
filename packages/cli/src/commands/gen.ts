@@ -178,7 +178,7 @@ export async function genResource(rawName: string, options: GenResourceOptions):
       // Prisma writes its own migrations, by diffing the schema against the database it
       // is pointed at. That needs a live DATABASE_URL, so it is the next thing you run
       // rather than something to do on your behalf here.
-      log(`\nNext: ${pc.bold("npx prisma migrate dev")} to turn the schema into a migration and apply it.`);
+      log(`\nNext: ${pc.bold("npx flare migrate")} to turn the schema into a migration and apply it.`);
     } else {
       // Renames first, and each in its own migration. A rename has to be told apart from
       // a drop and an add before the ordinary diff runs — once the schema file has only

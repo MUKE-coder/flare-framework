@@ -155,7 +155,7 @@ export async function rmResource(rawName: string, options: RmResourceOptions = {
   // schema this command just rewrote — there is no drizzle-kit to diff against.
   if (readStack(appRoot) === "next") {
     if (entry) log(`
-Next: ${pc.bold("npx prisma migrate dev")} to drop the table.`);
+Next: ${pc.bold("npx flare migrate")} to drop the table.`);
     return { removed, migrations };
   }
   if (!options.skipMigration && entry) {

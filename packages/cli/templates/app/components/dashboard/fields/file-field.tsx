@@ -149,7 +149,7 @@ function put(url: string, file: Prepared, onProgress: (loaded: number) => void, 
  * first (the server repeats every check), uploads straight to storage through a signed
  * URL with progress, and stores the object key in the form.
  */
-export function FileField({ id, value, onChange, invalid, disabled, field, resourceName, fieldKey }: Props) {
+export function FileField({ id, value, onChange, invalid, disabled, field, resourceName, fieldKey, compact = false }: Props & { compact?: boolean }) {
   const input = useRef<HTMLInputElement>(null);
   const helpId = useId();
   const instructionId = useId();
@@ -384,6 +384,28 @@ export function FileField({ id, value, onChange, invalid, disabled, field, resou
             )}
           </div>
         </div>
+      ) : compact ? (
+        // One line, for a cell in the bulk-add grid: a dropzone per row would make
+        // every row as tall as a paragraph and the sheet stop looking like a sheet.
+        // Same upload path, same checks — only the control is smaller.
+        <button
+          id={id}
+          type="button"
+          {...dropHandlers}
+          onClick={choose}
+          disabled={disabled}
+          aria-label={`Attach ${field.label.toLowerCase()}`}
+          aria-describedby={helpId}
+          aria-invalid={invalid || Boolean(error) || undefined}
+          className={cn(
+            "flex h-9 w-full items-center gap-2 border-r px-2 text-left text-sm text-muted-foreground outline-none transition-colors",
+            "hover:bg-muted/50 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+            dragging ? "bg-primary/5 text-foreground" : (invalid || error) && "text-destructive",
+          )}
+        >
+          <UploadIcon aria-hidden="true" className="size-4 shrink-0" />
+          <span className="truncate">{dragging ? "Drop it" : "Attach"}</span>
+        </button>
       ) : (
         <button
           id={id}

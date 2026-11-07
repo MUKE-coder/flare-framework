@@ -192,7 +192,7 @@ export async function genApiKeys(options: GenApiKeysOptions = {}): Promise<{ fil
   const steps = [
     ...(installed ? [`${pc.bold("install")} (pnpm install) to fetch ${API_KEY_PACKAGE}.`] : []),
     stack === "next"
-      ? `${pc.bold("npx prisma migrate dev --name apikeys")} to create the table.`
+      ? `${pc.bold("npx flare migrate --name apikeys")} to create the table.`
       : `${pc.bold("flare migrate")} to create the apikey table.`,
     `${pc.bold("flare dev")}, then ${pc.bold("/dashboard/api-keys")} to mint one.`,
     `Call the API with it: ${pc.bold("-H 'Authorization: Bearer <key>'")} (or ${pc.bold("x-api-key")}).`,

@@ -448,7 +448,7 @@ export async function diagnose(options: DoctorOptions = {}): Promise<Finding[]> 
 
   // Migrations, which is the one check that has to ask the database.
   if (stack === "next") {
-    findings.push({ check: "Migrations", verdict: "skip", detail: "Prisma tracks these in the database; run `npx prisma migrate status`." });
+    findings.push({ check: "Migrations", verdict: "skip", detail: "Prisma tracks these in the database; run `npx flare migrate --deploy` to apply any that are pending." });
   } else if (options.offline) {
     findings.push({ check: "Migrations", verdict: "skip", detail: "Skipped (--offline)." });
   } else {

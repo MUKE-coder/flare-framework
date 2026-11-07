@@ -25,6 +25,7 @@ import { TrashToggle } from "./trash-toggle";
 import { isInlineEditable } from "./editable";
 import { InlineCell } from "./inline-cell";
 import type { RelationMeta } from "./fields/field-widget";
+import { BulkAddSheet } from "./bulk-add-sheet";
 import { ImportDialog } from "./import-dialog";
 import { LocalTime } from "./local-time";
 import { hrefWith, toSearchParams, type SearchParams } from "./query";
@@ -125,6 +126,7 @@ export async function ResourceTable({ resource, searchParams }: { resource: Reso
           <ColumnMenu columns={allColumns.map(({ key, label }) => ({ key, label }))} visible={columns.map((column) => column.key)} />
           <ExportButton resourceName={resource.name} pluralLabel={resource.pluralLabel} />
           {permissions.create && <ImportDialog resource={forClient} />}
+          {permissions.create && <BulkAddSheet resource={forClient} label={resource.label} />}
           {permissions.create &&
             (overlayForms ? (
               <NewRecordButton resource={forClient} relations={relations} listHref={basePath} omit={omit} />
