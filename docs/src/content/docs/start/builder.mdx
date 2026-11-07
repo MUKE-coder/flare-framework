@@ -9,6 +9,12 @@ Every choice below is a `flare create` flag. Pick what you want; the command
 updates as you do, and the defaults stay out of it — an app with default
 answers is one short line.
 
+The command pins the exact version these docs describe. That is deliberate:
+pnpm holds new releases for 24 hours
+([`minimumReleaseAge`](/start/installation/#if-it-scaffolds-an-old-version)),
+so on a release day a bare `pnpm create flare-framework` runs an older CLI
+that may not know these flags. The pinned command always runs this one.
+
 <Builder />
 
 ## After it runs

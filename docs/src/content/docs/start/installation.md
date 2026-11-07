@@ -99,7 +99,9 @@ Two things that look like fixes and are not:
   resolution reads a packument that correctly says `latest: 0.12.1` and still
   picks `0.12.0`.
 
-Ask for the version by number, which bypasses the tag entirely:
+Ask for the version by number, which bypasses the tag entirely — the
+[command builder](/start/builder/) does this for you, always pinning the
+version these docs describe:
 
 ```bash
 pnpm create flare-framework@0.12.1 myapp

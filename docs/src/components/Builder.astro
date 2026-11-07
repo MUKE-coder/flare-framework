@@ -5,7 +5,15 @@
  * Everything here mirrors `flare create`'s real flags — defaults are omitted from the
  * output so the command stays as short as the choices allow. Pure client-side script,
  * no framework: the docs ship nothing extra for this page.
+ *
+ * The command pins the version these docs describe, on a lesson learned the hard way:
+ * pnpm's 24-hour `minimumReleaseAge` resolves a bare name to the newest version older
+ * than a day, so on a release day the copied command ran a CLI that predated the very
+ * flags this page had put in it. An exact version bypasses the cooldown, and the pin
+ * can never go stale because it is read from the CLI's package.json at build time —
+ * the same place the version badge in the header reads it from.
  */
+import { FLARE_VERSION } from "../version";
 ---
 
 <div class="builder" id="flare-builder">
@@ -101,7 +109,7 @@
   </div>
 </div>
 
-<script is:inline>
+<script is:inline define:vars={{ FLARE_VERSION }}>
   (() => {
     const root = document.getElementById("flare-builder");
     if (!root) return;
@@ -151,10 +159,10 @@
       if (s.social.length > 0) flags.push(`--auth-providers ${s.social.join(",")}`);
 
       const starts = {
-        pnpm: `pnpm create flare-framework ${s.name}`,
-        npm: `npm create flare-framework@latest ${s.name}`,
-        yarn: `yarn create flare-framework ${s.name}`,
-        bun: `bun create flare-framework ${s.name}`,
+        pnpm: `pnpm create flare-framework@${FLARE_VERSION} ${s.name}`,
+        npm: `npm create flare-framework@${FLARE_VERSION} ${s.name}`,
+        yarn: `yarn create flare-framework@${FLARE_VERSION} ${s.name}`,
+        bun: `bun create flare-framework@${FLARE_VERSION} ${s.name}`,
       };
       // npm hands arguments to the created package only after `--`.
       const joiner = s.pm === "npm" && flags.length > 0 ? " -- " : flags.length > 0 ? " " : "";
