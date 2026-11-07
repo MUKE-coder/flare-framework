@@ -36,7 +36,15 @@ export interface CommonOptions<T> {
   default?: T;
   helpText?: string;
   placeholder?: string;
-  /** Show as a column in list views. Default true for most kinds, false for long text. */
+  /**
+   * Show as a column in list views. Default **true** for every kind.
+   *
+   * A field you declared is a field you want to see; a table that silently leaves one
+   * out is one you go looking for a bug in — which is what happened to `file`, `text`,
+   * `json` and `markdown`, hidden by default on the grounds that they look untidy in a
+   * column. Tidiness is your call, not the framework's: set `list: false` on the ones
+   * you would rather not see, and the column menu hides any of them per view.
+   */
   list?: boolean;
   sortable?: boolean;
   filterable?: boolean;
@@ -320,7 +328,7 @@ function build<K extends FieldKind, O extends object>(kind: K, options: O | unde
 export const field = {
   string: <const O extends StringOptions>(options?: O) => build("string", options) as StringField<Req<O>> & O,
   text: <const O extends TextOptions>(options?: O) =>
-    build("text", options, { list: false, searchable: false }) as TextField<Req<O>> & O,
+    build("text", options, { searchable: false }) as TextField<Req<O>> & O,
   int: <const O extends NumberOptions>(options?: O) => build("int", options) as IntField<Req<O>> & O,
   float: <const O extends NumberOptions>(options?: O) => build("float", options) as FloatField<Req<O>> & O,
   boolean: <const O extends BooleanOptions>(options?: O) => build("boolean", options) as BooleanField<Req<O>> & O,
@@ -342,10 +350,10 @@ export const field = {
     build("tags", options, { sortable: false, searchable: false }) as TagsField<Req<O>> & O,
   /** Anything not table-shaped: a settings blob, a payload, metadata. Stored as JSON. */
   json: <const O extends JsonOptions>(options?: O) =>
-    build("json", options, { list: false, sortable: false, searchable: false }) as JsonField<Req<O>> & O,
+    build("json", options, { sortable: false, searchable: false }) as JsonField<Req<O>> & O,
   /** Long text written as Markdown: a split editor, rendered where it is shown. */
   markdown: <const O extends Omit<TextOptions, "format">>(options?: O) =>
-    build("text", options, { format: "markdown", list: false, searchable: false }) as TextField<Req<O>> & O,
+    build("text", options, { format: "markdown", searchable: false }) as TextField<Req<O>> & O,
   email: <const O extends Omit<StringOptions, "format">>(options?: O) => build("string", options, { format: "email" }) as StringField<Req<O>> & O,
   url: <const O extends Omit<StringOptions, "format">>(options?: O) => build("string", options, { format: "url" }) as StringField<Req<O>> & O,
   tel: <const O extends Omit<StringOptions, "format">>(options?: O) => build("string", options, { format: "tel" }) as StringField<Req<O>> & O,
@@ -354,7 +362,7 @@ export const field = {
   color: <const O extends Omit<StringOptions, "format">>(options?: O) => build("string", options, { format: "color" }) as StringField<Req<O>> & O,
   slug: <const O extends Omit<StringOptions, "format">>(options?: O) => build("string", options, { format: "slug" }) as StringField<Req<O>> & O,
   file: <const O extends FileOptions>(accept: readonly FileCategory[], options?: O) =>
-    build("file", options, { accept, list: false, sortable: false }) as FileField<Req<O>> & O,
+    build("file", options, { accept, sortable: false }) as FileField<Req<O>> & O,
   belongsTo: <const O extends BelongsToOptions>(target: string, options?: O) =>
     build("belongsTo", options, { target }) as BelongsToField<Req<O>> & O,
   hasMany: <const O extends HasManyOptions>(target: string, options?: O) =>

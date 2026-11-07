@@ -72,9 +72,38 @@ describe("defineResource", () => {
     });
     expect(contact.fields.companyId.label).toBe("Company");
     expect(contact.fields.lastSeenAt.label).toBe("Last seen at");
-    expect(contact.fields.bio).toMatchObject({ required: false, list: false, searchable: false });
+    // Long text is not searchable (a LIKE over paragraphs is not a search) but it does
+    // list: a field you declared is a field you expect to see in the table, and hiding
+    // whole kinds by default sent people looking for a bug. `list: false` opts out.
+    // Long text is not searchable (a LIKE over paragraphs is not a search) but it does
+    // list — see the next test; hiding whole kinds by default sent people looking for a
+    // bug in their own descriptor.
+    expect(contact.fields.bio).toMatchObject({ required: false, searchable: false });
+    expect(contact.fields.bio.list).toBeUndefined();
     expect(contact.fields.name.required).toBe(true);
     expect(storedFields(contact).map(([key]) => key)).not.toContain("notes");
+  });
+
+  it("lists every kind by default, including the ones that used to hide", () => {
+    // file, text, json and markdown were hidden from tables by the framework. That is a
+    // judgement about tidiness, and it belongs to whoever wrote the descriptor: the
+    // dashboard has a column menu, and `list: false` is one word.
+    const media = defineResource({
+      name: "Media",
+      fields: {
+        title: field.string(),
+        cover: field.file(["image"], { required: false }),
+        body: field.text({ required: false }),
+        notes: field.markdown({ required: false }),
+        meta: field.json({ required: false }),
+        hidden: field.text({ required: false, list: false }),
+      },
+    });
+    const listing = (key: string) => (media.fields[key] as { list?: boolean } | undefined)?.list;
+    for (const key of ["cover", "body", "notes", "meta"]) {
+      expect(listing(key), key).not.toBe(false);
+    }
+    expect(listing("hidden")).toBe(false);
   });
 
   it("derives multi-word table and slug names", () => {

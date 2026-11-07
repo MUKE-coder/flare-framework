@@ -38,6 +38,27 @@ export default defineResource({
 - Every resource implicitly gets `id` (a text UUID), `createdAt`, and
   `updatedAt`. Declaring them yourself is an error.
 
+## Which fields the table shows
+
+Every field is a column. A table that silently left one out would send you
+looking for a bug in your own descriptor, so the framework does not make that
+choice for you — not even for the kinds that look untidy in a column.
+
+Hide one with `list: false`:
+
+```ts
+meta: field.json({ list: false }),       // kept, not shown
+blurb: field.text({ list: false }),
+```
+
+Readers can also hide columns for themselves from the table's column menu,
+which is per person and per view and changes nothing for anyone else.
+
+A few kinds still opt out of *other* things by default, because those are
+about correctness rather than taste: long text and markdown are not
+`searchable` (a `LIKE` over paragraphs is not a search), and `json` and `file`
+are not `sortable` (there is no order to sort them by).
+
 ## What takes effect without a migration
 
 Presentation and validation options — `label`, `helpText`, `placeholder`,
