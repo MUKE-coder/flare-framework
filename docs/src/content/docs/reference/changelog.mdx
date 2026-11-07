@@ -21,6 +21,73 @@ npx flare --version                 # what this app is on
 pnpm add -D @flaredev/cli@latest    # upgrade it
 ```
 
+<Release version="0.13.0" date="7 November 2026">
+
+**`flare migrate` on Next.js now develops — change your CI if it relied on the
+old meaning.** It used to run `prisma migrate deploy`, which applies what is
+committed and never invents a migration — so after `flare gen resource` it said
+"No pending migrations to apply" and the only way forward was a raw prisma
+command. Locally it now runs `prisma migrate dev` and then `prisma generate`
+(Prisma 7 removed generator runs from `migrate dev`, and a client without the
+new model fails the very next command). `--name` skips Prisma's prompt. **In CI
+and production, use `flare migrate --deploy`** — that is the old behaviour,
+unchanged: committed migrations only, nothing invented.
+
+**You never type a prisma command.** `flare db:seed` seeds the development
+admin (admin@example.com / Password, role admin; safe to run twice), and every
+surface that teaches the flow — the boxes after `create`, the dashboard's empty
+state, the quickstart, installation — now says the same flare commands,
+identically, on both stacks. The app's `db:migrate` and `db:seed` scripts are
+thin aliases of the same commands, so they cannot drift.
+
+**Users are managed from the dashboard.** `/dashboard/users` on both stacks:
+everyone who can sign in, their role, verified, two-factor, joined. **New
+user** from a dialog; role changes — including a typed, brand-new role — and
+ban/unban from a row menu. All of it goes through Better Auth's admin API, the
+same path as `flare user:add` and `flare user:role`, and your own row has no
+menu, because demoting or banning yourself is a lockout. A role is a string
+your policies give meaning; the page says so and points at `flare gen policy`.
+The account menu is three entries now: Account settings, Manage roles
+(admins), Log out.
+
+**The first sign-in no longer faces an empty page.** The overview gets a Users
+stat card and a Users row in "Your data", and its empty state is the three
+commands that make a first resource — the same three the terminal printed. The
+account you seed is told to you in a "Sign in with" box after `create`.
+
+**Observability on Next.js shows what the app can see** — users, records,
+signed-in sessions, changes this week, with a link to Vercel for edge traffic —
+instead of three dashes marked "not connected" and instructions mentioning
+wrangler on an app that deploys to Vercel. The Costs page is Cloudflare-only
+now: it prices Workers, D1 and R2, which mean nothing on Vercel and Neon.
+
+**The auth screens live in `app/(auth)/`.** Seven folders — sign-in, sign-up,
+forgot-password, reset-password, verify-email, two-factor, invite — were
+scattered across `app/`. They are one route group now, so the folder exists
+and no URL changes. Verified on both routers.
+
+**A command builder and two tutorials.** [The builder](/start/builder/) turns
+your choices — stack, storage, theme, sign-in — into the one `create` command
+to copy. The tutorials build a contact app end to end, including a rename that
+keeps its data and a policy tried against a second account, on
+[Next.js](/tutorials/contact-next/) and [Cloudflare](/tutorials/contact-cloudflare/).
+Every step was run against a scaffolded app before it was written down.
+
+**Smaller things.** `next dev` no longer announces "We detected TypeScript…
+reconfigured your tsconfig.json" on first start — the template ships what Next
+16 mandates. The Cloudflare dev server is pinned to port 3000, where every box
+and document already said it was. Sidebar group labels are capitals with a
+divider between sections. The app's display name is capitalised — danlite is
+Danlite on the sidebar, the sign-in screen and in emails — while machine names
+(the Workers script, the bucket prefix) stay lowercase. Dashboard counts cache
+for a minute rather than five, so a fresh `seed:resource` shows on refresh.
+`flare user:add --role` no longer refuses when the role table exists but is
+empty — a fresh Cloudflare app — which was blocking the seed that makes the
+first admin. `base.prisma` explains in comments why its generator block is
+Prisma 7's shape, for everyone who stops and wonders.
+
+</Release>
+
 <Release version="0.12.2" date="6 November 2026">
 
 **`flare gen migration --from-schema` could not apply a rename on Next.js.**
