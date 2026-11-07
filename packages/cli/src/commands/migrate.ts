@@ -12,6 +12,10 @@ export interface MigrateOptions {
   env?: string;
   /** D1 binding to target when the app has several databases. */
   database?: string;
+  /** Next.js: a name for the migration, so Prisma doesn't have to ask. */
+  name?: string;
+  /** Next.js: apply what is already written and never invent a migration (CI, production). */
+  deploy?: boolean;
   cwd?: string;
   log?: (message: string) => void;
 }
@@ -48,24 +52,39 @@ function context(options: MigrateOptions) {
 }
 
 /**
- * `flare migrate`: apply pending migrations (local by default).
+ * `flare migrate`: make the database match the schema (local by default).
  *
- * On the Next.js stack this is Prisma's job. `migrate deploy` applies what is already
- * written and never invents a migration, which is what you want against a database that
- * matters; writing a new one from a changed schema is `prisma migrate dev`, and saying
- * so is better than doing it to someone's production database on their behalf.
+ * On the Next.js stack this wraps Prisma, and which Prisma depends on where you are.
+ * Working locally — the default — it is `prisma migrate dev`: diff the schema, write a
+ * migration if one is needed, apply it, and then `prisma generate`, because Prisma 7
+ * removed generator runs from `migrate dev` and a client without the new model fails
+ * the very next command. It used to run `migrate deploy` here, which never invents a
+ * migration — so after `flare gen resource` it said "No pending migrations to apply"
+ * and the only way forward was a raw prisma command, which is exactly what `flare
+ * migrate` exists to spare you.
+ *
+ * `--deploy` is the old behaviour, for CI and production: apply what is committed,
+ * invent nothing, touch no generated client.
  */
 export async function migrate(options: MigrateOptions = {}): Promise<number> {
   const appRoot = findAppRoot(options.cwd ?? process.cwd());
   const log = options.log ?? ((message: string) => console.log(message));
 
   if (readStack(appRoot) === "next") {
-    if (options.remote) {
-      log(pc.dim("On Next.js, `--remote` is whichever database DATABASE_URL points at."));
-    }
     const prisma = resolveBin(appRoot, "prisma", "prisma");
-    log(`${pc.cyan("prisma")} migrate deploy`);
-    return runNode([prisma, "migrate", "deploy"], appRoot);
+    if (options.deploy) {
+      log(`${pc.cyan("prisma")} migrate deploy`);
+      return runNode([prisma, "migrate", "deploy"], appRoot);
+    }
+    if (options.remote) {
+      log(pc.dim("On Next.js, the database is whichever one DATABASE_URL points at."));
+    }
+    const args = ["migrate", "dev", ...(options.name ? ["--name", options.name] : [])];
+    log(`${pc.cyan("prisma")} ${args.join(" ")}`);
+    const code = await runNode([prisma, ...args], appRoot);
+    if (code !== 0) return code;
+    log(`${pc.cyan("prisma")} generate`);
+    return runNode([prisma, "generate"], appRoot);
   }
 
   const { db, target, wrangler } = context(options);

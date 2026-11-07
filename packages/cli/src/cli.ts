@@ -2,7 +2,7 @@ import { cac } from "cac";
 import pc from "picocolors";
 import * as prompts from "@clack/prompts";
 import { FLARE_VERSION } from "@flaredev/core";
-import { createApp, printNextSteps, toAppName } from "./commands/create.js";
+import { createApp, printNextSteps, toAppName, SEED_ADMIN } from "./commands/create.js";
 import { doctor } from "./commands/doctor.js";
 import { addUser } from "./commands/user-add.js";
 import { genApiKeys } from "./commands/gen-apikeys.js";
@@ -272,14 +272,18 @@ export function createCli() {
       "migrate",
       perStack(
         "Apply pending D1 migrations (local database unless --remote)",
-        "Apply pending Prisma migrations to the database in DATABASE_URL (prisma migrate deploy)",
-        "Apply pending migrations: D1 on the Cloudflare stack, Prisma on the Next.js one",
+        "Make the database match the schema: prisma migrate dev + prisma generate (--deploy: apply committed migrations only)",
+        "Make the database match the schema: D1 migrations on Cloudflare; prisma migrate dev + generate on Next.js",
       ),
     )
     .option("--remote", cloudflareOnly("Target the deployed database"))
     .option("--env <name>", cloudflareOnly("Wrangler environment"))
     .option("--database <binding>", cloudflareOnly("D1 binding, when the app has several"))
-    .action(async (options: { remote?: boolean; env?: string; database?: string }) => {
+    .option("--name <name>", "Next.js: name the migration, so Prisma doesn't have to ask")
+    .option("--deploy", "Next.js: apply committed migrations and invent nothing (CI, production)")
+    .example("flare migrate                      # local, writes a migration if the schema changed")
+    .example("flare migrate --deploy             # production: apply what is committed, nothing else")
+    .action(async (options: { remote?: boolean; env?: string; database?: string; name?: string; deploy?: boolean }) => {
       process.exitCode = await migrate(options);
     });
 
@@ -400,6 +404,22 @@ export function createCli() {
     .option("--force", "Overwrite generated blocks that were edited by hand")
     .action(async (options: { check?: boolean; force?: boolean }) => {
       process.exitCode = await syncTypes(options);
+    });
+
+  cli
+    .command("db:seed", "Seed the development admin account (admin@example.com / Password, role admin)")
+    .option("--remote", "Against the deployed database rather than the local one (Cloudflare)")
+    .example("flare db:seed")
+    .action(async (options: { remote?: boolean }) => {
+      // The same account the dashboard and the docs name, through the same code path as
+      // `flare user:add` — and safe to run twice, which a seed has to be.
+      process.exitCode = await addUser(SEED_ADMIN.email, {
+        password: SEED_ADMIN.password,
+        name: SEED_ADMIN.name,
+        role: "admin",
+        skipExisting: true,
+        remote: options.remote,
+      });
     });
 
   cli

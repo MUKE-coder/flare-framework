@@ -190,7 +190,7 @@ async function promoteFirstUser() {
 }
 
 export const auth = betterAuth({
-  appName: "__APP_NAME__",
+  appName: "__APP_TITLE__",
   secret: process.env.BETTER_AUTH_SECRET,
   // Without BETTER_AUTH_URL, accept local dev on any port, a `flare dev --tunnel` URL and
   // this app's workers.dev host. Cloudflare only routes hosts this Worker serves, so a
@@ -263,7 +263,7 @@ export const auth = betterAuth({
     }),
     emailOTP({ sendVerificationOTP: (data) => sendEmailCode(data), otpLength: 6, expiresIn: 5 * 60, allowedAttempts: 5 }),
     twoFactor({
-      issuer: "__APP_NAME__",
+      issuer: "__APP_TITLE__",
       otpOptions: { sendOTP: ({ user, otp }) => sendTwoFactorCode({ user, otp }), allowedAttempts: 5 },
       // With only email codes switched on there's no authenticator app to confirm first.
       skipVerificationOnEnable: !authConfig.twoFactor.authenticator,
@@ -271,7 +271,7 @@ export const auth = betterAuth({
       // accounts that do have one must still give it.
       allowPasswordless: true,
     }),
-    passkey({ rpName: "__APP_NAME__" }),
+    passkey({ rpName: "__APP_TITLE__" }),
     // Must stay last: lets server actions set auth cookies.
     nextCookies(),
   ],

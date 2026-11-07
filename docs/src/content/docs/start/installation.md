@@ -193,13 +193,13 @@ nothing to edit:
 ```bash
 cd myapp
 docker compose up -d        # Postgres, MinIO and Redis
-pnpm db:migrate             # create the tables
-pnpm db:seed                # an account to sign in with
-pnpm dev
+npx flare migrate           # create the tables
+npx flare db:seed           # an account to sign in with
+npx flare dev               # http://localhost:3000
 ```
 
 Open the printed URL. Sign in with **admin@example.com** / **Password** — that
-is what `db:seed` writes, with the `admin` role, so the dashboard is reachable
+is what `flare db:seed` writes, with the `admin` role, so the dashboard is reachable
 straight away. It is a development convenience on a database you just created;
 replace it with [`flare user:add`](/reference/cli/#flare-useradd-email) before
 the app is anywhere but your machine. Running the seed again leaves an existing
@@ -214,8 +214,7 @@ D1, R2 and KV locally.
 
 ```bash
 cd myapp
-npx flare migrate
-pnpm dev
+npx flare dev               # http://localhost:3000
 ```
 
 Either way you should see the app's home page with sign-up and sign-in already

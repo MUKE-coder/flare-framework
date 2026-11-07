@@ -5,9 +5,9 @@ import type { ThemeName } from "./theme";
  * the page titles read from here. Edit freely.
  */
 export const site = {
-  name: "__APP_NAME__",
+  name: "__APP_TITLE__",
   tagline: "The fastest way to run your business",
-  description: "__APP_NAME__ keeps your team, your customers and your data in one place, and it's live on the edge in every region.",
+  description: "__APP_TITLE__ keeps your team, your customers and your data in one place, and it's live on the edge in every region.",
   /**
    * The look of the whole app: sign-in screens, dashboard, admin and home page.
    * One of: default, coral, amber, sky, mono, emerald. FLARE_THEME (shell or .env)

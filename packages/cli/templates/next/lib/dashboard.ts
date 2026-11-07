@@ -162,7 +162,11 @@ export async function resourceStats(name: string, field?: string, days = 7): Pro
       return stats;
     },
     ["flare", "resource-stats"],
-    { tags: [resourceTag(name)], revalidate: TTL.medium },
+    // TTL.short, by the TTL table's own words: "changes often, cheap to recompute:
+    // counts, dashboards". These are those counts — and `flare seed:resource` writes
+    // from outside the app, where no tag revalidates them, so at medium the overview
+    // said "0 records" for five minutes after seeding a thousand.
+    { tags: [resourceTag(name)], revalidate: TTL.short },
   );
   return read(name, field, days, limit ?? undefined);
 }

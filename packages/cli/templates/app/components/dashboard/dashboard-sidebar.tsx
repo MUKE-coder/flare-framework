@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { ActivityIcon, LayoutDashboardIcon, UserCircleIcon } from "lucide-react";
+import { ActivityIcon, LayoutDashboardIcon, UserCircleIcon, UsersIcon } from "lucide-react";
 import { ChevronsUpDownIcon } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
@@ -56,8 +56,11 @@ function byGroup(resources: NavResource[]): [string, NavResource[]][] {
 /** Sections every dashboard has, whatever resources the app defines. */
 const ACCOUNT_LINKS = [{ href: "/dashboard/account", label: "Account", icon: UserCircleIcon }];
 // Security has its own page once `flare gen security` runs, which adds its link to
-// lib/dashboard-nav.ts; observability ships with every app.
-const ADMIN_LINKS = [{ href: "/dashboard/observability", label: "Observability", icon: ActivityIcon }];
+// lib/dashboard-nav.ts; users and observability ship with every app.
+const ADMIN_LINKS = [
+  { href: "/dashboard/users", label: "Users", icon: UsersIcon },
+  { href: "/dashboard/observability", label: "Observability", icon: ActivityIcon },
+];
 
 export function DashboardSidebar({
   appName,
@@ -113,8 +116,8 @@ export function DashboardSidebar({
         </SidebarGroup>
 
         {byGroup(resources).map(([heading, group]) => (
-          <SidebarGroup key={heading} className="px-2 py-1">
-            <SidebarGroupLabel className="mt-1 h-6">{heading}</SidebarGroupLabel>
+          <SidebarGroup key={heading} className="border-t px-2 py-1">
+            <SidebarGroupLabel className="mt-1 h-6 text-[11px] font-medium uppercase tracking-wider">{heading}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.map((resource) => {
@@ -149,8 +152,8 @@ export function DashboardSidebar({
           </SidebarGroup>
         ))}
 
-        <SidebarGroup className="px-2 py-1">
-          <SidebarGroupLabel className="mt-1 h-6">Manage</SidebarGroupLabel>
+        <SidebarGroup className="border-t px-2 py-1">
+          <SidebarGroupLabel className="mt-1 h-6 text-[11px] font-medium uppercase tracking-wider">Manage</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {manage.map((link) => (
@@ -168,8 +171,8 @@ export function DashboardSidebar({
         </SidebarGroup>
 
         {links.length > 0 && (
-          <SidebarGroup className="px-2 py-1">
-            <SidebarGroupLabel className="mt-1 h-6">Platform</SidebarGroupLabel>
+          <SidebarGroup className="border-t px-2 py-1">
+            <SidebarGroupLabel className="mt-1 h-6 text-[11px] font-medium uppercase tracking-wider">Platform</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {links.map((link) => {
@@ -217,7 +220,7 @@ export function DashboardSidebar({
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-60">
-                <UserMenuItems user={user} />
+                <UserMenuItems user={user} isAdmin={isAdmin} />
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>

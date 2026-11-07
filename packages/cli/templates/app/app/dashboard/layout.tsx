@@ -55,9 +55,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <SidebarProvider defaultOpen={!collapsed}>
-      <DashboardSidebar appName="__APP_NAME__" resources={resources} links={dashboardLinks} isAdmin={ADMIN_ROLES.includes(role)} user={account} />
+      <DashboardSidebar appName="__APP_TITLE__" resources={resources} links={dashboardLinks} isAdmin={ADMIN_ROLES.includes(role)} user={account} />
       <SidebarInset>
-        <DashboardHeader user={account} initialTheme={theme} notices={notices} />
+        <DashboardHeader user={account} initialTheme={theme} notices={notices} isAdmin={ADMIN_ROLES.includes(role)} />
         <main className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8">{children}</main>
       </SidebarInset>
       <Toaster theme={theme} />

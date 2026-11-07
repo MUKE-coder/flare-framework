@@ -1,4 +1,4 @@
-# __APP_NAME__
+# __APP_TITLE__
 
 A [Flare](https://flare-docs.codetotech.com) app on Next.js, Postgres and Prisma.
 

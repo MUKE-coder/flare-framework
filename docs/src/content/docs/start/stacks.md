@@ -130,7 +130,7 @@ either side.
 | | Cloudflare | Next.js |
 | --- | --- | --- |
 | Write a migration | `flare gen migration --from-schema` | `flare gen migration` (wraps `prisma migrate dev`) |
-| Apply it | `flare migrate` | `flare migrate` (= `prisma migrate deploy`) |
+| Apply it | `flare migrate` | `flare migrate` (= `prisma migrate dev` + `generate`; `--deploy` for CI) |
 | Dev server | `flare dev` | `flare dev` (= `next dev`) |
 | Deploy | `flare deploy` | `flare deploy` (= `vercel deploy --prod`) |
 | Fill a table | `flare seed:resource Product 25k` | `flare seed:make` + `flare seed` |
@@ -142,7 +142,7 @@ not here, it works the same on both.
 
 | | Cloudflare | Next.js |
 | --- | --- | --- |
-| `flare migrate` | applies pending D1 migrations | runs `prisma migrate deploy` |
+| `flare migrate` | applies pending D1 migrations | `prisma migrate dev` + `generate` (`--deploy`: committed only) |
 | Writing a migration | `flare gen migration --from-schema` | `flare gen migration` (wraps `prisma migrate dev`) |
 | `flare seed` | the local D1 database | the database in `DATABASE_URL` |
 | `flare seed:resource` | fills a table from its descriptor | **not available** — use `flare seed:make <name> --resource <R>`, then `flare seed` |
@@ -221,9 +221,15 @@ npx flare create shop --stack next
 cd shop
 cp .env.example .env          # DATABASE_URL from Neon, BETTER_AUTH_SECRET
 npx flare gen resource Product --fields 'name:string, sku:string!, price:float'
-npx prisma migrate dev        # turns the schema into a migration and applies it
-npm run dev
+npx flare migrate             # prisma migrate dev, then prisma generate
+npx flare dev
 ```
+
+`flare migrate` chains `prisma generate`, and that is not belt-and-braces:
+Prisma 7 removed generator runs from `migrate dev`, so a bare `prisma migrate
+dev` adds the table and leaves the client without the model — and the next
+command fails on "No Prisma model". For CI and production,
+`flare migrate --deploy` applies committed migrations and invents nothing.
 
 `flare gen resource` writes the same route handlers, typed client, validators
 and dashboard pages it writes on Cloudflare. What changes is the schema:

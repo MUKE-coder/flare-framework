@@ -1,0 +1,29 @@
+// Extra dashboard sidebar links (maintained by flare generators such as `flare gen security`).
+// Add your own links outside the generated block.
+// generated:start
+export interface DashboardLink {
+  label: string;
+  href: string;
+  /** A resource icon name, e.g. "shield" (see components/dashboard/resource-icon.tsx). */
+  icon: string;
+}
+
+export const generatedDashboardLinks: DashboardLink[] = [];
+// generated:end
+
+import { authConfig } from "./auth-config";
+
+/**
+ * Links shown under "Platform" in the dashboard sidebar.
+ *
+ * No Costs page on this stack: the estimator prices Workers, D1 and R2 from Cloudflare's
+ * price sheet, and this app runs on Vercel and Neon, whose bills live in their own
+ * dashboards.
+ */
+export const dashboardLinks: DashboardLink[] = [
+  // Only where invitations are the way in; the page explains itself for the other two
+  // modes, but there is no reason to send anybody to it.
+  ...(authConfig.signup === "invite" ? [{ label: "Invitations", href: "/dashboard/invitations", icon: "mail" }] : []),
+  ...generatedDashboardLinks,
+  { label: "API reference", href: "/api/reference", icon: "book" },
+];

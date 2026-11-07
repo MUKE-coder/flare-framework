@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { KeyRoundIcon, LogOutIcon, MonitorSmartphoneIcon, ShieldCheckIcon, UserIcon } from "lucide-react";
+import { LogOutIcon, ShieldIcon, UserCircleIcon } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -36,8 +36,12 @@ export function UserAvatar({ user, className }: { user: DashboardUser; className
 /**
  * What's inside the account menu, wherever it's opened from — the header's avatar and
  * the sidebar's footer both show this, so there's one list of account actions, not two.
+ *
+ * Three entries, not a sitemap. Password, security and devices are tabs inside Account
+ * settings, so linking each of them here was the same door four times. "Manage roles"
+ * appears for the people who can use it.
  */
-export function UserMenuItems({ user }: { user: DashboardUser }) {
+export function UserMenuItems({ user, isAdmin = false }: { user: DashboardUser; isAdmin?: boolean }) {
   const signOut = async () => {
     await authClient.signOut();
     window.location.assign("/sign-in");
@@ -56,34 +60,24 @@ export function UserMenuItems({ user }: { user: DashboardUser }) {
       <DropdownMenuGroup>
         <DropdownMenuItem asChild>
           <Link href="/dashboard/account">
-            <UserIcon />
-            Profile
+            <UserCircleIcon />
+            Account settings
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/dashboard/account/password">
-            <KeyRoundIcon />
-            Password
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/dashboard/account/security">
-            <ShieldCheckIcon />
-            Security
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/dashboard/account/sessions">
-            <MonitorSmartphoneIcon />
-            Devices
-          </Link>
-        </DropdownMenuItem>
+        {isAdmin && (
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard/users">
+              <ShieldIcon />
+              Manage roles
+            </Link>
+          </DropdownMenuItem>
+        )}
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
       <DropdownMenuGroup>
         <DropdownMenuItem variant="destructive" onSelect={signOut}>
           <LogOutIcon />
-          Sign out
+          Log out
         </DropdownMenuItem>
       </DropdownMenuGroup>
     </>

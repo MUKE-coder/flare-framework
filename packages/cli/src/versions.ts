@@ -156,4 +156,8 @@ export const CLOUDFLARE_ONLY = [
   "worker-configuration.d.ts",
   // The engine's Drizzle adapter; the Next.js overlay brings prisma-rows.ts instead.
   "lib/resource/drizzle-rows.ts",
+  // Estimates Workers, D1 and R2 bills from Cloudflare's own price sheet — numbers that
+  // mean nothing to an app on Vercel and Neon, so a Next.js app doesn't get the page.
+  "app/dashboard/costs",
+  "components/dashboard/cost-estimator.tsx",
 ] as const;

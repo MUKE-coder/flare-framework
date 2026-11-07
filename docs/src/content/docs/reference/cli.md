@@ -198,7 +198,24 @@ npx flare user:role you@example.com admin --remote
 
 ## `flare migrate`
 
-Apply pending D1 migrations (local by default — shared state with `flare
+Make the database match the schema. On **Cloudflare**, apply pending D1
+migrations. On **Next.js**, `prisma migrate dev` — diff the schema, write a
+migration if one is needed, apply it — then `prisma generate`, because Prisma 7
+no longer regenerates the client from `migrate dev` and a stale client fails
+the next command. You never run a prisma command yourself.
+
+```bash
+npx flare migrate                 # local; writes a migration if the schema changed
+npx flare migrate --name init     # same, without Prisma asking for a name
+npx flare migrate --deploy        # CI/production: apply committed migrations, invent nothing
+```
+
+| Flag | |
+| --- | --- |
+| `--name <name>` | Next.js: name the migration up front |
+| `--deploy` | Next.js: `prisma migrate deploy` — committed migrations only |
+
+On Cloudflare it is D1 (local by default — shared state with `flare
 dev`/`flare start`).
 
 | Flag | |
@@ -337,6 +354,20 @@ Regenerate every derived file from the descriptors and report drift — see
 | --- | --- |
 | `--check` | Change nothing; exit `1` if anything is out of sync (CI) |
 | `--force` | Overwrite generated blocks that were edited by hand |
+
+## `flare db:seed`
+
+Seed the development admin account: **admin@example.com** / **Password**, role
+`admin` — the same account every new app's docs and dashboard name. Safe to run
+again after a database reset: an existing account is left alone.
+
+```bash
+npx flare db:seed
+```
+
+It goes through the same path as [`flare user:add`](#flare-useradd-email), so
+the account is indistinguishable from one made through the sign-up form.
+Replace it before the app is anywhere but your machine.
 
 ## `flare user:add <email>`
 

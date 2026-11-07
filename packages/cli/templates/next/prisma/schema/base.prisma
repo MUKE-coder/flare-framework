@@ -5,11 +5,17 @@
 // regenerated: the generator, the datasource, the tables Better Auth needs and the two
 // Flare's own dashboard uses are all here, and yours to edit.
 
+// Prisma 7's generator, not a leftover from 6: `prisma-client` (the v7 provider; v6's
+// was `prisma-client-js`), and `output` is required — v7 no longer generates into
+// node_modules. The client lands in lib/generated/, git-ignored and rebuilt on every
+// install and `flare migrate`.
 generator client {
   provider = "prisma-client"
   output   = "../../lib/generated/prisma"
 }
 
+// No `url` here — that is also Prisma 7: the connection string lives in
+// prisma.config.ts, which reads DATABASE_URL from .env.
 datasource db {
   provider = "postgresql"
 }

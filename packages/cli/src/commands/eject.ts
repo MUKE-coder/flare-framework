@@ -41,7 +41,7 @@ const TRACKED = ["app", "lib", "components"];
  * written rather than copied — `lib/auth-config.ts`, from the sign-in methods chosen at
  * create time — have no template to compare against and fall out on their own.
  */
-const PER_APP = /__APP_NAME__|__PM__|__THEME__|__COMPAT_DATE__/;
+const PER_APP = /__APP_NAME__|__APP_TITLE__|__PM__|__THEME__|__COMPAT_DATE__/;
 
 /**
  * Copies with a template that isn't what the app gets.

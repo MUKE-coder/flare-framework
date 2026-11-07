@@ -37,6 +37,18 @@ import { choosePackageManager, type PackageManager } from "../utils/pm.js";
  */
 export const SEED_ADMIN = { email: "admin@example.com", password: "Password", name: "Admin" } as const;
 
+/**
+ * The app's display name: "danlite" is "Danlite" on the sidebar and the sign-in screen,
+ * "my-app-2" is "My App 2". The machine name (`toAppName`) stays lowercase — it is a
+ * package name, a Workers script name and a bucket prefix, none of which take capitals.
+ */
+export function toAppTitle(name: string): string {
+  return name
+    .split("-")
+    .map((word) => (word ? word[0]!.toUpperCase() + word.slice(1) : word))
+    .join(" ");
+}
+
 export interface CreateOptions {
   /** Kept for callers that only want the files; installing is `installDependencies`. */
   install?: boolean;
@@ -175,6 +187,7 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
   const compatibilityDate = options.compatibilityDate ?? COMPATIBILITY_DATE;
   const files = copyTemplate(join(templatesDir, "app"), dir, {
     APP_NAME: name,
+    APP_TITLE: toAppTitle(name),
     COMPAT_DATE: compatibilityDate,
     PM: packageManager,
     THEME: theme,
@@ -184,7 +197,7 @@ export function createApp(target: string, options: CreateOptions = {}): CreateRe
     // The Next.js stack is the shared app plus a handful of replacements: where rows
     // come from, where files go, and how it is built. Everything else — the dashboard,
     // the auth screens, every component — is the same code.
-    copyTemplate(join(templatesDir, "next"), dir, { APP_NAME: name, PM: packageManager, THEME: theme, SIGNUP: signup });
+    copyTemplate(join(templatesDir, "next"), dir, { APP_NAME: name, APP_TITLE: toAppTitle(name), PM: packageManager, THEME: theme, SIGNUP: signup });
     for (const path of CLOUDFLARE_ONLY) rmSync(join(dir, path), { recursive: true, force: true });
   }
 
@@ -236,10 +249,15 @@ storage/
             start: "next start",
             deploy: "vercel deploy --prod",
             "db:generate": "prisma generate",
-            "db:migrate": "prisma migrate dev",
+            // Thin aliases for the flare commands, so the scripts and the printed steps
+            // can never say different things. `flare migrate` is `prisma migrate dev`
+            // plus `prisma generate` — the generate is not optional; Prisma 7 removed
+            // generator runs from `migrate dev`, and a client without the new model
+            // fails the very next command, usually `flare seed:resource`.
+            "db:migrate": "flare migrate",
             // An account to sign in with, so the app is reachable the moment the tables
             // exist. Safe to run twice: --skip-existing makes a second run a no-op.
-            "db:seed": `flare user:add ${SEED_ADMIN.email} --password ${SEED_ADMIN.password} --name ${SEED_ADMIN.name} --role admin --skip-existing`,
+            "db:seed": "flare db:seed",
             "db:studio": "prisma studio",
           }
         : {
@@ -373,21 +391,32 @@ export function printNextSteps(result: CreateResult, installed: boolean) {
     result.stack === "next"
       ? [
           ["docker compose up -d", "Postgres, on the address .env already has"],
-          [`${pm} run db:migrate`, "create the tables"],
-          [`${pm} run db:seed`, "an account to sign in with"],
+          ["npx flare migrate", "create the tables"],
+          ["npx flare db:seed", "an account to sign in with"],
         ]
       : [];
+  // Flare commands, not the tools underneath them. The one person this box is for is
+  // the person who has not learnt the stack yet, and `pnpm run db:migrate` next to
+  // `npx flare gen resource` taught two command languages on day one.
   const commands: [string, string][] = [
     [`cd ${rel}`, "your new app"],
     ...(installed ? [] : ([[`${pm} install`, "dependencies first"]] as [string, string][])),
     ...database,
-    [`${pm} run dev`, "http://localhost:3000"],
+    ["npx flare dev", "http://localhost:3000"],
+  ];
+  // Its own box, with the stack's own middle step. The one list used to go straight
+  // from `gen resource` to `seed:resource`, and the seed wrote into a table that did
+  // not exist yet. These three lines are also what the dashboard's empty state shows
+  // and what the quickstart walks through — one flow, told three times, identically.
+  const firstResource: [string, string][] = [
     ["npx flare gen resource Contact", "a table, API and admin screens"],
+    ["npx flare migrate", "create its table"],
     ["npx flare seed:resource Contact 1000", "fill it with sample rows"],
   ];
-  const width = Math.max(...commands.map(([command]) => command.length)) + 2;
-  const steps = commands.map(([command, note]) => `${pc.cyan(command.padEnd(width))}${pc.dim(note)}`);
-  prompts.note(steps.join("\n"), "Next");
+  const width = Math.max(...[...commands, ...firstResource].map(([command]) => command.length)) + 2;
+  const line = ([command, note]: [string, string]) => `${pc.cyan(command.padEnd(width))}${pc.dim(note)}`;
+  prompts.note(commands.map(line).join("\n"), "Next");
+  prompts.note(firstResource.map(line).join("\n"), "Your first resource");
 
   // Only when the chosen storage needs something before an upload will work. The default
   // needs nothing, which is the point of it being the default — and a note about

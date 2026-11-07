@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { createApp, flarePackageSpec, SEED_ADMIN, toAppName } from "../src/commands/create.js";
+import { createApp, flarePackageSpec, SEED_ADMIN, toAppName, toAppTitle } from "../src/commands/create.js";
 
 const dirs: string[] = [];
 function tempDir() {
@@ -292,12 +292,11 @@ describe("what a new app can do before anyone edits it", () => {
   it("has a seed that makes an account you can sign in with", () => {
     const dir = join(tempDir(), "shop");
     createApp(dir, { install: false, pm: "pnpm", stack: "next" });
-    const seed = pkg(dir).scripts["db:seed"];
-    expect(seed).toContain(SEED_ADMIN.email);
-    expect(seed).toContain(SEED_ADMIN.password);
-    expect(seed).toContain("--role admin");
-    // Run twice when somebody resets their database; the second run must not fail it.
-    expect(seed).toContain("--skip-existing");
+    // Thin aliases for the flare commands, so scripts and printed steps cannot drift.
+    expect(pkg(dir).scripts["db:seed"]).toBe("flare db:seed");
+    expect(pkg(dir).scripts["db:migrate"]).toBe("flare migrate");
+    // The account itself is pinned where the command and the docs both read it.
+    expect(SEED_ADMIN).toEqual({ email: "admin@example.com", password: "Password", name: "Admin" });
   });
 
   it("installs the storage SDK rather than telling anyone to", () => {
@@ -329,5 +328,54 @@ describe("what a new app can do before anyone edits it", () => {
     const env = readFileSync(join(dir, ".env"), "utf8");
     expect(env).toContain("UPLOADTHING_TOKEN=");
     expect(env).not.toContain("UPLOADTHING_APP_ID");
+  });
+});
+
+describe("toAppTitle", () => {
+  it("capitalises the machine name for display", () => {
+    // The sidebar, the sign-in screen and the emails say "Danlite"; the package name,
+    // the Workers script and the bucket prefix stay "danlite".
+    expect(toAppTitle("danlite")).toBe("Danlite");
+    expect(toAppTitle("my-app-2")).toBe("My App 2");
+  });
+});
+
+describe("what each stack gets", () => {
+  it("writes the display name into the sidebar and the machine name into wrangler", () => {
+    const dir = join(tempDir(), "danlite");
+    createApp(dir, { install: false, pm: "pnpm", stack: "cloudflare" });
+    expect(readFileSync(join(dir, "app/dashboard/layout.tsx"), "utf8")).toContain('appName="Danlite"');
+    expect(readFileSync(join(dir, "wrangler.jsonc"), "utf8")).toContain('"name": "danlite"');
+    expect(readFileSync(join(dir, "lib/site.ts"), "utf8")).toContain('name: "Danlite"');
+  });
+
+  it("gives the costs page to Cloudflare and not to Next.js", () => {
+    // It estimates Workers, D1 and R2 bills, which mean nothing on Vercel and Neon.
+    const cf = join(tempDir(), "shop");
+    createApp(cf, { install: false, pm: "pnpm", stack: "cloudflare" });
+    expect(existsSync(join(cf, "app/dashboard/costs/page.tsx"))).toBe(true);
+    expect(readFileSync(join(cf, "lib/dashboard-nav.ts"), "utf8")).toContain("/dashboard/costs");
+
+    const next = join(tempDir(), "shop");
+    createApp(next, { install: false, pm: "pnpm", stack: "next" });
+    expect(existsSync(join(next, "app/dashboard/costs"))).toBe(false);
+    expect(existsSync(join(next, "components/dashboard/cost-estimator.tsx"))).toBe(false);
+    expect(readFileSync(join(next, "lib/dashboard-nav.ts"), "utf8")).not.toContain("/dashboard/costs");
+  });
+
+  it("both stacks get the users screen", () => {
+    for (const stack of ["cloudflare", "next"] as const) {
+      const dir = join(tempDir(), "shop");
+      createApp(dir, { install: false, pm: "pnpm", stack });
+      expect(existsSync(join(dir, "app/dashboard/users/page.tsx")), stack).toBe(true);
+    }
+  });
+
+  it("ships the tsconfig next dev would otherwise rewrite on first start", () => {
+    const dir = join(tempDir(), "shop");
+    createApp(dir, { install: false, pm: "pnpm", stack: "next" });
+    const tsconfig = JSON.parse(readFileSync(join(dir, "tsconfig.json"), "utf8"));
+    expect(tsconfig.compilerOptions.jsx).toBe("react-jsx");
+    expect(tsconfig.include).toContain(".next/dev/types/**/*.ts");
   });
 });

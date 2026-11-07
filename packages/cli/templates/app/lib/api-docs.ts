@@ -4,7 +4,7 @@
  * request, so they always match the API.
  */
 export const apiDocs = {
-  title: "__APP_NAME__ API",
+  title: "__APP_TITLE__ API",
   description: "",
   version: "1.0.0",
   /**

@@ -9,7 +9,7 @@ import { createMailer, renderTransactionalEmail, type TransactionalEmail } from 
  */
 export const mailer = createMailer({
   apiKey: process.env.RESEND_API_KEY,
-  from: process.env.MAIL_FROM || "__APP_NAME__ <onboarding@resend.dev>",
+  from: process.env.MAIL_FROM || "__APP_TITLE__ <onboarding@resend.dev>",
 });
 
 /**
@@ -30,6 +30,6 @@ export async function sendTransactionalEmail({
   idempotencyKey,
   ...content
 }: Omit<TransactionalEmail, "appName"> & { to: string | string[]; subject: string; idempotencyKey?: string }) {
-  const { html, text } = renderTransactionalEmail({ appName: "__APP_NAME__", ...content });
+  const { html, text } = renderTransactionalEmail({ appName: "__APP_TITLE__", ...content });
   return mailer.send({ to, subject, html, text, idempotencyKey });
 }

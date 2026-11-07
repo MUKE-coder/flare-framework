@@ -30,7 +30,7 @@ function applyTheme(theme: Theme) {
   if (theme !== "system") root.classList.add(theme);
 }
 
-export function DashboardHeader({ user, initialTheme, notices = [] }: { user: DashboardUser; initialTheme: Theme; notices?: Notice[] }) {
+export function DashboardHeader({ user, initialTheme, notices = [], isAdmin = false }: { user: DashboardUser; initialTheme: Theme; notices?: Notice[]; isAdmin?: boolean }) {
   const [theme, setTheme] = useState<Theme>(initialTheme);
   const dark = theme === "dark" || (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   const needsAttention = notices.some((notice) => notice.tone === "warning");
@@ -106,7 +106,7 @@ export function DashboardHeader({ user, initialTheme, notices = [] }: { user: Da
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-60">
-            <UserMenuItems user={user} />
+            <UserMenuItems user={user} isAdmin={isAdmin} />
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
