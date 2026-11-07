@@ -164,8 +164,12 @@ import { FLARE_VERSION } from "../version";
         yarn: `yarn create flare-framework@${FLARE_VERSION} ${s.name}`,
         bun: `bun create flare-framework@${FLARE_VERSION} ${s.name}`,
       };
+      // Always --yes: this page has already asked every question the CLI would, so the
+      // copied command must run to completion without asking them again — anything not
+      // flagged is a default, which is exactly what the form showed.
+      flags.push("--yes");
       // npm hands arguments to the created package only after `--`.
-      const joiner = s.pm === "npm" && flags.length > 0 ? " -- " : flags.length > 0 ? " " : "";
+      const joiner = s.pm === "npm" ? " -- " : " ";
       $("b-create").textContent = starts[s.pm] + joiner + flags.join(" ");
 
       const run = [`cd ${s.name}`];

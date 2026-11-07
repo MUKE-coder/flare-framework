@@ -434,7 +434,7 @@ export function printNextSteps(result: CreateResult, installed: boolean) {
       [
         `${pc.cyan(SEED_ADMIN.email)}  ${pc.dim("·")}  ${pc.cyan(SEED_ADMIN.password)}`,
         "",
-        pc.dim(`Made by ${pm} run db:seed, as an admin. Change it before this app is anywhere but your machine.`),
+        pc.dim("Made by npx flare db:seed, as an admin. Change it before this app is anywhere but your machine."),
       ].join("\n"),
       "Sign in with",
     );
