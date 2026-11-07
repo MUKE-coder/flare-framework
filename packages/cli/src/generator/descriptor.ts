@@ -109,15 +109,39 @@ export function renderDescriptor(
   const block = renderFieldsBlock(fields);
   // Both show up in the sidebar: the icon on the item, the group as its heading.
   // softDelete sits with them because it is a property of the resource, not of a field.
-  const heading = [
-    options.icon ? `  icon: ${literal(options.icon)},
-` : "",
-    options.group ? `  group: ${literal(options.group)},
-` : "",
-    options.softDelete ? `  // A delete stamps deletedAt instead of removing the row; the dashboard grows a Trash view.
+  //
+  // The ones you did not ask for are written commented out rather than left out. A key
+  // you can see and uncomment is a key you will use; one that exists only in the
+  // reference is one you have to go and find out about first — and these are the
+  // settings people reach for on day two, when the sidebar needs a heading and the
+  // table needs a sort.
+  const set = (key: string, value: string) => `  ${key}: ${value},
+`;
+  // Aligned trailing notes, and none at all on a line too long to align — a note shoved
+  // up against the code it explains is harder to read than no note.
+  const suggestion = (code: string, note = "") => {
+    const line = `  // ${code}`;
+    return note && line.length <= 52 ? `${line.padEnd(53)}// ${note}
+` : `${line}
+`;
+  };
+  const heading =
+    (options.icon ? set("icon", literal(options.icon)) : suggestion(`icon: "file-text",`, "any lucide-react name")) +
+    (options.group ? set("group", literal(options.group)) : suggestion(`group: "Sales",`, "sidebar heading")) +
+    suggestion(`titleField: "${fields[0]?.key ?? "name"}",`, "what lists and pickers show") +
+    suggestion(`defaultSort: { field: "createdAt", direction: "desc" },`) +
+    suggestion(`perPage: 25,`, "rows per page") +
+    (options.softDelete
+      ? `  // A delete stamps deletedAt instead of removing the row; the dashboard grows a Trash view.
   softDelete: true,
-` : "",
-  ].join("");
+`
+      : suggestion(`softDelete: true,`, "keep deleted rows, with a Trash view")) +
+    suggestion(`rateLimit: { create: "10/min", "*": "120/min" },`) +
+    `  // Uncomment what you need. Hooks, computed values, table and slug:
+` +
+    `  // https://flare-docs.codetotech.com/concepts/resource-descriptor/
+
+`;
 
   return joinMarkers({
     before: `import { defineResource, field } from "@flaredev/core";

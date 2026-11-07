@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { forwardRef, useId, useMemo, useState } from "react";
 import { CheckIcon, EyeIcon, EyeOffIcon } from "lucide-react";
 import { checkPassword, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/lib/password-rules";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,40 @@ interface Props {
   /** Their name and email: a password shouldn't contain either. */
   avoid?: (string | null | undefined)[];
 }
+
+/**
+ * A password input with the eye that reveals what you typed.
+ *
+ * The one place that knows how to do this, because a password field people cannot see
+ * into is where typos go to hide — and a form that offers the eye in one place and not
+ * the next teaches people not to trust it. {@link PasswordField} wraps this with the
+ * rules and the strength meter; forms that only need the box use it directly.
+ */
+export const PasswordInput = forwardRef<HTMLInputElement, Omit<React.ComponentProps<typeof AuthInput>, "type">>(
+  function PasswordInput({ className, ...props }, ref) {
+    const [visible, setVisible] = useState(false);
+    return (
+      <div className="relative">
+        <AuthInput ref={ref} {...props} type={visible ? "text" : "password"} className={cn("pr-11", className)} />
+        <button
+          type="button"
+          onClick={() => setVisible(!visible)}
+          aria-pressed={visible}
+          aria-controls={props.id}
+          aria-label={visible ? "Hide password" : "Show password"}
+          title={visible ? "Hide password" : "Show password"}
+          // Not in the tab order: the input it belongs to is, and a keyboard user
+          // tabbing from the password to a toggle before the submit button is a worse
+          // path than the one they expect.
+          tabIndex={-1}
+          className="absolute inset-y-0 right-0 grid w-11 place-items-center text-foreground-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        >
+          {visible ? <EyeOffIcon className="size-4.5" /> : <EyeIcon className="size-4.5" />}
+        </button>
+      </div>
+    );
+  },
+);
 
 const BAR_COLOURS = ["bg-danger", "bg-danger", "bg-warning", "bg-success/70", "bg-success"];
 
@@ -46,43 +80,28 @@ export function PasswordField({
   const generatedId = useId();
   const fieldId = id ?? generatedId;
   const hintId = `${fieldId}-hint`;
-  const [visible, setVisible] = useState(false);
   const check = useMemo(() => checkPassword(value, avoid), [value, avoid.join("\u0000")]);
   const started = value.length > 0;
 
   return (
     <div className="flex flex-col gap-2">
       <AuthLabel htmlFor={fieldId}>{label}</AuthLabel>
-      <div className="relative">
-        <AuthInput
-          id={fieldId}
-          name={name}
-          type={visible ? "text" : "password"}
-          autoComplete={autoComplete}
-          autoFocus={autoFocus}
-          required={required}
-          placeholder={placeholder}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          minLength={autoComplete === "new-password" ? PASSWORD_MIN_LENGTH : undefined}
-          maxLength={PASSWORD_MAX_LENGTH}
-          aria-describedby={showRules ? hintId : undefined}
-          // A styling hook, so the field can go green without any state plumbing.
-          data-has-passed-validation={showRules && check.valid ? "" : undefined}
-          className={cn("pr-11", showRules && check.valid && "border-success/60")}
-        />
-        <button
-          type="button"
-          onClick={() => setVisible(!visible)}
-          aria-pressed={visible}
-          aria-controls={fieldId}
-          aria-label={visible ? "Hide password" : "Show password"}
-          title={visible ? "Hide password" : "Show password"}
-          className="absolute inset-y-0 right-0 grid w-11 place-items-center text-foreground-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-        >
-          {visible ? <EyeOffIcon className="size-4.5" /> : <EyeIcon className="size-4.5" />}
-        </button>
-      </div>
+      <PasswordInput
+        id={fieldId}
+        name={name}
+        autoComplete={autoComplete}
+        autoFocus={autoFocus}
+        required={required}
+        placeholder={placeholder}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        minLength={autoComplete === "new-password" ? PASSWORD_MIN_LENGTH : undefined}
+        maxLength={PASSWORD_MAX_LENGTH}
+        aria-describedby={showRules ? hintId : undefined}
+        // A styling hook, so the field can go green without any state plumbing.
+        data-has-passed-validation={showRules && check.valid ? "" : undefined}
+        className={cn(showRules && check.valid && "border-success/60")}
+      />
 
       {showRules && (
         <div id={hintId} className="flex flex-col gap-2">

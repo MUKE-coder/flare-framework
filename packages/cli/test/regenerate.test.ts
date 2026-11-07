@@ -90,3 +90,47 @@ describe("re-running gen resource (the codegen overwrite contract)", () => {
     expect((await syncTypes({ cwd: root, check: true, log: () => {} }))).toBe(0);
   });
 });
+
+describe("gen resource --add", () => {
+  it("appends columns instead of making you restate the ones you have", async () => {
+    const root = await app();
+    const descriptor = "resources/contact.resource.ts";
+
+    await genResource("Contact", { ...quiet, cwd: root, add: "phone:phone?, notes:text?" });
+
+    const written = read(root, descriptor);
+    // What was there is still there, in its original order...
+    expect(written).toContain("name: field.string(),");
+    expect(written).toContain('email: field.string({ format: "email" }),');
+    // ...and the new ones follow it.
+    expect(written).toContain('phone: field.string({ required: false, format: "tel" }),');
+    expect(written).toContain("notes: field.text({ required: false }),");
+    expect(written.indexOf("name: field")).toBeLessThan(written.indexOf("phone: field"));
+  });
+
+  it("regenerates everything downstream, so the column reaches the table and the form", async () => {
+    const root = await app();
+    await genResource("Contact", { ...quiet, cwd: root, add: "phone:phone?" });
+    // The Drizzle table is the proof: the column exists in the database layer, not just
+    // in the descriptor. (The validators and the client derive from the descriptor at
+    // runtime and never name a field, so there is nothing to assert in them.)
+    expect(read(root, "db/schema/contacts.ts")).toContain("phone");
+  });
+
+  it("refuses a name that is already taken, rather than writing it twice", async () => {
+    const root = await app();
+    // Two fields of the same name is a descriptor that will not load; saying so here
+    // names the file to edit, which the runtime error would not.
+    await expect(genResource("Contact", { ...quiet, cwd: root, add: "email:string" })).rejects.toThrow(/already has a field called "email"/);
+  });
+
+  it("refuses --add with --fields, because they mean opposite things", async () => {
+    const root = await app();
+    await expect(genResource("Contact", { ...quiet, cwd: root, add: "a:string", fields: "b:string" })).rejects.toThrow(/one or the other/);
+  });
+
+  it("refuses to add to a resource that does not exist, and says how to make it", async () => {
+    const root = await app();
+    await expect(genResource("Ghost", { ...quiet, cwd: root, add: "a:string" })).rejects.toThrow(/There is no .* to add to/);
+  });
+});

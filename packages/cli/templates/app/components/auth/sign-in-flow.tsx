@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FingerprintIcon, MailIcon, KeyRoundIcon } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import type { SocialProvider } from "@/lib/auth-config";
+import { PasswordInput } from "./password-field";
 import { AuthInput, AuthLabel, Divider, FormMessage, PrimaryButton, SecondaryButton, TextButton } from "./ui";
 import { OtpInput } from "./otp-input";
 import { SocialButtons } from "./social-buttons";
@@ -221,11 +222,10 @@ export function SignInFlow({ providers, socialPlacement, socialStyle, methods, n
               Forgot password?
             </Link>
           </div>
-          <AuthInput
+          <PasswordInput
             ref={passwordRef}
             id="password"
             name="password"
-            type="password"
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}

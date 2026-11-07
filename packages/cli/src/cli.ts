@@ -135,6 +135,7 @@ export function createCli() {
   cli
     .command("gen <generator> [name] [second]", `Generate code. Generators: ${GENERATORS.join(", ")}`)
     .option("--fields <fields>", "resource: fields, e.g. 'name:string, email:string!, status:enum(lead,customer)' (single quotes: bash treats ! in double quotes as history)")
+    .option("--add <fields>", "resource: add fields to one that exists, in the same grammar as --fields")
     .option("--group <name>", "resource: sidebar heading to file it under, e.g. Sales")
     .option("--icon <name>", "resource: lucide icon for the sidebar, e.g. users")
     .option("--soft-delete", "resource: keep deleted rows and hide them, with a Trash view in the dashboard")
@@ -157,6 +158,7 @@ export function createCli() {
     .option("--skip-install", "billing/apikeys: write files without adding the dependency")
     .option("--skip-migration", "billing/security/apikeys: skip generating the schema migration")
     .example("flare gen resource Contact --fields 'name:string, email:string!, company:belongsTo(Company)?'")
+    .example("flare gen resource Contact --add 'phone:phone?, notes:text?'     # add columns to one you have")
     .example("flare gen resource Invoice --fields 'number:string!' --soft-delete   # a delete goes to the Trash")
     .example("flare gen endpoint Order publish --method POST --record")
     .example("flare gen migration backfill_contact_status")
@@ -174,6 +176,7 @@ export function createCli() {
         second: string | undefined,
         options: {
           fields?: string;
+          add?: string;
           group?: string;
           icon?: string;
           softDelete?: boolean;
@@ -203,6 +206,7 @@ export function createCli() {
         if (generator === "resource")
           return genResource(name!, {
             fields: options.fields,
+            add: options.add,
             force: options.force,
             group: options.group,
             icon: options.icon,

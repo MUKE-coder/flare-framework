@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
@@ -42,6 +43,7 @@ const KNOWN_ROLES = ["admin", "staff", "user"];
 export function CreateUserButton() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [role, setRole] = useState("user");
   const [pending, startTransition] = useTransition();
 
   const submit = (form: FormData) => {
@@ -90,12 +92,21 @@ export function CreateUserButton() {
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="new-user-role">Role</Label>
-            <Input id="new-user-role" name="role" defaultValue="user" list="known-roles" />
-            <datalist id="known-roles">
-              {KNOWN_ROLES.map((role) => (
-                <option key={role} value={role} />
-              ))}
-            </datalist>
+            {/* A combobox rather than a datalist: browsers render datalists
+                inconsistently, and the arrow on one that does nothing reads as a broken
+                control. allowCustom because a role is a string your policies name — the
+                list is a convenience, not the set of legal answers. */}
+            <Combobox
+              id="new-user-role"
+              name="role"
+              value={role}
+              onChange={setRole}
+              options={KNOWN_ROLES.map((option) => ({ value: option, label: option }))}
+              placeholder="Choose a role"
+              searchPlaceholder="Search or type a new role…"
+              allowCustom
+              customLabel={(typed) => `Create the role "${typed}"`}
+            />
             <p className="text-xs text-muted-foreground">Type anything: a new role exists the moment a policy names it.</p>
           </div>
           <DialogFooter>
@@ -113,6 +124,8 @@ export function CreateUserButton() {
 export function UserRowMenu({ userId, role, banned }: { userId: string; role: string; banned: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [picking, setPicking] = useState(false);
+  const [draft, setDraft] = useState(role);
 
   const run = (work: () => Promise<UserActionResult>, done: string) => {
     startTransition(async () => {
@@ -146,10 +159,14 @@ export function UserRowMenu({ userId, role, banned }: { userId: string; role: st
               {option}
             </DropdownMenuItem>
           ))}
+          {/* A dialog with the same combobox, not window.prompt: a browser prompt
+              cannot show the roles that already exist, and is the one piece of UI in
+              the app that looks like it belongs to 1998. */}
           <DropdownMenuItem
-            onSelect={() => {
-              const next = window.prompt("Role (lowercase letters, digits, _ or -):", role);
-              if (next && next !== role) setRole(next);
+            onSelect={(event) => {
+              event.preventDefault();
+              setDraft(role);
+              setPicking(true);
             }}
           >
             Something else…
@@ -166,6 +183,35 @@ export function UserRowMenu({ userId, role, banned }: { userId: string; role: st
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
+
+      <Dialog open={picking} onOpenChange={setPicking}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Change role</DialogTitle>
+            <DialogDescription>Pick one that exists, or type a new one — a role exists the moment a policy names it.</DialogDescription>
+          </DialogHeader>
+          <Combobox
+            value={draft}
+            onChange={setDraft}
+            options={KNOWN_ROLES.map((option) => ({ value: option, label: option }))}
+            placeholder="Choose a role"
+            searchPlaceholder="Search or type a new role…"
+            allowCustom
+            customLabel={(typed) => `Create the role "${typed}"`}
+          />
+          <DialogFooter>
+            <Button
+              disabled={pending || !draft.trim() || draft === role}
+              onClick={() => {
+                setPicking(false);
+                setRole(draft.trim());
+              }}
+            >
+              Change role
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DropdownMenu>
   );
 }

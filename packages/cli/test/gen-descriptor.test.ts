@@ -37,6 +37,16 @@ describe("renderDescriptor", () => {
 
 export default defineResource({
   name: "Contact",
+  // icon: "file-text",                              // any lucide-react name
+  // group: "Sales",                                 // sidebar heading
+  // titleField: "name",                             // what lists and pickers show
+  // defaultSort: { field: "createdAt", direction: "desc" },
+  // perPage: 25,                                    // rows per page
+  // softDelete: true,                               // keep deleted rows, with a Trash view
+  // rateLimit: { create: "10/min", "*": "120/min" },
+  // Uncomment what you need. Hooks, computed values, table and slug:
+  // https://flare-docs.codetotech.com/concepts/resource-descriptor/
+
   fields: {
     // generated:start hash=${hashBlock(block)}
     name: field.string(),
@@ -45,6 +55,19 @@ export default defineResource({
   },
 });
 `);
+  });
+
+  it("writes the keys it was given, and suggests the rest", () => {
+    // The point of the commented block: a setting you can see is one you will use.
+    // A setting you answered is real code, not a suggestion.
+    const rendered = renderDescriptor("Contact", parseFields("name:string"), { icon: "users", group: "Sales" });
+    expect(rendered).toContain(`  icon: "users",`);
+    expect(rendered).toContain(`  group: "Sales",`);
+    expect(rendered).not.toContain(`// icon:`);
+    expect(rendered).not.toContain(`// group:`);
+    // Still suggested, because they were not asked for.
+    expect(rendered).toContain(`// softDelete: true,`);
+    expect(rendered).toContain(`// titleField: "name",`);
   });
 
   it("refuses to render descriptors the runtime would reject", () => {

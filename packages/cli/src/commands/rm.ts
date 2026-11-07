@@ -27,12 +27,33 @@ export interface HandWrittenFinding {
 
 const squash = (text: string) => text.replace(/\r\n/g, "\n").replace(/\s+/g, " ").trim();
 
+/**
+ * The same, with whole-line comments dropped.
+ *
+ * Used for the descriptor, whose wrapper is mostly commented suggestions — icon, group,
+ * titleField and the rest, written out so they are easy to find and uncomment. Those
+ * lines are prose: deleting the ones you do not want, or a change of wording between
+ * releases, is not "hand-written code" and must not stop `flare rm`. Uncommenting one
+ * still is, because it stops being a comment the moment it becomes a setting.
+ */
+const squashCode = (text: string) =>
+  squash(
+    text
+      .replace(/\r\n/g, "\n")
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("//"))
+      .join("\n"),
+  );
+
 /** Why a generated file can't be deleted safely, or null when it only holds generated code. */
 export function handWrittenReason(source: string, header: string, options: { descriptorWrapper?: { before: string; after: string } } = {}): string | null {
   const parts = splitMarkers(source);
   if (!parts) return "has no generated block (entirely hand-written)";
   if (options.descriptorWrapper) {
-    if (squash(parts.before) !== squash(options.descriptorWrapper.before) || squash(parts.after) !== squash(options.descriptorWrapper.after)) {
+    if (
+      squashCode(parts.before) !== squashCode(options.descriptorWrapper.before) ||
+      squashCode(parts.after) !== squashCode(options.descriptorWrapper.after)
+    ) {
       return "has hand-written changes outside the fields block";
     }
     return null;

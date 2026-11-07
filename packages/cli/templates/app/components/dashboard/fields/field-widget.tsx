@@ -24,6 +24,7 @@ import { CountryField } from "./country-field";
 import { FileField } from "./file-field";
 import { JsonField } from "./json-field";
 import { MarkdownField } from "./markdown-field";
+import { Combobox } from "@/components/ui/combobox";
 import { MultiSelectField } from "./multi-select-field";
 import { TagsField } from "./tags-field";
 import { PhoneField } from "./phone-field";
@@ -177,22 +178,25 @@ export function FieldWidget(props: WidgetProps) {
         );
       }
       return (
-        // No selection is `undefined`, so the placeholder shows; "None" clears an optional value.
-        <Select value={text || undefined} onValueChange={(next) => onChange(next === NONE ? "" : next)} disabled={disabled} name={name}>
-          <SelectTrigger id={id} aria-invalid={invalid || undefined} className="w-full">
-            <SelectValue placeholder={field.placeholder ?? `Choose ${field.label.toLowerCase()}`} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {!field.required && <SelectItem value={NONE}>None</SelectItem>}
-              {field.options.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {optionLabel(field, option)}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+        // Searchable, like every other "choose one" in the app. An enum with six
+        // options is a list you scan; one with sixty is a list you search, and the
+        // descriptor does not say which you have — so the field is always typeable.
+        // "None" clears an optional value.
+        <Combobox
+          id={id}
+          name={name}
+          value={text}
+          onChange={(next) => onChange(next === NONE ? "" : next)}
+          options={[
+            ...(field.required ? [] : [{ value: NONE, label: "None" }]),
+            ...field.options.map((option) => ({ value: option, label: optionLabel(field, option) })),
+          ]}
+          placeholder={field.placeholder ?? `Choose ${field.label.toLowerCase()}`}
+          searchPlaceholder={`Search ${field.label.toLowerCase()}…`}
+          emptyMessage="No match."
+          disabled={disabled}
+          invalid={invalid}
+        />
       );
 
     case "multiselect":

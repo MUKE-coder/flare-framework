@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { renderSVG } from "uqr";
 import { CheckIcon, CopyIcon, FingerprintIcon, LaptopIcon, ShieldCheckIcon, Trash2Icon } from "lucide-react";
 import { AuthInput, AuthLabel, FormMessage, PrimaryButton, SecondaryButton, TextButton } from "@/components/auth/ui";
-import { PasswordField } from "@/components/auth/password-field";
+import { PasswordField, PasswordInput } from "@/components/auth/password-field";
 import { authErrorMessage } from "@/components/auth/sign-in-flow";
 import { PROVIDER_LABELS, ProviderIcon } from "@/components/auth/provider-icons";
 import { authClient } from "@/lib/auth-client";
@@ -50,7 +50,7 @@ function PasswordConfirm({ value, onChange, id }: { value: string; onChange: (va
   return (
     <div className="flex flex-col gap-2">
       <AuthLabel htmlFor={id}>Your password</AuthLabel>
-      <AuthInput id={id} type="password" autoComplete="current-password" value={value} onChange={(event) => onChange(event.target.value)} required />
+      <PasswordInput id={id} autoComplete="current-password" value={value} onChange={(event) => onChange(event.target.value)} required />
     </div>
   );
 }
@@ -459,6 +459,26 @@ function describeDevice(agent?: string | null): string {
   return system ? `${browser} on ${system}` : browser;
 }
 
+/**
+ * Where a session came from, in words rather than a number nobody can read.
+ *
+ * Better Auth records whatever address the request arrived from, and on a machine
+ * talking to itself that is the loopback — which IPv6 writes in full as
+ * 0000:0000:0000:0000:0000:0000:0000:0001. Printing that in a list headed "Sign out of
+ * devices you don't recognise" is worse than printing nothing: it is unreadable, it is
+ * identical on every row, and it looks like a bug. Say "this computer" instead, which
+ * is both true and useful.
+ */
+function describeOrigin(ip?: string | null): string | null {
+  if (!ip) return null;
+  const address = ip.trim().toLowerCase().replace(/^\[|\]$/g, "");
+  // Every spelling of "no address" and "here": IPv4 and IPv6 loopback, the unspecified
+  // address, and the IPv4-mapped forms a dual-stack listener reports.
+  if (/^(::1?|0+(:0+)*|127(\.\d+){3}|::ffff:127(\.\d+){3}|localhost)$/.test(address)) return "this computer";
+  if (/^(10|127)\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\.|^fe80:/.test(address)) return `${ip} (local network)`;
+  return ip;
+}
+
 export function Sessions() {
   const [list, setList] = useState<SessionRow[] | null>(null);
   const [current, setCurrent] = useState<string | null>(null);
@@ -488,7 +508,7 @@ export function Sessions() {
             <span className="flex-1">
               <span className="font-medium">{describeDevice(item.userAgent)}</span>
               <span className="block text-xs text-foreground-muted">
-                {item.ipAddress || "Unknown location"}
+                {describeOrigin(item.ipAddress) ?? "Unknown location"}
                 {item.updatedAt && `, last active ${new Date(item.updatedAt).toLocaleString()}`}
               </span>
             </span>

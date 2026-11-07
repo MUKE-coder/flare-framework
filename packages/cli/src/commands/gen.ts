@@ -1,11 +1,11 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { AUTH_USER, camelCase, defineResource, relationGraph, type Resource } from "@flaredev/core";
 import pc from "picocolors";
 import { descriptorPath, renderDescriptor, renderFieldsBlock, resourceName, toField } from "../generator/descriptor.js";
 import { parseFields, type ParsedField } from "../generator/grammar.js";
 import { loadResources } from "../generator/load.js";
-import { DriftError, writeGenerated } from "../generator/markers.js";
+import { DriftError, splitMarkers, writeGenerated } from "../generator/markers.js";
 import { applyDeclaredRenames, generateSchemaMigration } from "../generator/migrations.js";
 import { applyPlan, ensureSupportFiles, logResults, planFiles, type FileResult } from "../generator/plan.js";
 import { loadPolicies, policyPath, renderPolicy } from "../generator/policy.js";
@@ -20,6 +20,8 @@ export interface GenResourceOptions {
   /** Keep deleted rows and hide them, with a Trash view in the dashboard. */
   softDelete?: boolean;
   fields?: string;
+  /** Fields to append to an existing resource, in the same grammar as `fields`. */
+  add?: string;
   cwd?: string;
   /** Overwrite hand-edited generated blocks (including the descriptor's fields). */
   force?: boolean;
@@ -69,12 +71,47 @@ export async function genResource(rawName: string, options: GenResourceOptions):
   const path = join(appRoot, relativePath);
   const exists = existsSync(path);
 
-  if (!exists && !options.fields) {
+  if (!exists && !options.fields && !options.add) {
     throw new Error(`--fields is required, e.g. flare gen resource ${name} --fields "name:string, email:string"`);
+  }
+  if (options.add && options.fields) {
+    throw new Error("--add appends to the fields you have; --fields replaces them. Use one or the other.");
+  }
+  if (options.add && !exists) {
+    throw new Error(`There is no ${relativePath} to add to. Create it first: flare gen resource ${name} --fields "${options.add}"`);
   }
 
   const existing = await loadResources(appRoot);
   const others = existing.filter(({ resource }) => resource.name !== name).map(({ resource }) => resource);
+
+  // `--add` is `--fields` for the common case of one more column. Restating every field
+  // you already have to append one is how a field gets dropped by accident, and the
+  // descriptor is the file people are least willing to retype.
+  if (options.add) {
+    const additions = parseFields(options.add);
+    const current = existing.find(({ resource }) => resource.name === name)?.resource;
+    const taken = new Set(Object.keys(current?.fields ?? {}));
+    const clash = additions.find((candidate) => taken.has(candidate.key));
+    if (clash) {
+      throw new Error(
+        `${name} already has a field called "${clash.key}". Edit it in ${relativePath}, or rename it there with ` +
+          `\`${clash.key}: field.string({ rename: { from: "old" } })\`.`,
+      );
+    }
+    // The additions are checked here — grammar, and that a belongsTo target exists.
+    // The merged resource is checked a few lines below, where loadResources reads the
+    // file back and defineResource runs over the real thing; an addition that is only
+    // wrong in combination with what was already there fails there, naming the file.
+    validateFields(name, additions, others, log);
+
+    const source = readFileSync(path, "utf8");
+    const marked = splitMarkers(source);
+    if (!marked) throw new Error(`${relativePath} has no generated block to add to. Add the field by hand.`);
+    const existingBlock = marked.block === "" || marked.block.endsWith("\n") ? marked.block : `${marked.block}\n`;
+    const appended = `${existingBlock}${renderFieldsBlock(additions)}`;
+    const outcome = writeGenerated(path, appended, { force: true });
+    log(`${pc.yellow(outcome.padEnd(9))} ${relativePath} ${pc.dim(`(+${additions.map((f) => f.key).join(", ")})`)}`);
+  }
 
   if (options.fields) {
     // Validate everything before writing anything.
