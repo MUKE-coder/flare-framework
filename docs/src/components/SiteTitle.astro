@@ -4,7 +4,7 @@
  *
  * The nav lives here rather than in a Header override because Starlight's header has no
  * slot for it, and replacing the whole header would mean re-implementing search, the
- * theme switch and the social links to gain three links.
+ * theme switch and the social links to gain a handful of links.
  *
  * It is hidden below 50rem, where the header is already tight. Everything in it is also
  * reachable from the sidebar, which is what the mobile menu shows — so nothing is only
@@ -13,20 +13,25 @@
 import Default from "@astrojs/starlight/components/SiteTitle.astro";
 import { FLARE_VERSION, RELEASE_URL } from "../version";
 
+/**
+ * `match` is the path that makes a link the current one. Docs has none: it is the
+ * fallback, so it lights up for anything the others do not claim — which is why the
+ * builder needs its own entry rather than being left to the catch-all, where both it
+ * and Docs would read as the page you are on.
+ */
 const links = [
   { label: "Docs", href: "/start/quickstart/" },
-  { label: "Projects", href: "/projects/" },
-  { label: "Talk", href: "/talk/" },
-  { label: "Contributors", href: "/contributors/" },
+  { label: "Builder", href: "/start/builder/", match: "/start/builder/" },
+  { label: "Projects", href: "/projects/", match: "/projects/" },
+  { label: "Talk", href: "/talk/", match: "/talk/" },
+  { label: "Contributors", href: "/contributors/", match: "/contributors/" },
 ];
 
 /** The current section, so the link to it reads as the page you are on. */
 const path = Astro.url.pathname;
-const isCurrent = (href: string) =>
-  href === "/projects/" || href === "/contributors/" || href === "/talk/"
-    ? path.startsWith(href)
-    : // "Docs" covers everything that is not one of the others.
-      !["/projects/", "/contributors/", "/talk/"].some((other) => path.startsWith(other)) && path !== "/";
+const claimed = links.filter((link) => link.match).map((link) => link.match!);
+const isCurrent = (link: (typeof links)[number]) =>
+  link.match ? path.startsWith(link.match) : !claimed.some((other) => path.startsWith(other)) && path !== "/";
 ---
 
 <div class="fl-title">
@@ -36,7 +41,7 @@ const isCurrent = (href: string) =>
   <nav class="fl-nav" aria-label="Main">
     {
       links.map((link) => (
-        <a href={link.href} aria-current={isCurrent(link.href) ? "page" : undefined}>
+        <a href={link.href} aria-current={isCurrent(link) ? "page" : undefined}>
           {link.label}
         </a>
       ))

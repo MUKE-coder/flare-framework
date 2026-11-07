@@ -1,0 +1,100 @@
+$ astro build
+[2m09:51:12[22m [34m[content][39m Syncing content
+[2m09:51:12[22m [34m[content][39m Synced content
+[2m09:51:12[22m [34m[types][39m Generated [2m3.24s[22m
+[2m09:51:12[22m [34m[build][39m output: [34m"static"[39m
+[2m09:51:12[22m [34m[build][39m mode: [34m"static"[39m
+[2m09:51:12[22m [34m[build][39m directory: [34mD:\PROJECTS\FLARE FRAMEWORK\docs\dist\[39m
+[2m09:51:12[22m [34m[build][39m Collecting build info...
+[2m09:51:12[22m [34m[build][39m [32m✓ Completed in 3.88s.[39m
+[2m09:51:12[22m [34m[build][39m Building static entrypoints...
+[2m09:51:19[22m [34m[vite][39m [32m✓ built in 7.16s[39m
+[2m09:51:20[22m [34m[vite][39m [32m✓ built in 215ms[39m
+[2m09:51:20[22m [34m[build][39m Rearranging server assets...
+
+[42m[30m generating static routes [39m[49m
+[33m[1m09:51:20[22m [WARN] [content][39m The collection "i18n" does not exist or is empty. Please check your content config file for errors.
+[33m[1m09:51:20[22m [WARN] [build][39m Could not render `/404` from route `/[...slug]` as it conflicts with higher priority route `/404`.
+[2m09:51:20[22m   [34m├─[39m [2m/404.html[22m [2m(+105ms)[22m 
+[2m09:51:20[22m   [34m├─[39m [2m/llms.txt[22m [2m(+17ms)[22m 
+[2m09:51:20[22m   [34m├─[39m [2m/talk/index.html[22m [2m(+338ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/about/philosophy/index.html[22m [2m(+44ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/about/pitch/index.html[22m [2m(+23ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/about/vinext-policy/index.html[22m [2m(+17ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/about/who-its-for/index.html[22m [2m(+18ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/concepts/architecture/index.html[22m [2m(+17ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/concepts/codegen-contract/index.html[22m [2m(+20ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/concepts/field-grammar/index.html[22m [2m(+20ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/concepts/file-structure/index.html[22m [2m(+16ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/concepts/generated-files/index.html[22m [2m(+17ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/concepts/no-magic/index.html[22m [2m(+18ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/concepts/resource-descriptor/index.html[22m [2m(+14ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/concepts/sync-types/index.html[22m [2m(+14ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/contributors/index.html[22m [2m(+36ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/examples/demo/index.html[22m [2m(+17ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/api-keys/index.html[22m [2m(+17ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/api-reference/index.html[22m [2m(+13ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/api-routes/index.html[22m [2m(+15ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/auth/index.html[22m [2m(+13ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/billing/index.html[22m [2m(+15ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/build-with-ai/index.html[22m [2m(+16ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/caching/index.html[22m [2m(+54ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/costs/index.html[22m [2m(+13ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/crud-example/index.html[22m [2m(+14ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/dashboard/index.html[22m [2m(+13ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/deployment/index.html[22m [2m(+13ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/drizzle-cheatsheet/index.html[22m [2m(+12ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/file-uploads/index.html[22m [2m(+17ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/mail/index.html[22m [2m(+14ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/migrations-and-seeds/index.html[22m [2m(+16ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/prisma-to-drizzle/index.html[22m [2m(+18ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/realtime/index.html[22m [2m(+14ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/relationships/index.html[22m [2m(+16ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/roles-and-policies/index.html[22m [2m(+14ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/security/index.html[22m [2m(+10ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/self-hosting/index.html[22m [2m(+16ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/soft-delete/index.html[22m [2m(+28ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/storage/index.html[22m [2m(+16ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/themes/index.html[22m [2m(+11ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/tunnels/index.html[22m [2m(+12ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/vercel-deployment/index.html[22m [2m(+13ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/guides/your-code/index.html[22m [2m(+10ms)[22m 
+[2m09:51:21[22m   [34m├─[39m [2m/index.html[22m [31m(+827ms)[39m 
+[2m09:51:22[22m   [34m├─[39m [2m/projects/index.html[22m [2m(+24ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/projects/clinic/index.html[22m [2m(+70ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/projects/complaints/index.html[22m [2m(+27ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/projects/course-registration/index.html[22m [2m(+29ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/projects/events/index.html[22m [2m(+28ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/projects/exams/index.html[22m [2m(+22ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/projects/fees/index.html[22m [2m(+28ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/projects/hostel/index.html[22m [2m(+28ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/projects/library/index.html[22m [2m(+26ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/projects/lost-and-found/index.html[22m [2m(+27ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/projects/marketplace/index.html[22m [2m(+34ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/reference/changelog/index.html[22m [2m(+28ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/reference/cli/index.html[22m [2m(+11ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/start/builder/index.html[22m [2m(+22ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/start/cloudflare-setup/index.html[22m [2m(+12ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/start/installation/index.html[22m [2m(+14ms)[22m 
+[2m09:51:22[22m   [34m├─[39m [2m/start/project-structure/index.html[22m [2m(+12ms)[22m 
+[2m09:51:23[22m   [34m├─[39m [2m/start/quickstart/index.html[22m [2m(+51ms)[22m 
+[2m09:51:23[22m   [34m├─[39m [2m/start/stacks/index.html[22m [2m(+12ms)[22m 
+[2m09:51:23[22m   [34m├─[39m [2m/storage/index.html[22m [2m(+12ms)[22m 
+[2m09:51:23[22m   [34m├─[39m [2m/storage/cloudinary/index.html[22m [2m(+11ms)[22m 
+[2m09:51:23[22m   [34m├─[39m [2m/storage/disk/index.html[22m [2m(+11ms)[22m 
+[2m09:51:23[22m   [34m├─[39m [2m/storage/r2/index.html[22m [2m(+22ms)[22m 
+[2m09:51:23[22m   [34m├─[39m [2m/storage/uploadthing/index.html[22m [2m(+13ms)[22m 
+[2m09:51:23[22m   [34m├─[39m [2m/tutorials/contact-cloudflare/index.html[22m [2m(+11ms)[22m 
+[2m09:51:23[22m   [34m├─[39m [2m/tutorials/contact-next/index.html[22m [2m(+12ms)[22m 
+[2m09:51:23[22m   [34m├─[39m [2m/tutorials/drive/index.html[22m [2m(+12ms)[22m 
+[2m09:51:23[22m   [34m├─[39m [2m/tutorials/next-shop/index.html[22m [2m(+13ms)[22m 
+[2m09:51:23[22m   [34m├─[39m [2m/tutorials/shop/index.html[22m [2m(+13ms)[22m 
+[2m09:51:23[22m [32m✓ Completed in 2.93s.
+[39m
+[2m09:51:23[22m [34m[build][39m [32m✓ Completed in 10.79s.[39m
+[2m09:51:23[22m [34m[starlight:pagefind][39m Building search index with Pagefind...
+[2m09:51:23[22m [34m[starlight:pagefind][39m Found 74 HTML files.
+[2m09:51:24[22m [34m[starlight:pagefind][39m Finished building search index in 745ms.
+[2m09:51:24[22m [34m[@astrojs/sitemap][39m `sitemap-index.xml` created at `dist`
+[2m09:51:24[22m [34m[build][39m 73 page(s) built in [1m15.59s[22m
+[2m09:51:24[22m [34m[build][39m [1mComplete![22m
