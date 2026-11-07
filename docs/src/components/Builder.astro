@@ -1,0 +1,294 @@
+---
+/**
+ * The command builder: pick what you want, copy the command that makes it.
+ *
+ * Everything here mirrors `flare create`'s real flags — defaults are omitted from the
+ * output so the command stays as short as the choices allow. Pure client-side script,
+ * no framework: the docs ship nothing extra for this page.
+ */
+---
+
+<div class="builder" id="flare-builder">
+  <div class="builder-grid">
+    <label class="field">
+      <span class="field-label">App name</span>
+      <input id="b-name" type="text" value="myapp" autocomplete="off" spellcheck="false" />
+    </label>
+
+    <label class="field">
+      <span class="field-label">Package manager</span>
+      <select id="b-pm">
+        <option value="pnpm" selected>pnpm</option>
+        <option value="npm">npm</option>
+        <option value="yarn">yarn</option>
+        <option value="bun">bun</option>
+      </select>
+    </label>
+
+    <fieldset class="field field-wide">
+      <legend class="field-label">Where will it run?</legend>
+      <div class="choices" id="b-stack">
+        <label class="choice"><input type="radio" name="stack" value="next" checked /> <span><strong>Next.js</strong> — Vercel, Postgres, Prisma 7 <em>(default)</em></span></label>
+        <label class="choice"><input type="radio" name="stack" value="cloudflare" /> <span><strong>Cloudflare</strong> — Workers, D1, Drizzle</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset class="field field-wide">
+      <legend class="field-label">Where do uploaded files go?</legend>
+      <div class="choices" id="b-storage">
+        <label class="choice"><input type="radio" name="storage" value="r2" checked /> <span><strong>R2</strong> — or any S3; MinIO locally <em>(default)</em></span></label>
+        <label class="choice"><input type="radio" name="storage" value="disk" /> <span><strong>Disk</strong> — no account; one machine (Next.js only)</span></label>
+        <label class="choice"><input type="radio" name="storage" value="cloudinary" /> <span><strong>Cloudinary</strong> — a CDN with an image pipeline</span></label>
+        <label class="choice"><input type="radio" name="storage" value="uploadthing" /> <span><strong>UploadThing</strong> — a CDN with an uploader</span></label>
+      </div>
+    </fieldset>
+
+    <label class="field">
+      <span class="field-label">Theme</span>
+      <select id="b-theme">
+        <option value="default" selected>default</option>
+        <option value="coral">coral</option>
+        <option value="amber">amber</option>
+        <option value="sky">sky</option>
+        <option value="mono">mono</option>
+        <option value="emerald">emerald</option>
+      </select>
+    </label>
+
+    <label class="field">
+      <span class="field-label">Who may sign up?</span>
+      <select id="b-signup">
+        <option value="open" selected>open — anyone (default)</option>
+        <option value="invite">invite — by invitation link</option>
+        <option value="closed">closed — flare user:add only</option>
+      </select>
+    </label>
+
+    <fieldset class="field field-wide">
+      <legend class="field-label">Sign-in methods <span class="field-hint">email &amp; password is always on</span></legend>
+      <div class="choices choices-row" id="b-auth">
+        <label class="choice"><input type="checkbox" value="magic-link" checked /> <span>Magic links</span></label>
+        <label class="choice"><input type="checkbox" value="email-otp" checked /> <span>Email codes</span></label>
+        <label class="choice"><input type="checkbox" value="passkeys" checked /> <span>Passkeys</span></label>
+        <label class="choice"><input type="checkbox" value="2fa-app" checked /> <span>2FA: authenticator app</span></label>
+        <label class="choice"><input type="checkbox" value="2fa-email" checked /> <span>2FA: email code</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset class="field field-wide">
+      <legend class="field-label">Social sign-in <span class="field-hint">each needs its own credentials later</span></legend>
+      <div class="choices choices-row" id="b-social">
+        <label class="choice"><input type="checkbox" value="google" /> <span>Google</span></label>
+        <label class="choice"><input type="checkbox" value="github" /> <span>GitHub</span></label>
+        <label class="choice"><input type="checkbox" value="apple" /> <span>Apple</span></label>
+        <label class="choice"><input type="checkbox" value="microsoft" /> <span>Microsoft</span></label>
+      </div>
+    </fieldset>
+  </div>
+
+  <div class="output">
+    <div class="output-head">
+      <span>Create it</span>
+      <button type="button" class="copy" data-copy="b-create">Copy</button>
+    </div>
+    <pre><code id="b-create"></code></pre>
+
+    <div class="output-head">
+      <span>Then run it</span>
+      <button type="button" class="copy" data-copy="b-run">Copy</button>
+    </div>
+    <pre><code id="b-run"></code></pre>
+  </div>
+</div>
+
+<script is:inline>
+  (() => {
+    const root = document.getElementById("flare-builder");
+    if (!root) return;
+    const $ = (id) => document.getElementById(id);
+    const AUTH_ALL = ["magic-link", "email-otp", "passkeys", "2fa-app", "2fa-email"];
+
+    const kebab = (value) =>
+      value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9-]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "myapp";
+
+    function state() {
+      return {
+        name: kebab($("b-name").value),
+        pm: $("b-pm").value,
+        stack: root.querySelector('#b-stack input:checked').value,
+        storage: root.querySelector('#b-storage input:checked').value,
+        theme: $("b-theme").value,
+        signup: $("b-signup").value,
+        auth: [...root.querySelectorAll('#b-auth input:checked')].map((box) => box.value),
+        social: [...root.querySelectorAll('#b-social input:checked')].map((box) => box.value),
+      };
+    }
+
+    function render() {
+      const s = state();
+
+      // Disk has nowhere to write on a Worker; the CLI refuses it, so the builder does too.
+      const disk = root.querySelector('#b-storage input[value="disk"]');
+      disk.disabled = s.stack === "cloudflare";
+      disk.closest(".choice").classList.toggle("choice-off", disk.disabled);
+      if (disk.disabled && s.storage === "disk") {
+        root.querySelector('#b-storage input[value="r2"]').checked = true;
+        s.storage = "r2";
+      }
+
+      // Flags only where the answer differs from the default, so the command stays short.
+      const flags = [];
+      if (s.stack !== "next") flags.push("--stack cloudflare");
+      if (s.storage !== "r2") flags.push(`--storage ${s.storage}`);
+      if (s.theme !== "default") flags.push(`--theme ${s.theme}`);
+      if (s.signup !== "open") flags.push(`--signup ${s.signup}`);
+      if (s.auth.length === 0) flags.push("--auth none");
+      else if (s.auth.length !== AUTH_ALL.length) flags.push(`--auth ${s.auth.join(",")}`);
+      if (s.social.length > 0) flags.push(`--auth-providers ${s.social.join(",")}`);
+
+      const starts = {
+        pnpm: `pnpm create flare-framework ${s.name}`,
+        npm: `npm create flare-framework@latest ${s.name}`,
+        yarn: `yarn create flare-framework ${s.name}`,
+        bun: `bun create flare-framework ${s.name}`,
+      };
+      // npm hands arguments to the created package only after `--`.
+      const joiner = s.pm === "npm" && flags.length > 0 ? " -- " : flags.length > 0 ? " " : "";
+      $("b-create").textContent = starts[s.pm] + joiner + flags.join(" ");
+
+      const run = [`cd ${s.name}`];
+      if (s.stack === "next") {
+        run.push("docker compose up -d        # Postgres, on the address .env already has");
+        run.push("npx flare migrate           # create the tables");
+        run.push("npx flare db:seed           # admin@example.com / Password");
+      }
+      run.push("npx flare dev               # http://localhost:3000");
+      $("b-run").textContent = run.join("\n");
+    }
+
+    root.addEventListener("input", render);
+    root.addEventListener("change", render);
+    root.querySelectorAll(".copy").forEach((button) => {
+      button.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText($(button.dataset.copy).textContent);
+          button.textContent = "Copied";
+          setTimeout(() => (button.textContent = "Copy"), 1500);
+        } catch {
+          button.textContent = "Select & copy";
+        }
+      });
+    });
+    render();
+  })();
+</script>
+
+<style>
+  .builder {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+  .builder-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  @media (max-width: 640px) {
+    .builder-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.5rem;
+    padding: 0.9rem;
+    margin: 0;
+  }
+  .field-wide {
+    grid-column: 1 / -1;
+  }
+  .field-label {
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+  .field-hint {
+    font-weight: 400;
+    color: var(--sl-color-gray-3);
+  }
+  .field input[type="text"],
+  .field select {
+    font: inherit;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.375rem;
+    background: var(--sl-color-black);
+    color: var(--sl-color-white);
+  }
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+  .choices-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.45rem 1.25rem;
+  }
+  .choice {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-2);
+    cursor: pointer;
+  }
+  .choice input {
+    accent-color: var(--sl-color-accent);
+  }
+  .choice-off {
+    opacity: 0.45;
+  }
+  .output pre {
+    margin: 0 0 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.5rem;
+    background: var(--sl-color-black);
+    overflow-x: auto;
+  }
+  .output code {
+    background: none;
+    white-space: pre;
+  }
+  .output-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+  }
+  .copy {
+    font: inherit;
+    font-size: var(--sl-text-xs);
+    padding: 0.25rem 0.7rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.375rem;
+    background: var(--sl-color-black);
+    color: var(--sl-color-white);
+    cursor: pointer;
+  }
+  .copy:hover {
+    border-color: var(--sl-color-accent);
+  }
+</style>

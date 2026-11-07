@@ -72,18 +72,24 @@ app/
 ├─ error.tsx                ← error boundary
 ├─ loading.tsx              ← shown while a page loads
 ├─ globals.css              ← Tailwind and the theme tokens
-├─ sign-in/ sign-up/ …      ← auth screens, all built
+├─ (auth)/                  ← auth screens, all built — the parentheses keep
+│  ├─ sign-in/ sign-up/        them in one folder without touching the URLs,
+│  ├─ forgot-password/         so /sign-in is still /sign-in
+│  ├─ reset-password/
+│  ├─ verify-email/
+│  ├─ two-factor/
+│  └─ invite/[token]/       ← where an invitation link lands
 ├─ admin/                   ← the admin area's own pages
 ├─ dashboard/               ← the signed-in app
 │  ├─ layout.tsx            ← sidebar, header, the frame
 │  ├─ page.tsx              ← overview
 │  ├─ actions.ts            ← server actions the dashboard calls
 │  ├─ account/              ← profile, password, sessions, security
-│  ├─ costs/                ← what this app costs to run
+│  ├─ users/                ← accounts and roles, admin only
+│  ├─ costs/                ← what this app costs to run (Cloudflare stack only)
 │  ├─ invitations/          ← issue and revoke invitation links
 │  └─ products/             ← generated per resource: list, new, [id], [id]/edit
 │                             plus a loading.tsx beside each
-├─ invite/[token]/          ← where an invitation link lands
 └─ api/
    ├─ products/route.ts     ← generated. GET list, POST create
    ├─ products/[id]/route.ts← generated. GET, PATCH, PUT, DELETE
@@ -194,7 +200,7 @@ More than you would think. If you are not using something, remove it:
 - **`lib/security.ts`** — it is a pass-through until `flare gen security`.
 - **`app/api/reference/` and `api-docs.ts`** — if you do not want a public
   API reference.
-- **`app/invite/`, `app/dashboard/invitations/` and `lib/invitations.ts`** — if
+- **`app/(auth)/invite/`, `app/dashboard/invitations/` and `lib/invitations.ts`** — if
   sign-up is `open` or `closed` rather than `invite`.
 - **`lib/rate-limit.ts` and the `FLARE_RATE_LIMIT` binding** — if no descriptor
   declares a `rateLimit`.

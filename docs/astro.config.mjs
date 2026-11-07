@@ -54,6 +54,7 @@ export default defineConfig({
           items: [
             { label: "What is Flare?", slug: "index" },
             { label: "Quickstart", slug: "start/quickstart" },
+            { label: "Command builder", slug: "start/builder" },
             { label: "Installation", slug: "start/installation" },
             { label: "Choosing a stack", slug: "start/stacks" },
             { label: "Project structure", slug: "start/project-structure" },
@@ -132,6 +133,7 @@ export default defineConfig({
             { label: "Sharing your local app", slug: "guides/tunnels" },
             { label: "Drizzle cheat sheet", slug: "guides/drizzle-cheatsheet" },
             { label: "Coming from Prisma", slug: "guides/prisma-to-drizzle" },
+            { label: "Tutorial: a contact app", slug: "tutorials/contact-cloudflare" },
             { label: "Tutorial: a shop with a till", slug: "tutorials/shop" },
             { label: "Tutorial: a drive", slug: "tutorials/drive" },
           ],
@@ -142,6 +144,7 @@ export default defineConfig({
           items: [
             { label: "Cloudflare vs Next.js", slug: "start/stacks" },
             { label: "Deploying to Vercel", slug: "guides/vercel-deployment" },
+            { label: "Tutorial: a contact app", slug: "tutorials/contact-next" },
             { label: "Tutorial: a catalogue", slug: "tutorials/next-shop" },
           ],
         },

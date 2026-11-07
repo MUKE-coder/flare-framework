@@ -1,0 +1,34 @@
+---
+title: Command builder
+description: Pick your stack, storage, theme and sign-in methods, and copy the one command that scaffolds exactly that app.
+---
+
+import Builder from "../../../components/Builder.astro";
+
+Every choice below is a `flare create` flag. Pick what you want; the command
+updates as you do, and the defaults stay out of it — an app with default
+answers is one short line.
+
+<Builder />
+
+## After it runs
+
+The second block above is the whole setup: on Next.js it brings up Postgres,
+creates the tables and seeds **admin@example.com** / **Password** to sign in
+with; on Cloudflare there is nothing to provision at all. Then build
+something:
+
+```bash
+npx flare gen resource Contact --fields 'name:string, email:email!, status:enum(lead,customer)'
+npx flare migrate           # create its table
+npx flare seed:resource Contact 1000
+```
+
+Walk the same path with more explanation in the tutorials —
+[a contact app on Next.js](/tutorials/contact-next/) or
+[on Cloudflare](/tutorials/contact-cloudflare/) — or skim the
+[quickstart](/start/quickstart/). Every flag's detail is in the
+[CLI reference](/reference/cli/#flare-create-dir).
+
+Nothing here is permanent except the stack: the theme, sign-in methods and
+storage driver are each one line to change in the app afterwards.

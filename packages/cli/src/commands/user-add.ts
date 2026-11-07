@@ -141,7 +141,10 @@ async function addOnD1(
     // Catch a typo before writing the row: a role nothing recognises is a user who can
     // sign in and reach nothing, which looks like a different bug entirely.
     const roles = await listRoles(options);
-    if (roles && !roles.includes(options.role)) {
+    // An empty table means no roles have been registered yet, not that every role is a
+    // typo — a fresh app has the table and nothing in it, and refusing `--role admin`
+    // there would block the very seed that makes the first admin.
+    if (roles && roles.length > 0 && !roles.includes(options.role)) {
       log(pc.red(`No role "${options.role}" is registered. Known roles: ${roles.join(", ") || "none"}.`));
       log(pc.dim(`Register it with: flare role:add ${options.role}${options.remote ? " --remote" : ""}`));
       return 1;

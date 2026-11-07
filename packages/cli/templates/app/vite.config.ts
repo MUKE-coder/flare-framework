@@ -7,7 +7,9 @@ export default defineConfig(({ mode }) => ({
   // FLARE_THEME (shell or .env) picks the theme for this build; see lib/theme.ts.
   define: { __FLARE_THEME__: JSON.stringify(loadEnv(mode, process.cwd(), "FLARE_").FLARE_THEME ?? "") },
   // `flare dev --tunnel` serves the dev server on a https://*.trycloudflare.com URL.
-  server: { allowedHosts: [".trycloudflare.com"] },
+  // Port 3000 rather than Vite's 5173, so both stacks answer where everything printed
+  // and documented says they do — the Next.js stack is 3000 and cannot move.
+  server: { port: 3000, allowedHosts: [".trycloudflare.com"] },
   optimizeDeps: {
     /*
      * Packages that ship their own "use client" components are left out of dependency
