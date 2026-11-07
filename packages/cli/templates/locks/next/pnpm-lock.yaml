@@ -67,7 +67,7 @@ importers:
         version: 17.4.2
       lucide-react:
         specifier: ^1.46.0
-        version: 1.69.0(@types/react@19.3.0)(react@19.3.1)
+        version: 1.70.0(@types/react@19.3.0)(react@19.3.1)
       next:
         specifier: 16.3.8
         version: 16.3.8(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -2833,8 +2833,8 @@ packages:
       magicast:
         optional: true
 
-  caniuse-lite@1.0.30001822:
-    resolution: {integrity: sha512-Y3fvWQWzc69dlCyr07tuNrEhotv+db5FpMSPD3slZnkPKwRNOKwFBz2dP966XUmWMXLTOt+YShkFoQoom3U7hg==}
+  caniuse-lite@1.0.30001823:
+    resolution: {integrity: sha512-TQ5s/djDjNk1axreUW+4rULH+BmdCMLiJkhaXnO5wqivG7tITkSUj4ItIdzqdZHKaXcHAV8dhH3JxOM7/7bwqw==}
 
   chokidar@4.0.0:
     resolution: {integrity: sha512-mxIojEAQcuEvT/lyXq+jf/3cO/KoA6z4CeNDGGevTybECPOMFCnQy3OPahluUkbqgPNGw5Bi78UC7Po6Lhy+NA==}
@@ -3382,8 +3382,8 @@ packages:
     resolution: {integrity: sha512-5J9ysMYUpYIg9RF2vJpy9SinEmSviFSe0GyPpCQ4L5QSkLAgeLXlTAOu2ZwWUU5m+0SBl6gUU1R1ZQB3aKypfA==}
     engines: {bun: '>=1.0.0', deno: '>=1.30.0', node: '>=8.0.0'}
 
-  lucide-react@1.69.0:
-    resolution: {integrity: sha512-UTFECm4yEgkgMN0kfLuxWcmlk+4u02Jrqehgk3ZXRx/Ud68OpP7hjkp67bvkBHmIpMaZCIveF1QDYeupO7XmYQ==}
+  lucide-react@1.70.0:
+    resolution: {integrity: sha512-gCTPPN1MlQUBtUgdsUv+0CAUj+X8hifRUiRBw4E5v7lvDIOIpx0EZezdGQMSimS8pKA6esvullJub4GYr0mCHA==}
     peerDependencies:
       '@types/react': '*'
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -6798,7 +6798,7 @@ snapshots:
       pkg-types: 2.4.0
       rc9: 3.1.0
 
-  caniuse-lite@1.0.30001822: {}
+  caniuse-lite@1.0.30001823: {}
 
   chokidar@4.0.0:
     dependencies:
@@ -7324,7 +7324,7 @@ snapshots:
 
   lru.min@1.1.5: {}
 
-  lucide-react@1.69.0(@types/react@19.3.0)(react@19.3.1):
+  lucide-react@1.70.0(@types/react@19.3.0)(react@19.3.1):
     dependencies:
       react: 19.3.1
     optionalDependencies:
@@ -7411,7 +7411,7 @@ snapshots:
       '@next/env': 16.3.8
       '@swc/helpers': 0.5.23
       baseline-browser-mapping: 2.11.35
-      caniuse-lite: 1.0.30001822
+      caniuse-lite: 1.0.30001823
       postcss: 8.5.23
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)

@@ -21,6 +21,39 @@ npx flare --version                 # what this app is on
 pnpm add -D @flaredev/cli@latest    # upgrade it
 ```
 
+<Release version="0.14.1" date="7 November 2026">
+
+**Your tables will gain columns when you upgrade.** That is the fix, and it is
+worth saying first so it is not a surprise.
+
+A resource with a `cover` image had no Cover column. Four field kinds — `file`,
+long `text`, `json` and `markdown` — were born `list: false`, so the framework
+decided they looked untidy in a table and left them out. That is a judgement
+about taste, and taste belongs to whoever wrote the descriptor; what it
+actually achieved was sending people to look for a bug in their own code,
+because a field they had declared and filled in was nowhere on the screen.
+
+Every field is a column now. Hide the ones you would rather not see:
+
+```ts
+meta: field.json({ list: false }),      // kept, not shown
+blurb: field.text({ list: false }),
+```
+
+Readers can also hide columns for themselves from the table's column menu,
+which is per person and changes nothing for anyone else.
+
+Nothing had to be built for this. `FileCell` has drawn a thumbnail for an
+image and a filename for anything else since it was written, and `formatValue`
+truncates JSON to one line with "this goes in a table cell" in the comment
+above it. The renderers were ready; the default was hiding them.
+
+What stays off by default is the part about correctness rather than looks:
+long text and markdown are still not `searchable` (a `LIKE` over paragraphs is
+not a search), and `json` and `file` are still not `sortable`.
+
+</Release>
+
 <Release version="0.14.0" date="7 November 2026">
 
 **Upgrading an app runs a migration.** Both stacks gain a `role_permission`
