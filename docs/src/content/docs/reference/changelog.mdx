@@ -21,6 +21,75 @@ npx flare --version                 # what this app is on
 pnpm add -D @flaredev/cli@latest    # upgrade it
 ```
 
+<Release version="0.14.0" date="7 November 2026">
+
+**Upgrading an app runs a migration.** Both stacks gain a `role_permission`
+table, and the Next.js stack gains `Role` to go with the one Cloudflare
+already had. `npx flare migrate` writes and applies it.
+
+**Roles and permissions, from the dashboard.** `/dashboard/roles`: create a
+role, delete one, and tick what each may do per resource and action. Assign it
+from Users, and the grant decides what that person reaches — in the admin and
+over the API, which read the same policy so they cannot drift.
+
+Where permissions live was the question worth getting right. Flare's policies
+are files, and that is why they are reviewable in a pull request, travel with
+the repository, and are the same on every machine before anything deploys. A
+database is none of those. So the two compose: **the policy file is the floor
+and the database only ever widens it.** Nothing ticked in a running dashboard
+can take away access your code grants, and nothing can lock an app out. A tick
+that came from a file is shown locked, with the filename in its tooltip.
+
+The corner worth knowing: a resource with **no** policy file is open to every
+signed-in user, so grants on it do nothing. Inventing a policy out of the
+grants would be worse than useless — an app would start refusing people the
+moment somebody opened that screen. The row says it is open and gives the
+command that restricts it. Roles already held by accounts appear whether or
+not they were registered, because `flare user:role someone auditor` is a
+complete way to make one.
+
+**Bulk add.** Every resource list gets it beside New: a full-height sheet of
+rows and columns you can type into, tab across, Enter down, and paste a whole
+block into — tab-separated rows off a spreadsheet fill from the cell you are
+in. Cells are checked against the same validators the form and the API use, so
+a batch with a bad row is refused whole rather than written halfway, and rows
+are written through the same path the CSV import takes, so hooks, policies and
+ownership all apply. File columns are included, behind a one-line Attach
+control rather than a dropzone per row.
+
+**Every password box has the eye.** It was on the sign-up and reset fields and
+missing from sign-in and "your password" — so the app offered to reveal your
+password in one place and not the next.
+
+**Devices said `0000:0000:0000:0000:0000:0000:0000:0000`.** That is the IPv6
+loopback written in full: correct, unreadable, and identical on every row. It
+says "this computer" now.
+
+**Every "choose one" is searchable.** Enum fields in generated forms, and the
+role fields in the Users screen, are comboboxes you can type into — a
+six-option enum is a list you scan, a sixty-option one is a list you search,
+and the descriptor does not say which you have.
+
+**`flare gen resource <Name> --add 'phone:phone?, notes:text?'`** appends
+columns. `--fields` replaces the block, so adding one column used to mean
+restating every field you had, which is how a field gets dropped by accident.
+
+**New descriptors carry the settings people reach for on day two** — `icon`,
+`group`, `titleField`, `defaultSort`, `perPage`, `softDelete`, `rateLimit` —
+written commented out with aligned notes and a link. A key you can see is a key
+you will use.
+
+**Smaller things.** The error page tells a stale tab from a broken app: a tab
+running old code after an update, or after a different app started on the same
+port, is offered a reload, because React's "Try again" re-renders the same
+stale modules and can only fail. The [command builder](/start/builder/) pins
+the version its commands belong to and passes `--yes`, so a copied command
+runs to completion instead of asking the questions the form already asked.
+Four places still told you to run prisma directly — `gen resource`, `rm
+resource`, `gen apikeys` and `doctor` — and now say `flare`.
+
+</Release>
+
 <Release version="0.13.0" date="7 November 2026">
 
 **`flare migrate` on Next.js now develops — change your CI if it relied on the
