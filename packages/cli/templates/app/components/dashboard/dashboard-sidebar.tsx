@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { ActivityIcon, LayoutDashboardIcon, UserCircleIcon, UsersIcon } from "lucide-react";
+import { ActivityIcon, LayoutDashboardIcon, ShieldIcon, UserCircleIcon, UsersIcon } from "lucide-react";
 import { ChevronsUpDownIcon } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
@@ -59,6 +59,7 @@ const ACCOUNT_LINKS = [{ href: "/dashboard/account", label: "Account", icon: Use
 // lib/dashboard-nav.ts; users and observability ship with every app.
 const ADMIN_LINKS = [
   { href: "/dashboard/users", label: "Users", icon: UsersIcon },
+  { href: "/dashboard/roles", label: "Roles", icon: ShieldIcon },
   { href: "/dashboard/observability", label: "Observability", icon: ActivityIcon },
 ];
 

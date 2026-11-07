@@ -6,6 +6,7 @@ import type { ResourceAction } from "@/lib/resource";
 import { checkRateLimit } from "@/lib/rate-limit";
 import type { Authorize } from "@/lib/resource/handlers";
 import { policies } from "@/policies";
+import { effectivePolicy } from "./permissions";
 import { userFromApiKey } from "./api-keys";
 import { auth } from "./auth";
 
@@ -60,7 +61,9 @@ export const authorize: Authorize = async ({ request, resource, action }) => {
   if (!session && !viaKey) return problemResponse(401, "Sign in required.", PROBLEM_CODES.unauthenticated);
 
   const role = session ? ((session.user as { role?: string | null }).role ?? null) : viaKey!.role;
-  if (!can(policyFor(resource.name), role, action)) {
+  // The effective policy: your policy file, widened by whatever the dashboard's Roles
+  // screen granted. The API and the admin read the same one, so they cannot drift.
+  if (!can(await effectivePolicy(resource.name), role, action)) {
     return problemResponse(403, `Your role can't ${action} ${resource.pluralLabel.toLowerCase()}.`, PROBLEM_CODES.forbidden);
   }
 };

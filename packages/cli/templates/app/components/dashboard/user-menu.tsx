@@ -66,7 +66,7 @@ export function UserMenuItems({ user, isAdmin = false }: { user: DashboardUser; 
         </DropdownMenuItem>
         {isAdmin && (
           <DropdownMenuItem asChild>
-            <Link href="/dashboard/users">
+            <Link href="/dashboard/roles">
               <ShieldIcon />
               Manage roles
             </Link>

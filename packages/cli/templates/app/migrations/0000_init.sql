@@ -108,6 +108,15 @@ CREATE TABLE `role` (
 	`created_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `role_permission` (
+	`id` text PRIMARY KEY NOT NULL,
+	`role` text NOT NULL,
+	`resource` text NOT NULL,
+	`action` text NOT NULL,
+	`created_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `role_permission_unique` ON `role_permission` (`role`,`resource`,`action`);--> statement-breakpoint
 CREATE TABLE `saved_view` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,

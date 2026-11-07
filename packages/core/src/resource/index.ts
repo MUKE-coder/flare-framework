@@ -100,3 +100,5 @@ export {
   type PolicyConfig,
   type PolicyOwnership,
 } from "./policy.js";
+
+export { withGrants, grantIndex, isRestricted, type PermissionGrant } from "./grants.js";

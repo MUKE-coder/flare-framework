@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 /**
  * Roles a user can hold (`user.role` from Better Auth's admin plugin).
@@ -13,6 +13,32 @@ export const role = sqliteTable("role", {
     .notNull()
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`),
 });
+
+/**
+ * Permissions granted from the dashboard, on top of the policies in your code.
+ *
+ * A row says "this role may do this to this resource". It can only ever *widen* what
+ * `policies/*.policy.ts` already allows — see `withGrants` in @flaredev/core. A
+ * resource with no policy file is open to every signed-in user, and no row here changes
+ * that; the roles screen says so rather than pretending otherwise.
+ */
+export const rolePermission = sqliteTable(
+  "role_permission",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    /** The role's name, as in the `role` table and `user.role`. */
+    role: text("role").notNull(),
+    /** The resource's descriptor name, e.g. "Invoice". */
+    resource: text("resource").notNull(),
+    /** "read", "create", "update" or "delete". */
+    action: text("action").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`),
+  },
+  // One row per cell of the matrix: ticking a box twice is the same tick.
+  (table) => [uniqueIndex("role_permission_unique").on(table.role, table.resource, table.action)],
+);
 
 /**
  * Who changed what, and when. Written by the dashboard's actions (lib/audit.ts) for

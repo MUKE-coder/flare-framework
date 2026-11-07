@@ -133,6 +133,37 @@ model TwoFactor {
 }
 
 /// Who changed what, written by the dashboard's actions.
+/// Roles a user can hold (`user.role` from Better Auth's admin plugin). Register them
+/// from the dashboard's Roles screen or with `flare role:add <name>`.
+model Role {
+  name      String   @id
+  label     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("role")
+}
+
+/// Permissions granted from the dashboard, on top of the policies in your code.
+///
+/// A row says "this role may do this to this resource". It can only ever *widen* what
+/// `policies/*.policy.ts` already allows — see `withGrants` in @flaredev/core. A
+/// resource with no policy file is open to every signed-in user, and no row here
+/// changes that; the roles screen says so rather than pretending otherwise.
+model RolePermission {
+  id        String   @id @default(uuid())
+  /// The role's name, as in the Role table and user.role.
+  role      String
+  /// The resource's descriptor name, e.g. "Invoice".
+  resource  String
+  /// "read", "create", "update" or "delete".
+  action    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  /// One row per cell of the matrix: ticking a box twice is the same tick.
+  @@unique([role, resource, action])
+  @@map("role_permission")
+}
+
 model AuditLog {
   id           String   @id @default(uuid())
   action       String

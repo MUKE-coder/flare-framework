@@ -4,6 +4,7 @@ import { allowedActions, can, columnName, ownershipFilter, type Policy, type Pol
 import { createResourceStore, prismaRows, type PrismaDelegate, type ResourceStore } from "@/lib/resource";
 import { prisma } from "@/lib/db";
 import { policies } from "@/policies";
+import { effectivePolicy } from "./permissions";
 import { resourceTables } from "@/resources/server";
 import { currentUser } from "./api";
 import { auth } from "./auth";
@@ -19,6 +20,13 @@ import { cached, resourceTag, revalidateResource, TTL } from "./cache";
 
 export const ADMIN_ROLES = ["admin", "staff"];
 
+/**
+ * The policy in your code, before the dashboard's grants.
+ *
+ * The store takes this one, because the half of a policy the store enforces is `own` —
+ * per-record ownership — which is a code decision and not something the roles screen
+ * can change. Role checks go through {@link effectivePolicy} instead.
+ */
 export function policyFor(resourceName: string): Policy | undefined {
   return (policies as Record<string, Policy | undefined>)[resourceName];
 }
@@ -27,7 +35,9 @@ export async function dashboardSession() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return { session: null, role: null, allowed: false } as const;
   const role = (session.user as { role?: string | null }).role ?? null;
-  const readable = allResources().some((resource) => can(policyFor(resource.name), role, "read"));
+  const readable = (await Promise.all(allResources().map((resource) => effectivePolicy(resource.name)))).some((policy) =>
+    can(policy, role, "read"),
+  );
   return { session, role, allowed: (role !== null && ADMIN_ROLES.includes(role)) || readable } as const;
 }
 
@@ -46,7 +56,7 @@ export async function requireDashboard(returnTo = "/dashboard") {
  */
 export async function requireAccess(resource: Resource, action: PolicyAction) {
   const { session, role } = await requireDashboard(resourcePath(resource));
-  const policy = policyFor(resource.name);
+  const policy = await effectivePolicy(resource.name);
   if (!can(policy, role, action)) {
     redirect(action !== "read" && can(policy, role, "read") ? resourcePath(resource) : "/dashboard?error=forbidden");
   }
@@ -56,7 +66,7 @@ export async function requireAccess(resource: Resource, action: PolicyAction) {
 /** What the current user may do with a resource, for hiding actions they can't use. */
 export async function adminPermissions(resourceName: string) {
   const { role } = await dashboardSession();
-  return allowedActions(policyFor(resourceName), role);
+  return allowedActions(await effectivePolicy(resourceName), role);
 }
 
 /**
@@ -190,7 +200,8 @@ export function allResources(): Resource[] {
 /** Resources the current user may read, for the sidebar and dashboard. */
 export async function visibleResources(): Promise<Resource[]> {
   const { role } = await dashboardSession();
-  return allResources().filter((resource) => can(policyFor(resource.name), role, "read"));
+  const policies = await Promise.all(allResources().map((resource) => effectivePolicy(resource.name)));
+  return allResources().filter((resource, index) => can(policies[index], role, "read"));
 }
 
 export function resourcePath(resource: Resource, ...parts: string[]) {
