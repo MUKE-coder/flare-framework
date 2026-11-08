@@ -28,7 +28,21 @@ function roleTone(role: string): "default" | "secondary" {
   return role === "admin" ? "default" : "secondary";
 }
 
-export function UsersTable({ rows, total, currentUserId }: { rows: AccountRow[]; total: number; currentUserId: string }) {
+export function UsersTable({
+  rows,
+  total,
+  currentUserId,
+  roles,
+  manage = false,
+}: {
+  rows: AccountRow[];
+  total: number;
+  currentUserId: string;
+  /** Every role this app knows, for the row menu's picker. */
+  roles: { name: string; label: string }[];
+  /** Whether this person may change a role or ban somebody. */
+  manage?: boolean;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -89,8 +103,8 @@ export function UsersTable({ rows, total, currentUserId }: { rows: AccountRow[];
                   </TableCell>
                   <TableCell>
                     {/* Not on your own row: demoting or banning yourself is a lockout, not a feature. */}
-                    {account.id !== currentUserId && (
-                      <UserRowMenu userId={account.id} role={account.role ?? "user"} banned={Boolean(account.banned)} />
+                    {manage && account.id !== currentUserId && (
+                      <UserRowMenu userId={account.id} role={account.role ?? "user"} banned={Boolean(account.banned)} roles={roles} />
                     )}
                   </TableCell>
                 </TableRow>

@@ -3,16 +3,16 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
-import { dashboardSession } from "@/lib/dashboard";
+import { canArea, dashboardSession } from "@/lib/dashboard";
 
 /**
  * Managing accounts, through Better Auth's admin API.
  *
  * The same `admin` plugin that gives users a role also enforces who may call these:
- * only roles in its `adminRoles` (see lib/auth.ts — "admin" out of the box). The check
- * here is only for a clean sentence; the API would refuse anyway, which means these
- * actions are exactly as powerful as the `flare user:add` / `flare user:role` commands
- * and no more.
+ * only roles in its `adminRoles` (see lib/auth.ts — "admin" out of the box). The checks
+ * here are for a clean sentence and so the page can hide what it would refuse; the API
+ * would refuse anyway, which means these actions are exactly as powerful as the
+ * `flare user:add` / `flare user:role` commands and no more.
  */
 
 export type UserActionResult = { ok: true } | { ok: false; error: string };
@@ -31,9 +31,16 @@ async function signedIn(): Promise<UserActionResult | undefined> {
   if (!session) return { ok: false, error: "You're signed out." };
 }
 
+/** Reading the list is a grant; changing an account is Better Auth's to allow. */
+async function mayManage(): Promise<UserActionResult | undefined> {
+  const out = await signedIn();
+  if (out) return out;
+  if (!(await canArea("@users", "update"))) return { ok: false, error: "Only an admin can manage accounts." };
+}
+
 /** Make an account, exactly as `flare user:add` would: usable immediately. */
 export async function createUserAction(input: { name: string; email: string; password: string; role: string }): Promise<UserActionResult> {
-  const out = await signedIn();
+  const out = await mayManage();
   if (out) return out;
   const role = input.role.trim() || "user";
   if (!/^[a-z][a-z0-9_-]{0,31}$/.test(role)) {
@@ -53,7 +60,7 @@ export async function createUserAction(input: { name: string; email: string; pas
 
 /** Change what someone is allowed to do. Takes effect on their next request. */
 export async function setRoleAction(input: { userId: string; role: string }): Promise<UserActionResult> {
-  const out = await signedIn();
+  const out = await mayManage();
   if (out) return out;
   const role = input.role.trim();
   if (!/^[a-z][a-z0-9_-]{0,31}$/.test(role)) {
@@ -70,7 +77,7 @@ export async function setRoleAction(input: { userId: string; role: string }): Pr
 
 /** A banned account keeps its data and loses its way in; unban restores it. */
 export async function setBannedAction(input: { userId: string; banned: boolean }): Promise<UserActionResult> {
-  const out = await signedIn();
+  const out = await mayManage();
   if (out) return out;
   try {
     if (input.banned) {

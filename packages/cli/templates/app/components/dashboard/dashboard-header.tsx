@@ -30,7 +30,18 @@ function applyTheme(theme: Theme) {
   if (theme !== "system") root.classList.add(theme);
 }
 
-export function DashboardHeader({ user, initialTheme, notices = [], isAdmin = false }: { user: DashboardUser; initialTheme: Theme; notices?: Notice[]; isAdmin?: boolean }) {
+export function DashboardHeader({
+  user,
+  initialTheme,
+  notices = [],
+  canManageRoles = false,
+}: {
+  user: DashboardUser;
+  initialTheme: Theme;
+  notices?: Notice[];
+  /** Shows "Manage roles" in the account menu, for whoever may open that screen. */
+  canManageRoles?: boolean;
+}) {
   const [theme, setTheme] = useState<Theme>(initialTheme);
   const dark = theme === "dark" || (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   const needsAttention = notices.some((notice) => notice.tone === "warning");
@@ -106,7 +117,7 @@ export function DashboardHeader({ user, initialTheme, notices = [], isAdmin = fa
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-60">
-            <UserMenuItems user={user} isAdmin={isAdmin} />
+            <UserMenuItems user={user} canManageRoles={canManageRoles} />
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

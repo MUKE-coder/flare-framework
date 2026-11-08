@@ -2,21 +2,21 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { ADMIN_ROLES, requireDashboard } from "@/lib/dashboard";
-import { currentUser } from "@/lib/api";
+import { canArea, requireArea } from "@/lib/dashboard";
 import { createInvitation, invitationLink, revokeInvitation } from "@/lib/invitations";
 
 /**
  * Issuing and revoking invitations.
  *
- * Both are admin-only, checked here rather than trusted from the page: a server action is
- * an endpoint, and an endpoint that relies on not being linked to is not protected.
+ * Both follow the Invitations row on the roles screen — issuing is its `create` grant,
+ * revoking its `delete` — and are checked here rather than trusted from the page: a
+ * server action is an endpoint, and an endpoint that relies on not being linked to is
+ * not protected.
  */
-async function requireAdmin(): Promise<void> {
-  await requireDashboard("/dashboard/invitations");
-  const account = await currentUser();
-  if (!account || !ADMIN_ROLES.includes(account.role ?? "")) {
-    throw new Error("Only an admin can manage invitations.");
+async function allow(action: "create" | "delete"): Promise<void> {
+  await requireArea("@dashboard-invitations");
+  if (!(await canArea("@dashboard-invitations", action))) {
+    throw new Error(action === "create" ? "Your role cannot issue invitations." : "Your role cannot revoke invitations.");
   }
 }
 
@@ -42,7 +42,7 @@ export interface IssuedInvitation {
  * with no mail configured, which a fresh app is.
  */
 export async function issueInvitation(formData: FormData): Promise<IssuedInvitation> {
-  await requireAdmin();
+  await allow("create");
   const raw = String(formData.get("email") ?? "").trim();
   const days = Number(formData.get("days")) || undefined;
   const invitation = await createInvitation({ for: raw ? { email: raw } : { anyone: true }, days });
@@ -56,7 +56,7 @@ export async function issueInvitation(formData: FormData): Promise<IssuedInvitat
 
 /** Revoke one, so a link sent to the wrong address stops working. */
 export async function cancelInvitation(id: string): Promise<void> {
-  await requireAdmin();
+  await allow("delete");
   await revokeInvitation(id);
   revalidatePath("/dashboard/invitations");
 }

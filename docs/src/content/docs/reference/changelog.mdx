@@ -21,6 +21,45 @@ npx flare --version                 # what this app is on
 pnpm add -D @flaredev/cli@latest    # upgrade it
 ```
 
+<Release version="0.15.0" date="7 November 2026">
+
+**Roles now cover the dashboard itself, not just your resources.** The roles
+screen listed the things you had generated and nothing else, so every built-in
+page — Users, Observability, the API reference — was gated on one hardcoded
+answer: `ADMIN_ROLES`, all of them or none of them. A support role that should
+read the audit log and nothing more had nowhere to be described.
+
+Those pages are now **areas**, and an area behaves exactly like a resource on
+that screen. `ADMIN_ROLES` is the floor, so an admin always reaches all of
+them and those ticks are locked; everything else is a grant you give. Each
+page enforces its own with `requireArea`, the sidebar lists only what you may
+open, and the list is derived from the sidebar — a page added by
+`flare gen security` is grantable the moment it appears. They live in
+`lib/areas.ts`, in your app, like everything else.
+
+Two ticks stay locked whoever you are, and both say why in their tooltip.
+**Users · create and update** belong to Better Auth's `admin` plugin —
+`adminRoles` in `lib/auth.ts` — because a tick its API would refuse is worse
+than no tick at all; reading the list is an ordinary grant. **Roles · update**
+is grantable, with the warning it deserves on the row: a role that may change
+that screen can grant itself everything else on it.
+
+**A role you created could not be given to anybody.** The role pickers on the
+Users screen read from a constant in the file — `["admin", "staff", "user"]` —
+so a role made on the roles screen a minute earlier was simply not in the
+list. They read the database now: every role that is registered, built in, or
+held by an account. You can still type a new one.
+
+**`flare role:add` failed on the Next.js stack** with "No d1_databases in
+wrangler.jsonc". The command was written for D1 and never grew a Postgres half,
+so the default stack could register a role from the dashboard but not from the
+terminal. It now takes the same route `flare user:role` does.
+
+No migration: grants were already free text in `role_permission`, and an area
+is a row in it like any other.
+
+</Release>
+
 <Release version="0.14.1" date="7 November 2026">
 
 **Your tables will gain columns when you upgrade.** That is the fix, and it is

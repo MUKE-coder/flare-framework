@@ -64,7 +64,17 @@ hooks: {
 dashboard hides what you may not see and the API refuses it, from the same
 file.
 
-*Prevents:* an endpoint that forgot a check the UI made.
+Grants made at `/dashboard/roles` are stored in `role_permission` and **widen**
+a policy; they never narrow one, and a resource with no policy file stays open
+to every signed-in user.
+
+A page of the dashboard that is not a resource — Users, Observability, one you
+add — is an **area** in `lib/areas.ts`, gated with `await requireArea("@users")`.
+`ADMIN_ROLES` is its floor. Never write `ADMIN_ROLES.includes(role)` in a page:
+that is the hardcoded check areas replaced.
+
+*Prevents:* an endpoint that forgot a check the UI made, and a page only an
+admin can ever be given.
 
 ## Server modules never enter a client component
 

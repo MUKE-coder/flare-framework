@@ -35,12 +35,19 @@ import { createUserAction, setBannedAction, setRoleAction, type UserActionResult
  * Everything here calls the same Better Auth admin API the CLI uses, so an account made
  * from this dialog and one made with `flare user:add` are indistinguishable.
  *
- * The well-known roles get one-click entries; anything else is typed, because a role is
- * just a string your policies name — inventing one here is how you "add a role".
+ * The roles come from the page, which reads them from the database — every role that is
+ * registered, built in, or held by somebody. They used to be a constant in this file,
+ * which meant a role created on the roles screen could not be given to anyone from here.
+ * Typing is still allowed, because a role is just a string your policies name.
  */
-const KNOWN_ROLES = ["admin", "staff", "user"];
+export interface RoleOption {
+  name: string;
+  label: string;
+}
 
-export function CreateUserButton() {
+const toOptions = (roles: RoleOption[]) => roles.map((role) => ({ value: role.name, label: role.label }));
+
+export function CreateUserButton({ roles }: { roles: RoleOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState("user");
@@ -101,7 +108,7 @@ export function CreateUserButton() {
               name="role"
               value={role}
               onChange={setRole}
-              options={KNOWN_ROLES.map((option) => ({ value: option, label: option }))}
+              options={toOptions(roles)}
               placeholder="Choose a role"
               searchPlaceholder="Search or type a new role…"
               allowCustom
@@ -121,7 +128,7 @@ export function CreateUserButton() {
   );
 }
 
-export function UserRowMenu({ userId, role, banned }: { userId: string; role: string; banned: boolean }) {
+export function UserRowMenu({ userId, role, banned, roles }: { userId: string; role: string; banned: boolean; roles: RoleOption[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [picking, setPicking] = useState(false);
@@ -154,9 +161,9 @@ export function UserRowMenu({ userId, role, banned }: { userId: string; role: st
           Role
         </DropdownMenuLabel>
         <DropdownMenuGroup>
-          {KNOWN_ROLES.map((option) => (
-            <DropdownMenuItem key={option} disabled={option === role} onSelect={() => setRole(option)}>
-              {option}
+          {roles.map((option) => (
+            <DropdownMenuItem key={option.name} disabled={option.name === role} onSelect={() => setRole(option.name)}>
+              {option.label}
             </DropdownMenuItem>
           ))}
           {/* A dialog with the same combobox, not window.prompt: a browser prompt
@@ -193,7 +200,7 @@ export function UserRowMenu({ userId, role, banned }: { userId: string; role: st
           <Combobox
             value={draft}
             onChange={setDraft}
-            options={KNOWN_ROLES.map((option) => ({ value: option, label: option }))}
+            options={toOptions(roles)}
             placeholder="Choose a role"
             searchPlaceholder="Search or type a new role…"
             allowCustom

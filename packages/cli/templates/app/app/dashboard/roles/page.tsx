@@ -1,56 +1,63 @@
-import { redirect } from "next/navigation";
 import { grantIndex } from "@flaredev/core";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { RoleMatrix, type MatrixResource } from "@/components/dashboard/role-matrix";
-import { ADMIN_ROLES, allResources, dashboardSession } from "@/lib/dashboard";
-import { allGrants, codePolicy, GRANTABLE, listRoles, rolesInUse } from "@/lib/permissions";
+import { RoleMatrix, type MatrixArea, type MatrixResource } from "@/components/dashboard/role-matrix";
+import { dashboardAreas } from "@/lib/areas";
+import { ADMIN_ROLES, allResources, knownRoles, requireArea } from "@/lib/dashboard";
+import { allGrants, codePolicy, GRANTABLE } from "@/lib/permissions";
 
 export const metadata = { title: "Roles & permissions" };
 
 /**
  * Who may do what, per role.
  *
- * Admin only, and not governed by a resource policy: this screen decides what the
- * policies allow, so gating it on one would be circular. It reads the policy files and
- * the grants together, and shows which ticks came from which — a tick from a file is
- * locked, because the file is the floor and the dashboard only widens it.
+ * Two grids, and they work the same way. **Resources** take their locked ticks from
+ * `policies/<name>.policy.ts`; the dashboard's own **pages** take theirs from
+ * ADMIN_ROLES, and from lib/auth.ts for the few things Better Auth owns. In both the
+ * code is the floor and a tick here only ever widens it.
+ *
+ * Gated on its own area, not on ADMIN_ROLES: an app that wants a second role able to
+ * manage permissions should be able to say so here, which is the whole point of the
+ * screen. Admin is the floor and cannot be removed.
  */
 export default async function RolesPage() {
-  const { session, role } = await dashboardSession();
-  if (!session) redirect("/sign-in?next=/dashboard/roles");
-  if (!role || !ADMIN_ROLES.includes(role)) redirect("/dashboard");
+  await requireArea("@roles");
 
-  const [roles, grants, inUse] = await Promise.all([listRoles(), allGrants(), rolesInUse()]);
+  const [roles, grants] = await Promise.all([knownRoles(), allGrants()]);
   const index = grantIndex(grants);
-
-  // Every role an account could hold, not only the registered ones: the admin plugin's
-  // default is "user", and a role assigned with `flare user:role` before anybody opened
-  // this screen exists whether or not it was registered here. Showing it is how you
-  // discover you have one.
-  const known = new Map(roles.map((entry) => [entry.name, entry]));
-  for (const name of [...ADMIN_ROLES, "user", ...inUse]) {
-    if (!known.has(name)) known.set(name, { name, label: name });
-  }
+  const granted = (key: string, action: string) => [...(index.get(`${key}.${action}`) ?? [])];
 
   const resources: MatrixResource[] = allResources().map((resource) => {
     const policy = codePolicy(resource.name);
     const fromCode: Record<string, string[]> = {};
-    const granted: Record<string, string[]> = {};
+    const open: Record<string, string[]> = {};
     for (const action of GRANTABLE) {
       fromCode[action] = policy ? policy[action] : [];
-      granted[action] = [...(index.get(`${resource.name}.${action}`) ?? [])];
+      open[action] = granted(resource.name, action);
     }
-    return { name: resource.name, pluralLabel: resource.pluralLabel, restricted: Boolean(policy), fromCode, granted };
+    return { name: resource.name, pluralLabel: resource.pluralLabel, restricted: Boolean(policy), fromCode, granted: open };
   });
+
+  // ADMIN_ROLES is the floor for every area, so those ticks are locked for the same
+  // reason a policy file's are: this screen widens, it never narrows.
+  const areas: MatrixArea[] = dashboardAreas().map((area) => ({
+    id: area.id,
+    label: area.label,
+    blurb: area.blurb,
+    actions: area.actions,
+    locked: area.locked ?? {},
+    caution: area.caution,
+    fromCode: Object.fromEntries(area.actions.map((action) => [action, ADMIN_ROLES])),
+    granted: Object.fromEntries(area.actions.map((action) => [action, granted(area.id, action)])),
+  }));
 
   return (
     <>
       <PageHeader
         title="Roles & permissions"
-        description="What each role may do, per resource. Policy files set the floor; what you tick here widens it."
+        description="What each role may do — your resources, and the dashboard's own pages. Code sets the floor; what you tick here widens it."
         crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Roles & permissions" }]}
       />
-      <RoleMatrix roles={[...known.values()]} resources={resources} adminRoles={ADMIN_ROLES} />
+      <RoleMatrix roles={roles} resources={resources} areas={areas} adminRoles={ADMIN_ROLES} />
     </>
   );
 }

@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { LocalTime } from "@/components/dashboard/local-time";
 import { StatCards, type Stat } from "@/components/dashboard/stat-card";
 import { auditCount, recentAudit } from "@/lib/audit";
-import { recordCount, requireDashboard, resourcePath, visibleResources } from "@/lib/dashboard";
+import { recordCount, requireArea, resourcePath, visibleResources } from "@/lib/dashboard";
 import { prisma } from "@/lib/db";
 
 export const metadata = { title: "Observability" };
@@ -30,7 +30,7 @@ const ACTION_TONE: Record<string, "secondary" | "destructive" | "outline"> = {
  * three dashes and calling them "not connected".
  */
 export default async function ObservabilityPage() {
-  await requireDashboard("/dashboard/observability");
+  await requireArea("@observability");
 
   const [resources, changes, audit, people, sessions] = await Promise.all([
     visibleResources(),

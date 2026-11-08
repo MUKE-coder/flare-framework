@@ -41,7 +41,7 @@ export function UserAvatar({ user, className }: { user: DashboardUser; className
  * settings, so linking each of them here was the same door four times. "Manage roles"
  * appears for the people who can use it.
  */
-export function UserMenuItems({ user, isAdmin = false }: { user: DashboardUser; isAdmin?: boolean }) {
+export function UserMenuItems({ user, canManageRoles = false }: { user: DashboardUser; canManageRoles?: boolean }) {
   const signOut = async () => {
     await authClient.signOut();
     window.location.assign("/sign-in");
@@ -64,7 +64,7 @@ export function UserMenuItems({ user, isAdmin = false }: { user: DashboardUser; 
             Account settings
           </Link>
         </DropdownMenuItem>
-        {isAdmin && (
+        {canManageRoles && (
           <DropdownMenuItem asChild>
             <Link href="/dashboard/roles">
               <ShieldIcon />

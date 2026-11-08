@@ -70,6 +70,65 @@ re-running with `--roles` rewrites just that block, hand-written code
 around it survives, and a hand edit inside it blocks the rewrite until
 `--force`. Removing a resource removes its policy with it.
 
+## From the dashboard: grants
+
+`/dashboard/roles` is the same model with a grid in front of it. Create a
+role, delete one, and tick what it may do — per resource and per action,
+and for the dashboard's own pages too.
+
+**The policy file is the floor and a tick only ever widens it.** Nothing
+in a running app can take away access your code grants, which is why a
+tick that came from a file is shown locked with the filename in its
+tooltip. The reasoning is in `withGrants` (`@flaredev/core`) and the short
+version is that a row in a table must never be able to lock an app out, or
+quietly restrict something the code left open.
+
+Two corners worth knowing:
+
+- A resource with **no** policy file is open to every signed-in user, so
+  grants on it do nothing. The row says so and gives the command that
+  restricts it, rather than offering ticks that change nothing.
+- Roles already held by an account appear whether or not they were
+  registered, because `flare user:role someone auditor` is a complete way
+  to make one.
+
+### The dashboard's own pages
+
+Users, Roles, Observability and everything under **Platform** are not
+resources — they have no descriptor and no policy file — so they are
+granted as **areas**, listed in `lib/areas.ts`:
+
+```ts
+{ id: "@observability", label: "Observability", href: "/dashboard/observability", actions: ["read"] }
+```
+
+`ADMIN_ROLES` (`lib/dashboard.ts`) is the floor for every area, the way a
+policy file is for a resource: an admin always reaches all of them, and
+those ticks are locked. Everything else is yours to give — so a support
+role can read the audit log without being handed the rest of the app.
+
+Each page enforces its own area server-side with `requireArea`, and the
+sidebar only lists what you may open:
+
+```ts
+export default async function ObservabilityPage() {
+  await requireArea("@observability");
+  // …
+}
+```
+
+The list is derived from the sidebar, so a page added by
+`flare gen security` is grantable the moment it appears. Two actions are
+locked whoever you are:
+
+- **Users · create and update.** Better Auth's `admin` plugin decides who
+  may make an account, set a role or ban somebody — `adminRoles` in
+  `lib/auth.ts`, which is `["admin"]` out of the box. Widen it there and
+  the buttons follow. Reading the list is an ordinary grant.
+- **Roles · update** is the one to think about before you give it away. A
+  role that may change that screen can grant itself everything else on
+  it. The row says so.
+
 ## Per-record ownership
 
 "Users see only their own records" is the first thing most apps need after

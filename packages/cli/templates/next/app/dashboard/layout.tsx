@@ -5,8 +5,9 @@ import { DashboardHeader, type Notice, type Theme } from "@/components/dashboard
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import { prisma } from "@/lib/db";
 import { authConfig, twoFactorAvailable } from "@/lib/auth-config";
+import { areaId } from "@/lib/areas";
 import { dashboardLinks } from "@/lib/dashboard-nav";
-import { ADMIN_ROLES, visibleResources } from "@/lib/dashboard";
+import { visibleAreas, visibleResources } from "@/lib/dashboard";
 import { requireSession } from "@/lib/session";
 import { listViews } from "@/lib/views";
 
@@ -14,9 +15,9 @@ import { listViews } from "@/lib/views";
  * The frame around every signed-in page: the app's resources in the sidebar, the
  * account menu in the header and in the sidebar's footer.
  *
- * Everyone signed in gets a dashboard. What's in it depends on the policies: the
- * sidebar lists only the resources this person may read, and the sections that manage
- * the app itself are for ADMIN_ROLES (lib/dashboard.ts).
+ * Everyone signed in gets a dashboard. What's in it depends on the permissions: the
+ * sidebar lists only the resources this person may read, and only the pages of the
+ * dashboard itself they have been granted (lib/areas.ts).
  */
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user } = await requireSession("/dashboard");
@@ -49,13 +50,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
       : []),
   ];
 
+  // Both lists are filtered here rather than in the sidebar: the sidebar is a client
+  // component, and which pages exist is a server question.
+  const areas = await visibleAreas(role);
+  const links = dashboardLinks.filter((link) => areas.includes(areaId(link.href)));
+
   const account = { name: user.name, email: user.email, image: (user as { image?: string | null }).image };
 
   return (
     <SidebarProvider defaultOpen={!collapsed}>
-      <DashboardSidebar appName="__APP_TITLE__" resources={resources} links={dashboardLinks} isAdmin={ADMIN_ROLES.includes(role)} user={account} />
+      <DashboardSidebar appName="__APP_TITLE__" resources={resources} links={links} areas={areas} user={account} />
       <SidebarInset>
-        <DashboardHeader user={account} initialTheme={theme} notices={notices} isAdmin={ADMIN_ROLES.includes(role)} />
+        <DashboardHeader user={account} initialTheme={theme} notices={notices} canManageRoles={areas.includes("@roles")} />
         <main className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8">{children}</main>
       </SidebarInset>
       <Toaster theme={theme} />

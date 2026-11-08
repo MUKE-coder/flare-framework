@@ -11,7 +11,7 @@ import { StatCards, type Stat } from "@/components/dashboard/stat-card";
 import { TrafficChart } from "@/components/dashboard/traffic-chart";
 import { auditCount, recentAudit } from "@/lib/audit";
 import { workerAnalytics } from "@/lib/analytics";
-import { recordCount, requireDashboard, resourcePath, visibleResources } from "@/lib/dashboard";
+import { recordCount, requireArea, resourcePath, visibleResources } from "@/lib/dashboard";
 import { site } from "@/lib/site";
 
 export const metadata = { title: "Observability" };
@@ -26,7 +26,7 @@ const ACTION_TONE: Record<string, "secondary" | "destructive" | "outline"> = {
 
 /** How the app is behaving: traffic from Cloudflare, size from the database, and who changed what. */
 export default async function ObservabilityPage() {
-  await requireDashboard("/dashboard/observability");
+  await requireArea("@observability");
 
   const [analytics, resources, changes, audit] = await Promise.all([
     workerAnalytics(site.name.toLowerCase().replace(/[^a-z0-9-]+/g, "-")),

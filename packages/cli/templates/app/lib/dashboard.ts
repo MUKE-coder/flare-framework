@@ -6,7 +6,8 @@ import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import { createResourceStore, drizzleRows, type ResourceStore } from "@/lib/resource";
 import { getDb } from "@/db";
 import { policies } from "@/policies";
-import { effectivePolicy } from "./permissions";
+import { areaOrFloor, areaPolicy, dashboardAreas, type AreaAction, type DashboardArea } from "./areas";
+import { allGrants, effectivePolicy, listRoles, rolesInUse } from "./permissions";
 import { resourceTables } from "@/resources/server";
 import { currentUser } from "./api";
 import { auth } from "./auth";
@@ -34,10 +35,66 @@ export async function dashboardSession() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return { session: null, role: null, allowed: false } as const;
   const role = (session.user as { role?: string | null }).role ?? null;
-  const readable = (await Promise.all(allResources().map((resource) => effectivePolicy(resource.name)))).some((policy) =>
-    can(policy, role, "read"),
-  );
-  return { session, role, allowed: (role !== null && ADMIN_ROLES.includes(role)) || readable } as const;
+  const [resourcePolicies, grants] = await Promise.all([
+    Promise.all(allResources().map((resource) => effectivePolicy(resource.name))),
+    allGrants(),
+  ]);
+  const readable = resourcePolicies.some((policy) => can(policy, role, "read"));
+  // A role granted one of the dashboard's own pages and no resource at all still has
+  // somewhere to be: without this, granting "Observability" to support would show the
+  // link and then bounce them off the dashboard on the way to it.
+  const area = dashboardAreas().some((entry) => can(areaPolicy(entry, ADMIN_ROLES, grants), role, "read"));
+  return { session, role, allowed: (role !== null && ADMIN_ROLES.includes(role)) || readable || area } as const;
+}
+
+/** The policy enforced for one of the dashboard's own pages. See lib/areas.ts. */
+export async function policyForArea(area: DashboardArea): Promise<Policy> {
+  return areaPolicy(area, ADMIN_ROLES, await allGrants());
+}
+
+/** Whether the signed-in user may do `action` in a dashboard area. */
+export async function canArea(id: string, action: AreaAction = "read"): Promise<boolean> {
+  const { role } = await dashboardSession();
+  return can(await policyForArea(areaOrFloor(id)), role, action);
+}
+
+/** The ids of the areas this role may open, for the sidebar and the account menu. */
+export async function visibleAreas(role: string | null): Promise<string[]> {
+  const grants = await allGrants();
+  return dashboardAreas()
+    .filter((area) => can(areaPolicy(area, ADMIN_ROLES, grants), role, "read"))
+    .map((area) => area.id);
+}
+
+/**
+ * For one of the dashboard's own pages: signed in, then granted.
+ *
+ * The counterpart of {@link requireAccess} for the pages that have no descriptor — and
+ * the only gate those pages need, so a page that forgets it is a page with none.
+ */
+export async function requireArea(id: string, action: AreaAction = "read") {
+  const area = areaOrFloor(id);
+  const { session, role } = await dashboardSession();
+  if (!session) redirect(`/sign-in?next=${encodeURIComponent(area.href)}`);
+  if (!can(await policyForArea(area), role, action)) redirect("/dashboard?error=forbidden");
+  return { session, role };
+}
+
+/**
+ * Every role this app knows about, for the pickers that offer one.
+ *
+ * Three sources, because a role can arrive three ways: registered from the roles screen
+ * or `flare role:add`, built in (ADMIN_ROLES and the admin plugin's "user"), or simply
+ * held by an account that `flare user:role` gave it to. A picker that listed only the
+ * first would hide a role you had just created, which is what it used to do.
+ */
+export async function knownRoles(): Promise<{ name: string; label: string }[]> {
+  const [registered, inUse] = await Promise.all([listRoles(), rolesInUse()]);
+  const known = new Map(registered.map((entry) => [entry.name, entry]));
+  for (const name of [...ADMIN_ROLES, "user", ...inUse]) {
+    if (!known.has(name)) known.set(name, { name, label: name });
+  }
+  return [...known.values()];
 }
 
 /** For admin pages: redirects signed-out visitors to sign-in and users without access to the home page. */

@@ -11,4 +11,4 @@ export const RELEASE_URL = `https://github.com/MUKE-coder/flare-framework/releas
  * the version beside it can never disagree with the version in package.json. The hero
  * pill reads it.
  */
-export const RELEASE_HEADLINE = "An account to sign in with from day one, on Prisma 7";
+export const RELEASE_HEADLINE = "Roles that cover the dashboard itself, not just your resources";

@@ -6,7 +6,7 @@ import { CostEstimator } from "@/components/dashboard/cost-estimator";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatCards } from "@/components/dashboard/stat-card";
 import { compact, FREE, gb } from "@/lib/costs";
-import { requireDashboard, resourceStats, visibleResources } from "@/lib/dashboard";
+import { requireArea, resourceStats, visibleResources } from "@/lib/dashboard";
 import { storedBytes } from "@/lib/usage";
 
 export const metadata = { title: "Costs" };
@@ -20,7 +20,7 @@ export const metadata = { title: "Costs" };
  * analytics, behind an API token this app doesn't hold and shouldn't need.
  */
 export default async function CostsPage() {
-  await requireDashboard("/dashboard/costs");
+  await requireArea("@dashboard-costs");
   const resources = await visibleResources();
 
   const [counts, stored] = await Promise.all([

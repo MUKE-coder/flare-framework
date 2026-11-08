@@ -8,8 +8,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { LocalTime } from "@/components/dashboard/local-time";
 import { InviteForm } from "@/components/dashboard/invite-form";
 import { authConfig } from "@/lib/auth-config";
-import { ADMIN_ROLES, requireDashboard } from "@/lib/dashboard";
-import { currentUser } from "@/lib/api";
+import { canArea, requireArea } from "@/lib/dashboard";
 import { listInvitations } from "@/lib/invitations";
 import { cancelInvitation, issueInvitation } from "./actions";
 
@@ -23,9 +22,11 @@ export const metadata = { title: "Invitations" };
  * link that looks like a gate and is not one.
  */
 export default async function InvitationsPage() {
-  await requireDashboard("/dashboard/invitations");
-  const account = await currentUser();
-  const isAdmin = Boolean(account && ADMIN_ROLES.includes(account.role ?? ""));
+  await requireArea("@dashboard-invitations");
+  const [mayInvite, mayRevoke] = await Promise.all([
+    canArea("@dashboard-invitations", "create"),
+    canArea("@dashboard-invitations", "delete"),
+  ]);
   const invitations = authConfig.signup === "invite" ? await listInvitations() : [];
 
   return (
@@ -43,14 +44,14 @@ export default async function InvitationsPage() {
         </Alert>
       )}
 
-      {authConfig.signup === "invite" && !isAdmin && (
+      {authConfig.signup === "invite" && !mayInvite && (
         <Alert>
           <AlertTitle>Admins only</AlertTitle>
           <AlertDescription>Your role cannot issue invitations.</AlertDescription>
         </Alert>
       )}
 
-      {authConfig.signup === "invite" && isAdmin && (
+      {authConfig.signup === "invite" && mayInvite && (
         <Card>
           <CardHeader>
             <CardTitle>Invite somebody</CardTitle>
@@ -100,7 +101,7 @@ export default async function InvitationsPage() {
                         <LocalTime value={invitation.expiresAt.toISOString()} />
                       </TableCell>
                       <TableCell>
-                        {isAdmin && (
+                        {mayRevoke && (
                           <form action={cancelInvitation.bind(null, invitation.id)}>
                             <button type="submit" className="text-sm text-destructive underline-offset-4 hover:underline">
                               Revoke

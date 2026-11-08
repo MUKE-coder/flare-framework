@@ -35,6 +35,20 @@ export interface MatrixResource {
   granted: Record<string, string[]>;
 }
 
+/** One of the dashboard's own pages. See lib/areas.ts for where these come from. */
+export interface MatrixArea {
+  id: string;
+  label: string;
+  blurb: string;
+  /** The actions that mean something here; the rest of the row is blank. */
+  actions: string[];
+  /** Actions another layer owns, and why — shown locked, whoever the role is. */
+  locked: Record<string, string>;
+  caution?: string;
+  fromCode: Record<string, string[]>;
+  granted: Record<string, string[]>;
+}
+
 export interface MatrixRole {
   name: string;
   label: string;
@@ -53,8 +67,22 @@ const ACTIONS = ["read", "create", "update", "delete"] as const;
  * A resource with no policy file is open to every signed-in user. Ticking boxes on it
  * would change nothing, so the row says so and points at the command that restricts it,
  * rather than offering controls that quietly do nothing.
+ *
+ * The second grid is the dashboard's own pages — Users, this screen, Observability, and
+ * whatever is under Platform. They behave identically, with ADMIN_ROLES as the floor
+ * instead of a policy file, so one mental model covers both.
  */
-export function RoleMatrix({ roles, resources, adminRoles }: { roles: MatrixRole[]; resources: MatrixResource[]; adminRoles: string[] }) {
+export function RoleMatrix({
+  roles,
+  resources,
+  areas,
+  adminRoles,
+}: {
+  roles: MatrixRole[];
+  resources: MatrixResource[];
+  areas: MatrixArea[];
+  adminRoles: string[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [selected, setSelected] = useState(roles[0]?.name ?? "");
@@ -167,7 +195,7 @@ export function RoleMatrix({ roles, resources, adminRoles }: { roles: MatrixRole
       {role && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">What {role.label} may do</CardTitle>
+            <CardTitle className="text-base">What {role.label} may do with your data</CardTitle>
             <CardDescription>
               A locked tick comes from the resource&apos;s policy file and can only be changed there. Everything else is yours.
             </CardDescription>
@@ -259,6 +287,97 @@ export function RoleMatrix({ roles, resources, adminRoles }: { roles: MatrixRole
                 <UnlockIcon className="size-3.5" /> no policy — open to everyone signed in
               </span>
               <Badge variant="secondary">Grants widen a policy; they never narrow one.</Badge>
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {role && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">…and in the dashboard itself</CardTitle>
+            <CardDescription>
+              The pages that are not resources. {adminRoles.join(" and ")} always reach all of them — that is the floor, and it is why
+              those ticks are locked.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Page</TableHead>
+                    {ACTIONS.map((action) => (
+                      <TableHead key={action} className="w-24 text-center capitalize">
+                        {action}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {areas.map((area) => (
+                    <TableRow key={area.id}>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{area.label}</span>
+                          <span className="text-xs text-muted-foreground">{area.blurb}</span>
+                          {area.caution && <span className="mt-0.5 text-xs text-warning">{area.caution}</span>}
+                        </div>
+                      </TableCell>
+                      {ACTIONS.map((action) => {
+                        // An action this page doesn't have: nothing to say, so nothing is
+                        // shown. A disabled checkbox there would read as "not yet".
+                        if (!area.actions.includes(action)) {
+                          return (
+                            <TableCell key={action} className="text-center text-muted-foreground/40">
+                              —
+                            </TableCell>
+                          );
+                        }
+                        const owner = area.locked[action];
+                        const inFloor = (area.fromCode[action] ?? []).includes(role.name);
+                        if (owner || inFloor) {
+                          return (
+                            <TableCell key={action} className="text-center">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className={`inline-flex ${inFloor ? "text-success" : "text-muted-foreground"}`}>
+                                    <LockIcon className="size-4" aria-label={inFloor ? "Always allowed" : "Decided elsewhere"} />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {inFloor ? `${role.label} always has this: ADMIN_ROLES in lib/dashboard.ts.` : owner}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TableCell>
+                          );
+                        }
+                        return (
+                          <TableCell key={action} className="text-center">
+                            <Checkbox
+                              checked={(area.granted[action] ?? []).includes(role.name)}
+                              disabled={pending}
+                              aria-label={`${role.label} may ${action} ${area.label.toLowerCase()}`}
+                              onCheckedChange={(next) =>
+                                run(() => setGrantAction({ role: role.name, resource: area.id, action, granted: next === true }))
+                              }
+                            />
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <LockIcon className="size-3.5 text-success" /> always allowed — ADMIN_ROLES
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <LockIcon className="size-3.5" /> owned by another layer; the tooltip says which
+              </span>
+              <span>— this page has no such action</span>
             </p>
           </CardContent>
         </Card>

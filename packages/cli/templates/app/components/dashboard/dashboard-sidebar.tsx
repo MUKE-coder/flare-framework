@@ -53,35 +53,37 @@ function byGroup(resources: NavResource[]): [string, NavResource[]][] {
  * descriptor's `icon`, the label from its plural label, and the active item from the
  * current path.
  */
-/** Sections every dashboard has, whatever resources the app defines. */
+/** Everybody's own account. Not grantable: it is their account. */
 const ACCOUNT_LINKS = [{ href: "/dashboard/account", label: "Account", icon: UserCircleIcon }];
 // Security has its own page once `flare gen security` runs, which adds its link to
-// lib/dashboard-nav.ts; users and observability ship with every app.
+// lib/dashboard-nav.ts; users and observability ship with every app. `area` is the key
+// the roles screen grants (lib/areas.ts) — these appear for whoever has been given them,
+// not for ADMIN_ROLES alone.
 const ADMIN_LINKS = [
-  { href: "/dashboard/users", label: "Users", icon: UsersIcon },
-  { href: "/dashboard/roles", label: "Roles", icon: ShieldIcon },
-  { href: "/dashboard/observability", label: "Observability", icon: ActivityIcon },
+  { href: "/dashboard/users", label: "Users", icon: UsersIcon, area: "@users" },
+  { href: "/dashboard/roles", label: "Roles", icon: ShieldIcon, area: "@roles" },
+  { href: "/dashboard/observability", label: "Observability", icon: ActivityIcon, area: "@observability" },
 ];
 
 export function DashboardSidebar({
   appName,
   resources,
   links = [],
-  isAdmin = false,
+  areas = [],
   user,
 }: {
   appName: string;
   resources: NavResource[];
-  /** Extra pages (see lib/dashboard-nav.ts), shown under "Platform". */
+  /** Extra pages (see lib/dashboard-nav.ts), already filtered to the ones this person may open. */
   links?: Array<{ label: string; href: string; icon: string }>;
-  /** Whether to show the sections that manage the app itself. */
-  isAdmin?: boolean;
+  /** The dashboard areas this person may open, by id (lib/areas.ts). */
+  areas?: string[];
   user: DashboardUser;
 }) {
   const pathname = usePathname();
   // A saved view is the query it was saved with, so the one you're on is the one that matches.
   const search = useSearchParams().toString();
-  const manage = [...ACCOUNT_LINKS, ...(isAdmin ? ADMIN_LINKS : [])];
+  const manage = [...ACCOUNT_LINKS, ...ADMIN_LINKS.filter((link) => areas.includes(link.area))];
 
   return (
     <Sidebar collapsible="icon">
@@ -221,7 +223,7 @@ export function DashboardSidebar({
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-60">
-                <UserMenuItems user={user} isAdmin={isAdmin} />
+                <UserMenuItems user={user} canManageRoles={areas.includes("@roles")} />
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>

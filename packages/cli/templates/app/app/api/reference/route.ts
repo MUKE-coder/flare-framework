@@ -1,11 +1,20 @@
 import { apiDocs } from "@/lib/api-docs";
+import { canArea } from "@/lib/dashboard";
 
 /** Scalar's API reference, pinned to one release, reading /api/openapi.json. */
 const SCALAR = "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.71.0";
 
 const escape = (text: string) => text.replace(/[&<>"]/g, (char) => `&#${char.charCodeAt(0)};`);
 
-export function GET() {
+export async function GET() {
+  // The roles screen grants this page, so the tick there has to mean something: without
+  // this check, unticking it would only hide the sidebar link and the URL would still
+  // work. `visibility: "public"` is the deliberate exception — it says the document is
+  // for everyone, visitors included, and that is not ours to override.
+  if (apiDocs.visibility !== "public" && !(await canArea("@api-reference"))) {
+    return new Response("Not found", { status: 404 });
+  }
+
   const config = {
     url: "/api/openapi.json",
     theme: "default",

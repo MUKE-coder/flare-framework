@@ -64,6 +64,7 @@ either stack.
 ## Other
 
 - `flare user:role <email> <role>` — make someone an admin
+- `flare role:add <name> [--label]` — register a role, on either stack
 - `flare theme [name]` — switch the look
 - `flare sync-types` — regenerate after editing descriptors by hand
 - `flare gen resource --help` — the field grammar, inline
